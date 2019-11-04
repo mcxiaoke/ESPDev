@@ -11,4 +11,9 @@ build
 Objects
 Backup Of *
 config.h
+__pycache__
+*.pyc
 .vscode
+config.py
+config.ini
+config.json
