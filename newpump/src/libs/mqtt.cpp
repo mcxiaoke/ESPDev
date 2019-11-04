@@ -12,6 +12,11 @@ static string getDeviceId() {
   return mac.substr(mac.length() / 2);
 }
 
+static void mqttFileLog(const String& text) {
+  LOGN(text);
+  fileLog(text, logFileName("mqtt"), true);
+}
+
 MqttManager::MqttManager(const char* server,
                          const int port,
                          const char* username,
@@ -121,20 +126,21 @@ void MqttManager::connect() {
     if (_mqtt->connect(getClientId().c_str(), getUser().c_str(),
                        getPass().c_str(), getStatusTopic().c_str(), MQTTQOS2,
                        true, "Offline")) {
-      LOG("[MQTT] Connected to ");
-      LOG(_server);
-      LOG(" as client:");
-      LOGN(getClientId());
+      String msg = "[MQTT] Connected to ";
+      msg += _server;
+      msg += " as ";
+      msg += getClientId();
+      mqttFileLog(msg);
       sendOnline();
       _mqtt->subscribe("test");
       _mqtt->subscribe(getCmdTopic().c_str());
-      //   statusReport();
+
     } else {
       LOGN("[MQTT] Connect failed, rc=");
       LOG(_mqtt->state());
       LOGN("[MQTT] Connect try again in 5 seconds");
       // Wait 3 seconds before retrying
-      delay(2000);
+      delay(3000);
     }
   }
 }
@@ -146,17 +152,18 @@ void MqttManager::check() {
     // Attempt to connect
     if (_mqtt->connect(getClientId().c_str(), getUser().c_str(),
                        getPass().c_str())) {
-      LOG("[MQTT] Reconnected to ");
-      LOG(_server);
-      LOG(" as client:");
-      LOGN(getClientId());
+      String msg = "[MQTT] Reconnected to ";
+      msg += _server;
+      msg += " as ";
+      msg += getClientId();
+      mqttFileLog(msg);
       sendOnline();
       _mqtt->subscribe("test");
       _mqtt->subscribe(getCmdTopic().c_str());
-      //   statusReport();
+      mqttFileLog("Reconnected");
     } else {
       LOG("[MQTT] Reconnect failed, rc=");
-      LOG(_mqtt->state());
+      LOGN(_mqtt->state());
     }
   } else {
     // LOGN("[MQTT] Connection is stable");
@@ -181,14 +188,16 @@ void MqttManager::handleMessage(const char* _topic,
   string message(_payload, _payload + std::min(_length, COMMAND_MAX_LENGTH));
   // replace newline for log print
   message = extstring::replace_all(message, "\n", " ");
-  LOGF("[MQTT][%s][%s] '%s' (%d)\n", timeString().c_str(), topic.c_str(),
-       message.substr(0, 64).c_str(), _length);
+  extstring::trim(message);
+  char logBuf[message.size() + topic.size() + 24];
+  snprintf(logBuf, COMMAND_MAX_LENGTH + 24, "[MQTT][%s] %s (%d)", topic.c_str(),
+           message.c_str(), _length);
+  mqttFileLog(logBuf);
   if (!isCommand(topic)) {
     LOGN(F("[MQTT] Not a command"));
     sendLog("What?");
     return;
   }
-  extstring::trim(message);
   if (!checkCommand(message)) {
     LOGN(F("[MQTT] Command must start with /"));
     sendLog("What?");

@@ -15,13 +15,17 @@ static time_t upTimestamp = 0;  // in seconds
 
 String listFiles() {
   String output = "";
-  Serial.println(F("[System] SPIFFS Files:"));
+//   Serial.println(F("[System] SPIFFS Files:"));
 #if defined(ESP8266)
 
   Dir f = SPIFFS.openDir("/");
   while (f.next()) {
-    Serial.printf("[File] %s (%d bytes)\n", f.fileName().c_str(), f.fileSize());
+    // Serial.printf("[File] %s (%d bytes)\n", f.fileName().c_str(),
+    // f.fileSize());
     output += f.fileName();
+    output += " (";
+    output += f.fileSize();
+    output += " bytes)";
     output += "\n";
   };
 
@@ -32,9 +36,9 @@ String listFiles() {
     while (f) {
       Serial.printf("[File] %s (%d bytes)\n", f.name(), f.size());
       output += f.name();
-      // output += " (";
-      // output += f.fileSize();
-      // output += ")";
+      output += " (";
+      output += f.size();
+      output += " bytes)";
       output += "\n";
       f = root.openNextFile();
     };
@@ -91,29 +95,30 @@ void showESP() {
 #endif
 }
 
-String logFileName() {
+String logFileName(const String& suffix) {
   String fileName = "/file/log-";
   fileName += dateString();
+  if (suffix.length() > 0) {
+    fileName += "-";
+    fileName += suffix;
+  }
   fileName += ".txt";
   return fileName;
 }
 
-size_t fileLog(const String& text, bool appendDate) {
+size_t fileLog(const String& text, const String& path, bool appendDate) {
   String message = "";
   if (appendDate) {
     message += "[";
-    message += timeString();
+    message += dateTimeString();
     message += "] ";
   }
   message += text;
-  String fileName = logFileName();
-  size_t c = writeLog(fileName, message);
-  message = "";
-  fileName = "";
+  size_t c = _writeLog(message, path);
   return c;
 }
 
-size_t writeLog(const String& path, const String& text) {
+size_t _writeLog(const String& text, const String& path) {
   File f = SPIFFS.open(path, "a");
   if (!f) {
     return -1;

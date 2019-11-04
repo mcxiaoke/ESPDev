@@ -38,6 +38,7 @@ int runTimerId, mqttTimerId, statusTimerId;
 const char REBOOT_RESPONSE[] PROGMEM =
     "<META http-equiv=\"refresh\" content=\"15;URL=/\">Rebooting...\n";
 const char MIME_TEXT_PLAIN[] PROGMEM = "text/plain";
+const char MIME_TEXT_HTML[] PROGMEM = "text/html";
 
 SimpleTimer timer;
 #if defined(ESP8266)
@@ -60,20 +61,9 @@ void onMqttMessage(const string&, string& message);
 void handleCommand(std::vector<string> args);
 
 size_t debugLog(const String text) {
-  String msg = "[";
-  msg += dateTimeString();
-  msg += "] ";
-  msg += text;
-  LOGN(msg);
   mqttMgr.sendLog(text);
-  File f = SPIFFS.open(logFileName(), "a");
-  if (!f) {
-    return -1;
-  }
-  size_t c = f.print(msg);
-  c += f.print('\n');
-  f.close();
-  return c;
+  return fileLog(text);
+  ;
 }
 
 ////////// Command Handlers Begin //////////

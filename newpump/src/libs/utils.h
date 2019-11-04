@@ -23,9 +23,11 @@ String getMD5(uint8_t* data, uint16_t len);
 String getMD5(const char* data);
 String getMD5(const String& data);
 void showESP();
-String logFileName();
-size_t fileLog(const String& text, bool appendDate);
-size_t writeLog(const String& path, const String& text);
+String logFileName(const String& suffix="");
+size_t fileLog(const String& text,
+               const String& path = logFileName(),
+               bool appendDate = true);
+size_t _writeLog(const String& text, const String& path);
 String readLog(const String& path);
 
 void setTimestamp();

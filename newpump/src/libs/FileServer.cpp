@@ -2,7 +2,7 @@
 
 bool FileServer::handle(SERVER_CLASS* server) {
   String path = server->uri();
-  LOGN("[FileServer] Handling path: " + path);
+  //   LOGN("[FileServer] Handling " + path);
   if (path.endsWith("/"))
     path += "index.html";
   String contentType;
@@ -51,9 +51,9 @@ bool FileServer::handle(SERVER_CLASS* server) {
   // min and gzipped file, best (myscript.min.js.gz)
   if (SPIFFS.exists(prefix + ".min" + ext + ".gz"))
     path = prefix + ".min" + ext + ".gz";
-
+  // if SPIFFS.exists
   if (SPIFFS.exists(path)) {
-    LOGN("[FileServer] Sending file:" + path);
+    LOGN("[FileServer] Sending " + path);
     File file = SPIFFS.open(path, "r");
     if (server->hasArg("download"))
       server->sendHeader("Content-Disposition", " attachment;");
@@ -70,6 +70,6 @@ bool FileServer::handle(SERVER_CLASS* server) {
     }
     file.close();
     return true;
-  }  // if SPIFFS.exists
+  }
   return false;
 }
