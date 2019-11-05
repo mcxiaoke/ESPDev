@@ -12,7 +12,7 @@ string CommandParam::toString() const {
     s.append(" ").append(arg);
   }
   s.append("}");
-  s.erase(1,1);
+  s.erase(1, 1);
   return s;
 }
 
@@ -65,11 +65,12 @@ vector<Command*> CommandManager::getCommands() {
   return vs;
 }
 
-string CommandManager::getHelpDoc() {
-  string s("Commands: \n");
+String CommandManager::getHelpDoc() {
+  String s("Commands: \n");
   for (auto const& kvp : _handlers) {
     auto const cmd = kvp.second;
-    s.append(cmd.toString()).append("\n");
+    s += cmd.toString().c_str();
+    s += "\n";
   }
   return s;
 }

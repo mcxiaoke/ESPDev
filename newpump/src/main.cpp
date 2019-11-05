@@ -7,12 +7,11 @@
 #include "libs/cmd.h"
 #include "libs/compat.h"
 #include "libs/config.h"
-#include "libs/mqtt.h"
 #include "libs/net.h"
 #include "libs/utils.h"
-
-// #undef PSTR
-// #define PSTR
+#ifdef USING_MQTT
+#include "libs/mqtt.h"
+#endif
 
 using std::string;
 
@@ -46,9 +45,12 @@ ESP8266WebServer server(80);
 #elif defined(ESP32)
 WebServer server(80);
 #endif
+
 ESPUpdateServer otaUpdate(true);
 CommandManager cmdMgr;
+#ifdef USING_MQTT
 MqttManager mqttMgr(MQTT_SERVER, MQTT_PORT, MQTT_USER, MQTT_PASS);
+#endif
 
 void startPump();
 void stopPump();
@@ -59,11 +61,54 @@ String getStatus();
 void statusReport();
 void handleCommand(std::vector<string> args);
 
+////////// MQTT Handlers Begin //////////
+
 size_t debugLog(const String text) {
-  mqttMgr.sendLog(text);
+#ifdef USING_MQTT
+  sendMqttLog(text);
+#endif
   return fileLog(text);
-  ;
 }
+
+void setupMqtt() {
+#ifdef USING_MQTT
+  mqttMgr.begin(handleCommand);
+#else
+  debugLog("MQTT Disabled");
+#endif
+}
+
+void mqttLoop() {
+#ifdef USING_MQTT
+  mqttMgr.loop();
+#endif
+}
+
+void checkMqtt() {
+#ifdef USING_MQTT
+  //   LOGN("checkMqtt");
+  mqttMgr.check();
+#endif
+}
+
+void mqttTimer() {
+#ifdef USING_MQTT
+  timer.setInterval((MQTT_KEEPALIVE * 2 - 3) * 1000L, checkMqtt);
+#endif
+}
+
+void sendMqttStatus(const String& msg) {
+#ifdef USING_MQTT
+  mqttMgr.sendStatus(msg);
+#endif
+}
+
+void sendMqttLog(const String& msg) {
+#ifdef USING_MQTT
+  mqttMgr.sendLog(msg);
+#endif
+}
+/////////// MQTT Handlers End ///////////
 
 ////////// Command Handlers Begin //////////
 
@@ -93,7 +138,7 @@ void cmdClear(const vector<string> args = vector<string>()) {
 
 void cmdFiles(const vector<string> args = vector<string>()) {
   LOGN("cmdFiles");
-  mqttMgr.sendStatus(listFiles());
+  sendMqttStatus(listFiles());
 }
 
 void cmdLogs(const vector<string> args = vector<string>()) {
@@ -101,7 +146,7 @@ void cmdLogs(const vector<string> args = vector<string>()) {
   String logText = F("Go to http://");
   logText += WiFi.localIP().toString();
   logText += logFileName();
-  mqttMgr.sendStatus(logText);
+  sendMqttStatus(logText);
 }
 
 void cmdStatus(const vector<string> args = vector<string>()) {
@@ -119,7 +164,7 @@ void cmdWiFi(const vector<string> args = vector<string>()) {
   wf += WiFi.SSID();
   wf += "\nStatus=";
   wf += WiFi.status();
-  mqttMgr.sendStatus(wf);
+  sendMqttStatus(wf);
 }
 
 uint8_t parsePin(const string& extra) {
@@ -145,12 +190,12 @@ void cmdIOSet(const vector<string> args) {
   }
   uint8_t pin = parsePin(args[1]);
   if (pin == (uint8_t)0xff) {
-    mqttMgr.sendLog(F("Invalid Pin"));
+    sendMqttLog(F("Invalid Pin"));
     return;
   }
   uint8_t value = parseValue(args[2]);
   if (value > (uint8_t)1) {
-    mqttMgr.sendLog(F("Invalid Value"));
+    sendMqttLog(F("Invalid Value"));
     return;
   }
 }
@@ -162,7 +207,7 @@ void cmdIOSetHigh(const vector<string> args) {
   }
   uint8_t pin = parsePin(args[1]);
   if (pin > (uint8_t)0x80) {
-    mqttMgr.sendLog("Invalid Pin");
+    sendMqttLog("Invalid Pin");
     return;
   }
   pinMode(pin, OUTPUT);
@@ -179,7 +224,7 @@ void cmdIOSetLow(const vector<string> args) {
   }
   uint8_t pin = parsePin(args[1]);
   if (pin > (uint8_t)0x80) {
-    mqttMgr.sendLog("Invalid Pin");
+    sendMqttLog("Invalid Pin");
     return;
   }
   pinMode(pin, OUTPUT);
@@ -191,12 +236,12 @@ void cmdIOSetLow(const vector<string> args) {
 
 void cmdHelp(const vector<string> args = vector<string>()) {
   LOGN("cmdHelp");
-  mqttMgr.sendStatus2(cmdMgr.getHelpDoc());
+  sendMqttStatus(cmdMgr.getHelpDoc());
 }
 
 void cmdNotFound(const vector<string> args = vector<string>()) {
   LOGN("cmdNotFound");
-  mqttMgr.sendLog("What?");
+  sendMqttLog("What?");
 }
 
 /////////// Command Handlers End ///////////
@@ -212,7 +257,7 @@ void startPump() {
   digitalWrite(led, LOW);
   timer.setTimeout(RUN_DURATION, stopPump);
   debugLog(F("Pump started"));
-  mqttMgr.sendStatus(F("Pump started"));
+  sendMqttStatus(F("Pump started"));
 }
 
 void stopPump() {
@@ -234,7 +279,7 @@ void stopPump() {
   msg += totalSeconds;
   msg += "s";
   debugLog(msg);
-  mqttMgr.sendStatus(msg);
+  sendMqttStatus(msg);
 }
 
 void checkPump() {
@@ -253,11 +298,6 @@ void checkWiFi() {
   }
 }
 
-void checkMqtt() {
-  //   LOGN("checkMqtt");
-  mqttMgr.check();
-}
-
 String getStatus() {
   auto ts = millis();
   String data = "";
@@ -268,7 +308,11 @@ String getStatus() {
   data += "\nStatus: ";
   data += (digitalRead(pump) == HIGH) ? "Running" : "Idle";
   data += "\nMQTT: ";
+#ifdef USING_MQTT
   data += mqttMgr.isConnected() ? "Connected" : "Disconnected";
+#else
+  data += "Disabled";
+#endif
   data += "\nWiFi: ";
   data += WiFi.localIP().toString();
 #if defined(ESP8266)
@@ -298,7 +342,7 @@ String getStatus() {
 
 void statusReport() {
   LOGN("statusReport");
-  mqttMgr.sendStatus(getStatus());
+  sendMqttStatus(getStatus());
 }
 
 void handleFiles() {
@@ -477,9 +521,9 @@ void setupTimers() {
   LOGN("setupTimers");
   runTimerId = timer.setInterval(RUN_INTERVAL, startPump);
   timer.setInterval(RUN_DURATION / 2 + 2000, checkPump);
-  timer.setInterval((MQTT_KEEPALIVE * 2 - 3) * 1000L, checkMqtt);
   timer.setInterval(5 * 60 * 1000L, checkWiFi);
   timer.setInterval(60 * 60 * 1000L, statusReport);
+  mqttTimer();
 }
 
 void setupCommands() {
@@ -502,13 +546,6 @@ void setupCommands() {
   cmdMgr.addCommand("help", "show help message", cmdHelp);
 }
 
-void setupMqtt() {
-#ifdef DEBUG_MODE
-  mqttMgr.mute(true);
-#endif
-  mqttMgr.begin(handleCommand);
-}
-
 void setup(void) {
   pinMode(led, OUTPUT);
   pinMode(pump, OUTPUT);
@@ -516,18 +553,18 @@ void setup(void) {
   delay(1000);
   showESP();
   fsCheck();
-  setupCommands();
   setupWiFi();
   setupDate();
   setupServer();
   setupTimers();
-  showESP();
   setupMqtt();
-  debugLog(F("System Boot"));
+  setupCommands();
+  showESP();
+  debugLog(F("System is up and running"));
 }
 
 void loop(void) {
-  mqttMgr.loop();
+  mqttLoop();
   server.handleClient();
 #if defined(ESP8266)
   MDNS.update();

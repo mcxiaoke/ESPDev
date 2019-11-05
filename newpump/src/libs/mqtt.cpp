@@ -82,17 +82,7 @@ void MqttManager::sendStatus(const String& text) {
   //   LOGF("[MQTT] send message: [%s]\n", text.c_str());
   bool ret = sendMessage(getStatusTopic().c_str(), text.c_str());
   if (ret) {
-    // LOGN("[MQTT] mqtt message sent successful.");
-  } else {
-    LOGN("[MQTT] mqtt status sent failed.");
-  }
-}
-
-void MqttManager::sendStatus2(const std::string& text) {
-  //   LOGF("[MQTT] send message: [%s]\n", text.c_str());
-  bool ret = sendMessage(getStatusTopic().c_str(), text.c_str());
-  if (ret) {
-    LOGN("[MQTT] mqtt status sent successful.");
+    LOGN("[MQTT] mqtt message sent successful.");
   } else {
     LOGN("[MQTT] mqtt status sent failed.");
   }
@@ -105,14 +95,6 @@ void MqttManager::sendLog(const String& text) {
     LOGN("[MQTT] mqtt log sent successful.");
   } else {
     LOGN("[MQTT] mqtt log sent failed.");
-  }
-}
-
-void MqttManager::sendLog2(const std::string& text) {
-  //   LOGF("[MQTT] send message: [%s]\n", text.c_str());
-  bool ret = sendMessage(getLogTopic().c_str(), text.c_str());
-  if (!ret) {
-    LOGN("[MQTT] mqtt resp sent failed.");
   }
 }
 

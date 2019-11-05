@@ -37,7 +37,7 @@ class CommandManager {
   void removeCommand(Command* cmd);
   void removeCommand(string& name);
   vector<Command*> getCommands();
-  string getHelpDoc();
+  String getHelpDoc();
   void setDefaultHandler(CMD_HANDLER_FUNC handler);
 
  private:

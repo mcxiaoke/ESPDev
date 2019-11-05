@@ -25,9 +25,7 @@ class MqttManager {
   String getPass();
   String getClientId();
   void sendStatus(const String& text);
-  void sendStatus2(const std::string& text);
   void sendLog(const String& text);
-  void sendLog2(const std::string& text);
   void connect();
   void check();
   void begin(CMD_HANDLER_FUNC);

@@ -2,6 +2,7 @@
 #define __ESP__COMPAT__
 
 #define DEBUG_MODE
+//#define USING_MQTT
 #define EANBLE_LOGGING
 
 #include <Arduino.h>

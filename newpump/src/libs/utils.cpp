@@ -114,6 +114,7 @@ size_t fileLog(const String& text, const String& path, bool appendDate) {
     message += "] ";
   }
   message += text;
+  LOGN(message);
   size_t c = _writeLog(message, path);
   return c;
 }
