@@ -32,19 +32,24 @@ class MqttManager {
   void check();
   void begin(CMD_HANDLER_FUNC);
   void loop();
+  void mute(bool silent);
 
  private:
   const char* _server;
   const int _port;
   const char* _username;
   const char* _password;
+  bool _silentMode;
   WiFiClient _client;
   PubSubClient* _mqtt;
   CMD_HANDLER_FUNC _handler;
-  bool isCommand(const string& topic);
+  bool isCommandTopic(const string& topic);
   void handleMessage(const char* topic,
                      const uint8_t* payload,
                      const unsigned int length);
+  boolean sendMessage(const char* topic,
+                      const char* payload,
+                      boolean retained = false);
   void sendOnline();
   string getStatusTopic();
   string getLogTopic();

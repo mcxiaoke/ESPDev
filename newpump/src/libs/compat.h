@@ -1,7 +1,7 @@
 #ifndef __ESP__COMPAT__
 #define __ESP__COMPAT__
 
-//#define DEBUG_MODE
+#define DEBUG_MODE
 #define EANBLE_LOGGING
 
 #include <Arduino.h>

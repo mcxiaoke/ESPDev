@@ -31,6 +31,7 @@ MqttManager::MqttManager(const char* server,
       std::bind(&MqttManager::handleMessage, this, std::placeholders::_1,
                 std::placeholders::_2, std::placeholders::_3);
   _mqtt->setCallback(callback);
+  _silentMode = false;
 }
 
 String MqttManager::getUser() {
@@ -49,7 +50,7 @@ bool MqttManager::isConnected() {
   return _mqtt->connected();
 }
 
-bool MqttManager::isCommand(const string& topic) {
+bool MqttManager::isCommandTopic(const string& topic) {
   return topic == getCmdTopic();
 }
 
@@ -79,7 +80,7 @@ string MqttManager::getCmdTopic() {
 
 void MqttManager::sendStatus(const String& text) {
   //   LOGF("[MQTT] send message: [%s]\n", text.c_str());
-  bool ret = _mqtt->publish(getStatusTopic().c_str(), text.c_str());
+  bool ret = sendMessage(getStatusTopic().c_str(), text.c_str());
   if (ret) {
     // LOGN("[MQTT] mqtt message sent successful.");
   } else {
@@ -89,7 +90,7 @@ void MqttManager::sendStatus(const String& text) {
 
 void MqttManager::sendStatus2(const std::string& text) {
   //   LOGF("[MQTT] send message: [%s]\n", text.c_str());
-  bool ret = _mqtt->publish(getStatusTopic().c_str(), text.c_str());
+  bool ret = sendMessage(getStatusTopic().c_str(), text.c_str());
   if (ret) {
     LOGN("[MQTT] mqtt status sent successful.");
   } else {
@@ -99,7 +100,7 @@ void MqttManager::sendStatus2(const std::string& text) {
 
 void MqttManager::sendLog(const String& text) {
   //   LOGF("[MQTT] send message: [%s]\n", text.c_str());
-  bool ret = _mqtt->publish(getLogTopic().c_str(), text.c_str());
+  bool ret = sendMessage(getLogTopic().c_str(), text.c_str());
   if (ret) {
     LOGN("[MQTT] mqtt log sent successful.");
   } else {
@@ -109,7 +110,7 @@ void MqttManager::sendLog(const String& text) {
 
 void MqttManager::sendLog2(const std::string& text) {
   //   LOGF("[MQTT] send message: [%s]\n", text.c_str());
-  bool ret = _mqtt->publish(getLogTopic().c_str(), text.c_str());
+  bool ret = sendMessage(getLogTopic().c_str(), text.c_str());
   if (!ret) {
     LOGN("[MQTT] mqtt resp sent failed.");
   }
@@ -117,7 +118,7 @@ void MqttManager::sendLog2(const std::string& text) {
 
 void MqttManager::connect() {
   // Loop until we're reconnected
-  int maxRetries = 10;
+  int maxRetries = 5;
   while (!_mqtt->connected() && maxRetries-- > 0) {
     LOGF("[MQTT] Connecting to mqtt://%s:%s@%s\n", getUser().c_str(),
          getPass().c_str(), _server);
@@ -138,14 +139,16 @@ void MqttManager::connect() {
     } else {
       LOGN("[MQTT] Connect failed, rc=");
       LOG(_mqtt->state());
-      LOGN("[MQTT] Connect try again in 5 seconds");
-      // Wait 3 seconds before retrying
+      LOGN("[MQTT] Connect try again in 3 seconds");
       delay(3000);
     }
   }
 }
 
 void MqttManager::check() {
+  if (_silentMode) {
+    return;
+  }
   // Loop until we're reconnected
   if (!_mqtt->connected()) {
     LOGN("[MQTT] Retry connect...");
@@ -160,7 +163,6 @@ void MqttManager::check() {
       sendOnline();
       _mqtt->subscribe("test");
       _mqtt->subscribe(getCmdTopic().c_str());
-      mqttFileLog("Reconnected");
     } else {
       LOG("[MQTT] Reconnect failed, rc=");
       LOGN(_mqtt->state());
@@ -173,11 +175,21 @@ void MqttManager::check() {
 
 void MqttManager::begin(CMD_HANDLER_FUNC handler) {
   _handler = handler;
-  connect();
+  if (!_silentMode) {
+    connect();
+  } else {
+    LOGN(F("[MQTT] Silent Mode, don't connect"));
+  }
 }
 
 void MqttManager::loop() {
-  _mqtt->loop();
+  if (!_silentMode) {
+    _mqtt->loop();
+  }
+}
+
+void MqttManager::mute(bool silent) {
+  _silentMode = silent;
 }
 
 void MqttManager::handleMessage(const char* _topic,
@@ -193,7 +205,7 @@ void MqttManager::handleMessage(const char* _topic,
   snprintf(logBuf, COMMAND_MAX_LENGTH + 24, "[MQTT][%s] %s (%d)", topic.c_str(),
            message.c_str(), _length);
   mqttFileLog(logBuf);
-  if (!isCommand(topic)) {
+  if (!isCommandTopic(topic)) {
     LOGN(F("[MQTT] Not a command"));
     sendLog("What?");
     return;
@@ -212,9 +224,20 @@ void MqttManager::handleMessage(const char* _topic,
   }
 }
 
+bool MqttManager::sendMessage(const char* topic,
+                              const char* payload,
+                              boolean retained) {
+  if (_silentMode) {
+    LOGN("[MQTT] Silent Mode, ignore sendMessage.");
+    return false;
+  } else {
+    return _mqtt->publish(topic, payload, retained);
+  }
+}
+
 void MqttManager::sendOnline() {
   // online message retain
-  bool ret = _mqtt->publish(getStatusTopic().c_str(), "Online", true);
+  bool ret = sendMessage(getStatusTopic().c_str(), "Online", true);
   if (!ret) {
     LOGN("[MQTT] mqtt online sent failed.");
   } else {

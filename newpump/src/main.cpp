@@ -17,7 +17,7 @@
 using std::string;
 
 #ifdef DEBUG_MODE
-const unsigned long RUN_INTERVAL = 60 * 1000UL;
+const unsigned long RUN_INTERVAL = 5 * 60 * 1000UL;
 const unsigned long RUN_DURATION = 18 * 1000UL;
 #else
 const unsigned long RUN_INTERVAL = 6 * 3600 * 1000UL;
@@ -57,7 +57,6 @@ void checkWiFi();
 String getCommands();
 String getStatus();
 void statusReport();
-void onMqttMessage(const string&, string& message);
 void handleCommand(std::vector<string> args);
 
 size_t debugLog(const String text) {
@@ -503,6 +502,13 @@ void setupCommands() {
   cmdMgr.addCommand("help", "show help message", cmdHelp);
 }
 
+void setupMqtt() {
+#ifdef DEBUG_MODE
+  mqttMgr.mute(true);
+#endif
+  mqttMgr.begin(handleCommand);
+}
+
 void setup(void) {
   pinMode(led, OUTPUT);
   pinMode(pump, OUTPUT);
@@ -516,7 +522,7 @@ void setup(void) {
   setupServer();
   setupTimers();
   showESP();
-  mqttMgr.begin(handleCommand);
+  setupMqtt();
   debugLog(F("System Boot"));
 }
 
