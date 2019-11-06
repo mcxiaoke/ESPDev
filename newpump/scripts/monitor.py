@@ -1,15 +1,24 @@
 from datetime import datetime
+import time
 import logging
 import requests
 import re
 import paho.mqtt.client as mqtt
 from config import *
 
+MSG_LIMIT_PER_MIN = 20
+MSG_LIMIT_PER_HOUR = 40
+MSG_LIMIT_PER_DAY = 400
+
+sendCounter = {}
+
+
 def get_full_class_name(obj):
     module = obj.__class__.__module__
     if module is None or module == str.__class__.__module__:
         return obj.__class__.__name__
     return module + '.' + obj.__class__.__name__
+
 
 def get_log_filename():
     dt = datetime.now().strftime("%Y%m")
@@ -35,14 +44,32 @@ logger = logging.getLogger("monitor")
 
 
 def send_report(sender, msg):
-    dtStr = datetime.now().strftime("%m%d%H%M%S")
+    global sendCounter
+    now = datetime.now()
+    min_key = now.strftime("Min:%Y-%m-%d %H:%M")
+    day_key = now.strftime("Day:%Y-%m-%d")
+    min_value = sendCounter.get(min_key, 0)
+    day_value = sendCounter.get(day_key, 0)
+    if min_value > MSG_LIMIT_PER_MIN:
+        logger.warning(
+            'Report exceed limits: {} = {}'.format(min_key, min_value))
+        return
+    if day_value > MSG_LIMIT_PER_DAY:
+        logger.warning(
+            'Report exceed limits: {} = {}'.format(day_key, day_value))
+        return
+    sendCounter[min_key] = min_value + 1
+    sendCounter[day_key] = day_value + 1
+    suffix = now.strftime("%m%d%H%M%S")
+    if len(msg) < 32:
+        suffix = msg
     try:
         data = {
-            "text": "Pump_Status_{}_{}".format(sender, dtStr),
+            "text": "Pump_Status_{}_{}".format(sender, suffix),
             "desp": msg.replace("\n", "  \n"),
         }
         r = requests.post(WX_REPORT_URL, data=data, timeout=5)
-        # print(r.text)
+        print(r.text[0:64])
         if r.ok:
             logger.info("Send %s report successful", sender)
         else:
@@ -50,7 +77,8 @@ def send_report(sender, msg):
             logger.warning("Send %s report failed, status: %s",
                            sender, r.status_code)
     except Exception as e:
-        logger.warning("Send %s report failed: %s", sender,  get_full_class_name(e))
+        logger.warning("Send %s report failed: %s",
+                       sender,  get_full_class_name(e))
 
 
 def on_message(client, userdata, msg):
