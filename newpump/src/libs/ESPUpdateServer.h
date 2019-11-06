@@ -12,6 +12,16 @@
 
 class ESP_SERVER_CLASS;
 
+// template<typename Base, typename T>
+// inline bool instanceof(const T *ptr) {
+//     return dynamic_cast<const Base*>(ptr) != nullptr;
+// }
+
+// class ESPPrivateAccess {
+//  public:
+//   RequestHandler* getLastHandler(ESP_SERVER_CLASS& w) { return w._lastHandler; }
+// };
+
 class ESPUpdateServer
 {
   public:

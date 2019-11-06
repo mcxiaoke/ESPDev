@@ -13,7 +13,6 @@ static string getDeviceId() {
 }
 
 static void mqttFileLog(const String& text) {
-  LOGN(text);
   fileLog(text, logFileName("mqtt"), true);
 }
 
@@ -31,6 +30,11 @@ MqttManager::MqttManager(const char* server,
       std::bind(&MqttManager::handleMessage, this, std::placeholders::_1,
                 std::placeholders::_2, std::placeholders::_3);
   _mqtt->setCallback(callback);
+  auto callback2 =
+      std::bind(&MqttManager::handleStateChange, this, std::placeholders::_1);
+  _mqtt->setCallback2(callback2);
+  _lastOnlineMs = 0;
+  _lastOfflineMs = 0;
   _silentMode = false;
 }
 
@@ -107,12 +111,10 @@ void MqttManager::connect() {
     // Attempt to connect
     // offline will message retain
     if (_mqtt->connect(getClientId().c_str(), getUser().c_str(),
-                       getPass().c_str(), getStatusTopic().c_str(), MQTTQOS2,
+                       getPass().c_str(), getStatusTopic().c_str(), MQTTQOS0,
                        true, "Offline")) {
       String msg = "[MQTT] Connected to ";
       msg += _server;
-      msg += " as ";
-      msg += getClientId();
       mqttFileLog(msg);
       sendOnline();
       _mqtt->subscribe("test");
@@ -131,16 +133,16 @@ void MqttManager::check() {
   if (_silentMode) {
     return;
   }
-  // Loop until we're reconnected
   if (!_mqtt->connected()) {
+    _lastOnlineMs = 0;
+    _lastOfflineMs = millis();
     LOGN("[MQTT] Retry connect...");
     // Attempt to connect
     if (_mqtt->connect(getClientId().c_str(), getUser().c_str(),
-                       getPass().c_str())) {
+                       getPass().c_str(), getStatusTopic().c_str(), MQTTQOS0,
+                       true, "Offline")) {
       String msg = "[MQTT] Reconnected to ";
       msg += _server;
-      msg += " as ";
-      msg += getClientId();
       mqttFileLog(msg);
       sendOnline();
       _mqtt->subscribe("test");
@@ -174,12 +176,23 @@ void MqttManager::mute(bool silent) {
   _silentMode = silent;
 }
 
+void MqttManager::handleStateChange(int state) {
+  LOGF("[MQTT] State changed to %d\n", state);
+}
+
 void MqttManager::handleMessage(const char* _topic,
                                 const uint8_t* _payload,
                                 const unsigned int _length) {
   yield();
   string topic(_topic);
   string message(_payload, _payload + std::min(_length, COMMAND_MAX_LENGTH));
+
+  if (strcmp("test", _topic) == 0) {
+    LOGF("[MQTT] Test message: %s\n", message.c_str());
+    _mqtt->publish("test/resp", message.c_str());
+    return;
+  }
+
   // replace newline for log print
   message = extstring::replace_all(message, "\n", " ");
   extstring::trim(message);
@@ -189,19 +202,22 @@ void MqttManager::handleMessage(const char* _topic,
   mqttFileLog(logBuf);
   if (!isCommandTopic(topic)) {
     LOGN(F("[MQTT] Not a command"));
-    sendLog("What?");
+    // sendLog("What?");
     return;
   }
   if (!checkCommand(message)) {
     LOGN(F("[MQTT] Command must start with /"));
-    sendLog("What?");
+    sendLog(F("Send /help to see available commands"));
     return;
   }
   if (_handler != nullptr) {
     vector<string> args = extstring::split_any(message);
     for (auto arg : args) {
       extstring::trim(arg);
+      //   std::transform(arg.begin(), arg.end(), arg.begin(), ::tolower);
     }
+    // just lower the command
+    // extstring::tolower(args[0]);
     _handler(args);
   }
 }
@@ -218,6 +234,9 @@ bool MqttManager::sendMessage(const char* topic,
 }
 
 void MqttManager::sendOnline() {
+  fileLog("MQTT Connected");
+  // one online message per 30 minutes at most
+  _lastOnlineMs = millis();
   // online message retain
   bool ret = sendMessage(getStatusTopic().c_str(), "Online", true);
   if (!ret) {

@@ -13,7 +13,7 @@ using std::string;
 using MQTT_CALLBACK_FUNC = std::function<void(char*, uint8_t*, unsigned int)>;
 
 class MqttManager {
-  static const unsigned int COMMAND_MAX_LENGTH = 64;
+  static const unsigned int COMMAND_MAX_LENGTH = 128;
 
  public:
   MqttManager(const char* server,
@@ -38,10 +38,13 @@ class MqttManager {
   const char* _username;
   const char* _password;
   bool _silentMode;
+  unsigned long _lastOnlineMs;
+  unsigned long _lastOfflineMs;
   WiFiClient _client;
   PubSubClient* _mqtt;
   CMD_HANDLER_FUNC _handler;
   bool isCommandTopic(const string& topic);
+  void handleStateChange(int state);
   void handleMessage(const char* topic,
                      const uint8_t* payload,
                      const unsigned int length);

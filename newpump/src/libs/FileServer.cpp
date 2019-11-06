@@ -3,6 +3,18 @@
 bool FileServer::handle(SERVER_CLASS* server) {
   String path = server->uri();
   //   LOGN("[FileServer] Handling " + path);
+  String delSuffix = "/delete";
+  if (path.endsWith(delSuffix)) {
+    path = path.substring(0, path.length() - delSuffix.length());
+    if (SPIFFS.exists(path)) {
+      LOGN("[FileServer] Delete " + path);
+      SPIFFS.remove(path);
+      server->sendHeader("Location", "/files", true);
+      server->send(302, "text/html", "");
+      return true;
+    }
+    return false;
+  }
   if (path.endsWith("/"))
     path += "index.html";
   String contentType;
@@ -58,7 +70,7 @@ bool FileServer::handle(SERVER_CLASS* server) {
     if (server->hasArg("download"))
       server->sendHeader("Content-Disposition", " attachment;");
     if (server->uri().indexOf("nocache") < 0)
-      server->sendHeader("Cache-Control", " max-age=172800");
+      server->sendHeader("Cache-Control", " max-age=14400");
 
     // optional alt arg (encoded url), server sends redirect to file on the web
     if (server->hasArg("alt")) {

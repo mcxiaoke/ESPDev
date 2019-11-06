@@ -1,6 +1,7 @@
 #include <Arduino.h>
 #include <Wire.h>
 #include "ext/string/string.hpp"
+#include "ext/utility.hpp"
 #include "libs/ESPUpdateServer.h"
 #include "libs/FileServer.h"
 #include "libs/SimpleTimer.h"
@@ -45,6 +46,7 @@ ESP8266WebServer server(80);
 #elif defined(ESP32)
 WebServer server(80);
 #endif
+// ESPPrivateAccess serverAccess;
 
 ESPUpdateServer otaUpdate(true);
 CommandManager cmdMgr;
@@ -60,6 +62,8 @@ String getCommands();
 String getStatus();
 void statusReport();
 void handleCommand(std::vector<string> args);
+void sendMqttStatus(const String& msg);
+void sendMqttLog(const String& msg);
 
 ////////// MQTT Handlers Begin //////////
 
@@ -93,7 +97,7 @@ void checkMqtt() {
 
 void mqttTimer() {
 #ifdef USING_MQTT
-  timer.setInterval((MQTT_KEEPALIVE * 2 - 3) * 1000L, checkMqtt);
+  timer.setInterval((MQTT_KEEPALIVE * 2 - 5) * 1000L, checkMqtt);
 #endif
 }
 
@@ -241,7 +245,7 @@ void cmdHelp(const vector<string> args = vector<string>()) {
 
 void cmdNotFound(const vector<string> args = vector<string>()) {
   LOGN("cmdNotFound");
-  sendMqttLog("What?");
+  sendMqttLog(F("Send /help to see available commands"));
 }
 
 /////////// Command Handlers End ///////////
@@ -483,7 +487,7 @@ void setupUpdate() {
 }
 
 void handleNotFound() {
-  LOGN("handleNotFound");
+  LOGN("handleNotFound " + server.uri());
   if (!FileServer::handle(&server)) {
     String data = F("ERROR: NOT FOUND\nURI: ");
     data += server.uri();
@@ -515,6 +519,14 @@ void setupServer() {
   server.begin();
   MDNS.addService("http", "tcp", 80);
   LOGN(F("[Server] HTTP server started"));
+
+  //   auto h = serverAccess.getLastHandler(server);
+  //   while (h) {
+  //     if (instanceof <RequestHandler>(h)) {
+  //       // pass
+  //     }
+  //     h = h->next();
+  //   }
 }
 
 void setupTimers() {
@@ -575,10 +587,13 @@ void loop(void) {
 void handleCommand(std::vector<string> args) {
   auto processFunc = [args] {
     showESP();
-    CommandParam param{args[0].substr(1), args};
+    string cmd = extstring::tolower(args[0].substr(1));
+    CommandParam param{cmd, args};
     LOG("[CMD] handleCommand ");
     LOGN(param.toString().c_str());
-    cmdMgr.handle(param);
+    if (!cmdMgr.handle(param)) {
+        LOGN("[CMD] Unknown command");
+    }
     yield();
     showESP();
   };

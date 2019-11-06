@@ -55,6 +55,18 @@ inline string& trim(string& s, const char* t = WHITESPACE_CHARS) {
   return ltrim(rtrim(s, t), t);
 }
 
+inline string tolower(std::string str) {
+  std::transform(str.begin(), str.end(), str.begin(),
+                 [](unsigned char ch) { return std::tolower(ch); });
+  return std::move(str);
+}
+
+inline string toupper(std::string str) {
+  std::transform(str.begin(), str.end(), str.begin(),
+                 [](unsigned char ch) { return std::toupper(ch); });
+  return std::move(str);
+}
+
 inline bool contains(const string& s, const string& target) {
   return s.find(target) != string::npos;
 }
@@ -85,22 +97,6 @@ inline bool has_suffix(const string& s, const string& suffix) {
   }
   return s.length() >= suffix.length() &&
          s.substr(s.length() - suffix.length(), suffix.length()) == suffix;
-}
-
-inline string to_lower(const string& s) {
-  string ret;
-  for (string::const_iterator c = s.begin(); c != s.end(); ++c) {
-    ret += static_cast<char>(tolower(*c));
-  }
-  return ret;
-}
-
-inline string to_upper(const string& s) {
-  string ret;
-  for (string::const_iterator c = s.begin(); c != s.end(); ++c) {
-    ret += static_cast<char>(toupper(*c));
-  }
-  return ret;
 }
 
 inline string& replace_all2(string& s, const string& from, const string& to) {
