@@ -19,9 +19,11 @@ using std::string;
 #ifdef DEBUG_MODE
 const unsigned long RUN_INTERVAL = 5 * 60 * 1000UL;
 const unsigned long RUN_DURATION = 18 * 1000UL;
+const unsigned long STATUS_INTERVAL = 10 * 60 * 1000UL;
 #else
 const unsigned long RUN_INTERVAL = 6 * 3600 * 1000UL;
 const unsigned long RUN_DURATION = 15 * 1000UL;
+const unsigned long STATUS_INTERVAL = 2 * 60 * 60 * 1000UL;
 #endif
 
 const char* ssid = STASSID;
@@ -97,7 +99,7 @@ void checkMqtt() {
 
 void mqttTimer() {
 #ifdef USING_MQTT
-  timer.setInterval((MQTT_KEEPALIVE * 2 - 5) * 1000L, checkMqtt);
+  timer.setInterval((MQTT_KEEPALIVE * 4 - 5) * 1000L, checkMqtt);
 #endif
 }
 
@@ -260,8 +262,11 @@ void startPump() {
   digitalWrite(pump, HIGH);
   digitalWrite(led, LOW);
   timer.setTimeout(RUN_DURATION, stopPump);
-  debugLog(F("Pump started"));
-  sendMqttStatus(F("Pump started"));
+  String msg = F("Pump Started");
+  debugLog(msg);
+  msg += "\n";
+  msg += getStatus();
+  sendMqttStatus(msg);
 }
 
 void stopPump() {
@@ -277,12 +282,10 @@ void stopPump() {
   }
   digitalWrite(pump, LOW);
   digitalWrite(led, HIGH);
-  String msg = F("Pump stopped,last:");
-  msg += lastSeconds;
-  msg += "s,total:";
-  msg += totalSeconds;
-  msg += "s";
+  String msg = F("Pump Stopped");
   debugLog(msg);
+  msg += "\n";
+  msg += getStatus();
   sendMqttStatus(msg);
 }
 
@@ -534,7 +537,7 @@ void setupTimers() {
   runTimerId = timer.setInterval(RUN_INTERVAL, startPump);
   timer.setInterval(RUN_DURATION / 2 + 2000, checkPump);
   timer.setInterval(5 * 60 * 1000L, checkWiFi);
-  timer.setInterval(60 * 60 * 1000L, statusReport);
+  timer.setInterval(STATUS_INTERVAL, statusReport);
   mqttTimer();
 }
 
@@ -592,7 +595,7 @@ void handleCommand(std::vector<string> args) {
     LOG("[CMD] handleCommand ");
     LOGN(param.toString().c_str());
     if (!cmdMgr.handle(param)) {
-        LOGN("[CMD] Unknown command");
+      LOGN("[CMD] Unknown command");
     }
     yield();
     showESP();

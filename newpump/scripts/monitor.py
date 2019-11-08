@@ -11,6 +11,7 @@ MSG_LIMIT_PER_HOUR = 40
 MSG_LIMIT_PER_DAY = 400
 
 sendCounter = {}
+titleCounter = 0
 
 
 def get_full_class_name(obj):
@@ -45,6 +46,7 @@ logger = logging.getLogger("monitor")
 
 def send_report(sender, msg):
     global sendCounter
+    global titleCounter
     now = datetime.now()
     min_key = now.strftime("Min:%Y-%m-%d %H:%M")
     day_key = now.strftime("Day:%Y-%m-%d")
@@ -60,17 +62,22 @@ def send_report(sender, msg):
         return
     sendCounter[min_key] = min_value + 1
     sendCounter[day_key] = day_value + 1
-    suffix = now.strftime("%m%d%H%M%S")
-    if len(msg) < 32:
-        suffix = msg
+    titleCounter += 1
+    first_line = msg and msg.split("\n")[0]
+    # print("first_line=", first_line)
+    if first_line and len(first_line) < 32:
+        suffix = first_line
+    else:
+        suffix = now.strftime("%H%M%S")
     try:
         data = {
-            "text": "Pump_Status_{}_{}".format(sender, suffix),
+            "text": "Pump_Status_{}_{}_{}".format(sender, suffix, titleCounter),
             "desp": msg.replace("\n", "  \n"),
         }
         r = requests.post(WX_REPORT_URL, data=data, timeout=5)
         print(r.text[0:64])
-        if r.ok:
+        if r.ok and 'success' in r.text:
+            logger.info("Sent: %s", data["text"])
             logger.info("Send %s report successful", sender)
         else:
 

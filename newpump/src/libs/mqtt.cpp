@@ -116,6 +116,7 @@ void MqttManager::connect() {
       String msg = "[MQTT] Connected to ";
       msg += _server;
       mqttFileLog(msg);
+      fileLog("MQTT Connected");
       sendOnline();
       _mqtt->subscribe("test");
       _mqtt->subscribe(getCmdTopic().c_str());
@@ -148,8 +149,9 @@ void MqttManager::check() {
       _mqtt->subscribe("test");
       _mqtt->subscribe(getCmdTopic().c_str());
     } else {
-      LOG("[MQTT] Reconnect failed, rc=");
-      LOGN(_mqtt->state());
+      String msg = "[MQTT] Reconnect failed, rc=";
+      msg += _mqtt->state();
+      mqttFileLog(msg);
     }
   } else {
     // LOGN("[MQTT] Connection is stable");
@@ -234,7 +236,6 @@ bool MqttManager::sendMessage(const char* topic,
 }
 
 void MqttManager::sendOnline() {
-  fileLog("MQTT Connected");
   // one online message per 30 minutes at most
   _lastOnlineMs = millis();
   // online message retain
