@@ -13,8 +13,8 @@ static time_t upTimestamp = 0;  // in seconds
 // #endif
 // }
 
-String listFiles() {
-  String output = "";
+std::vector<std::tuple<String, size_t>> listFiles() {
+  std::vector<std::tuple<String, size_t>> output;
 //   Serial.println(F("[System] SPIFFS Files:"));
 #if defined(ESP8266)
 
@@ -22,11 +22,7 @@ String listFiles() {
   while (f.next()) {
     // Serial.printf("[File] %s (%d bytes)\n", f.fileName().c_str(),
     // f.fileSize());
-    output += f.fileName();
-    output += " (";
-    output += f.fileSize();
-    output += " bytes)";
-    output += "\n";
+    output.push_back(std::make_tuple(f.fileName(), f.fileSize()));
   };
 
 #elif defined(ESP32)
@@ -34,12 +30,8 @@ String listFiles() {
   if (root.isDirectory()) {
     File f = root.openNextFile();
     while (f) {
-      Serial.printf("[File] %s (%d bytes)\n", f.name(), f.size());
-      output += f.name();
-      output += " (";
-      output += f.size();
-      output += " bytes)";
-      output += "\n";
+      //   Serial.printf("[File] %s (%d bytes)\n", f.name(), f.size());
+      output.push_back(std::make_tuple(f.name(), f.size()));
       f = root.openNextFile();
     };
   }

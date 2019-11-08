@@ -1,11 +1,5 @@
 #include "mqtt.h"
 
-static bool checkCommand(string message) {
-  //   LOGN("checkCommand");
-  static const char* CMD_PREFIX = "/#@!$%";
-  return message.length() > 2 && strchr(CMD_PREFIX, message.at(0)) != nullptr;
-}
-
 static string getDeviceId() {
   string mac(WiFi.macAddress().c_str());
   mac = extstring::replace_all(mac, ":", "");
@@ -207,20 +201,13 @@ void MqttManager::handleMessage(const char* _topic,
     // sendLog("What?");
     return;
   }
-  if (!checkCommand(message)) {
+  if (!CommandParam::hasValidPrefix(message)) {
     LOGN(F("[MQTT] Command must start with /"));
     sendLog(F("Send /help to see available commands"));
     return;
   }
   if (_handler != nullptr) {
-    vector<string> args = extstring::split_any(message);
-    for (auto arg : args) {
-      extstring::trim(arg);
-      //   std::transform(arg.begin(), arg.end(), arg.begin(), ::tolower);
-    }
-    // just lower the command
-    // extstring::tolower(args[0]);
-    _handler(args);
+    _handler(CommandParam::parseArgs(message));
   }
 }
 

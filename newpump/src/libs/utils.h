@@ -16,14 +16,14 @@
 #define LOGF(...)
 #endif
 
-String listFiles();
+std::vector<std::tuple<String, size_t>> listFiles();
 void fsCheck();
 String getDevice();
 String getMD5(uint8_t* data, uint16_t len);
 String getMD5(const char* data);
 String getMD5(const String& data);
 void showESP();
-String logFileName(const String& suffix="");
+String logFileName(const String& suffix = "");
 size_t fileLog(const String& text,
                const String& path = logFileName(),
                bool appendDate = true);

@@ -16,6 +16,29 @@ string CommandParam::toString() const {
   return s;
 }
 
+const char* CommandParam::CMD_PREFIX = "/#@!";
+const char* CommandParam::CMD_ARG_SEP = ",:;| \t\n\r";
+
+bool CommandParam::hasValidPrefix(const string& cmdStr) {
+  //   LOGN("checkCommand");
+  static const char* CMD_PREFIX = "/#@!$%";
+  return cmdStr.length() > 2 && strchr(CMD_PREFIX, cmdStr.at(0)) != nullptr;
+}
+
+vector<string> CommandParam::parseArgs(const string& s) {
+  vector<string> args = extstring::split_any(s, CommandParam::CMD_ARG_SEP);
+  for (auto arg : args) {
+    extstring::trim(arg);
+  }
+  // remove cmd prefix if has
+  if (extstring::contains_any(args[0], CommandParam::CMD_PREFIX)) {
+    args[0].erase(0, 1);
+  }
+  // cmd to lower
+  args[0] = extstring::tolower(args[0]);
+  return args;
+}
+
 bool CommandManager::handle(CommandParam& param) {
   auto handler = _getHandler(param.name);
   if (handler != nullptr) {

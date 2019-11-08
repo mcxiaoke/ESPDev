@@ -6,6 +6,7 @@
 #include <functional>
 #include <map>
 #include <vector>
+#include "../ext/string/string.hpp"
 
 using std::string;
 using std::vector;
@@ -26,6 +27,11 @@ struct CommandParam {
   vector<string> args;
 
   string toString() const;
+
+  static const char* CMD_PREFIX;
+  static const char* CMD_ARG_SEP;
+  static bool hasValidPrefix(const string& cmdStr);
+  static vector<string> parseArgs(const string& s);
 };
 
 class CommandManager {

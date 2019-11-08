@@ -67,6 +67,34 @@ void handleCommand(std::vector<string> args);
 void sendMqttStatus(const String& msg);
 void sendMqttLog(const String& msg);
 
+String getFilesHtml() {
+  auto items = listFiles();
+  String html = "<ul>";
+  for (auto const& i : items) {
+    html += "<li><a href='";
+    html += std::get<0>(i);
+    html += "' target='_blank' >";
+    html += std::get<0>(i);
+    html += " (";
+    html += std::get<1>(i);
+    html += " bytes)</a></li>\n";
+  }
+  html += "</ul>";
+  return html;
+}
+
+String getFilesText() {
+  auto items = listFiles();
+  String text = "";
+  for (auto const& i : items) {
+    text += std::get<0>(i);
+    text += " (";
+    text += std::get<1>(i);
+    text += " bytes)\n";
+  }
+  return text;
+}
+
 ////////// MQTT Handlers Begin //////////
 
 size_t debugLog(const String text) {
@@ -144,7 +172,7 @@ void cmdClear(const vector<string> args = vector<string>()) {
 
 void cmdFiles(const vector<string> args = vector<string>()) {
   LOGN("cmdFiles");
-  sendMqttStatus(listFiles());
+  sendMqttStatus(getFilesText());
 }
 
 void cmdLogs(const vector<string> args = vector<string>()) {
@@ -354,7 +382,7 @@ void statusReport() {
 
 void handleFiles() {
   LOGN("handleFiles");
-  server.send(200, MIME_TEXT_PLAIN, listFiles());
+  server.send(200, MIME_TEXT_HTML, getFilesHtml());
 }
 
 void handleLogs() {
@@ -489,9 +517,25 @@ void setupUpdate() {
   otaUpdate.setup(&server);
 }
 
+void handleControl() {
+  String text = "";
+  for (int i = 0; i < server.args(); i++) {
+    if (server.argName(i) == "args") {
+      text = server.arg(i);
+      break;
+    }
+  }
+  LOGN("handleControl " + text);
+  if (text.length() > 2) {
+    string s(text.c_str());
+    handleCommand(CommandParam::parseArgs(s));
+  }
+  server.send(200, MIME_TEXT_PLAIN, "ok");
+}
+
 void handleNotFound() {
-  LOGN("handleNotFound " + server.uri());
   if (!FileServer::handle(&server)) {
+    LOGN("handleNotFound " + server.uri());
     String data = F("ERROR: NOT FOUND\nURI: ");
     data += server.uri();
     data += "\n";
@@ -505,6 +549,7 @@ void setupServer() {
     LOGN(F("[Server] MDNS responder started"));
   }
   server.on("/", handleRoot);
+  server.on("/cmd", handleControl);
   server.on("/api/status", handleRoot);
   server.on("/reboot", handleReboot);
   server.on("/start", handleStart);
@@ -590,7 +635,7 @@ void loop(void) {
 void handleCommand(std::vector<string> args) {
   auto processFunc = [args] {
     showESP();
-    string cmd = extstring::tolower(args[0].substr(1));
+    string cmd = args[0];
     CommandParam param{cmd, args};
     LOG("[CMD] handleCommand ");
     LOGN(param.toString().c_str());

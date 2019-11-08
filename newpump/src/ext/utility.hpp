@@ -9,4 +9,4 @@ void pop_front(std::vector<T>& vec) {
   vec.erase(vec.begin());
 }
 
-}  // namespace extmisc
+}  // namespace extutils
