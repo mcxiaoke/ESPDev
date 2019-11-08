@@ -63,7 +63,7 @@ void checkWiFi();
 String getCommands();
 String getStatus();
 void statusReport();
-void handleCommand(std::vector<string> args);
+void handleCommand(const CommandParam& param);
 void sendMqttStatus(const String& msg);
 void sendMqttLog(const String& msg);
 
@@ -127,7 +127,7 @@ void checkMqtt() {
 
 void mqttTimer() {
 #ifdef USING_MQTT
-  timer.setInterval((MQTT_KEEPALIVE * 4 - 5) * 1000L, checkMqtt);
+  timer.setInterval((MQTT_KEEPALIVE * 2 - 5) * 1000L, checkMqtt);
 #endif
 }
 
@@ -146,36 +146,36 @@ void sendMqttLog(const String& msg) {
 
 ////////// Command Handlers Begin //////////
 
-void cmdEnable(const vector<string> args = vector<string>()) {
+void cmdEnable(const CommandParam param = CommandParam::INVALID) {
   timer.enable(runTimerId);
   debugLog(F("Timer enabled"));
 }
-void cmdDisable(const vector<string> args = vector<string>()) {
+void cmdDisable(const CommandParam param = CommandParam::INVALID) {
   timer.disable(runTimerId);
   debugLog(F("Timer disabled"));
 }
 
-void cmdStart(const vector<string> args = vector<string>()) {
+void cmdStart(const CommandParam param = CommandParam::INVALID) {
   LOGN("cmdStart");
   startPump();
 }
 
-void cmdStop(const vector<string> args = vector<string>()) {
+void cmdStop(const CommandParam param = CommandParam::INVALID) {
   LOGN("cmdStop");
   stopPump();
 }
 
-void cmdClear(const vector<string> args = vector<string>()) {
+void cmdClear(const CommandParam param = CommandParam::INVALID) {
   SPIFFS.remove(logFileName());
   debugLog(F("Logs cleared"));
 }
 
-void cmdFiles(const vector<string> args = vector<string>()) {
+void cmdFiles(const CommandParam param = CommandParam::INVALID) {
   LOGN("cmdFiles");
   sendMqttStatus(getFilesText());
 }
 
-void cmdLogs(const vector<string> args = vector<string>()) {
+void cmdLogs(const CommandParam param = CommandParam::INVALID) {
   LOGN("cmdLogs");
   String logText = F("Go to http://");
   logText += WiFi.localIP().toString();
@@ -183,12 +183,12 @@ void cmdLogs(const vector<string> args = vector<string>()) {
   sendMqttStatus(logText);
 }
 
-void cmdStatus(const vector<string> args = vector<string>()) {
+void cmdStatus(const CommandParam param = CommandParam::INVALID) {
   LOGN("cmdStatus");
   statusReport();
 }
 
-void cmdWiFi(const vector<string> args = vector<string>()) {
+void cmdWiFi(const CommandParam param = CommandParam::INVALID) {
   LOGN("cmdWiFi");
   String wf = "Mac=";
   wf += WiFi.macAddress();
@@ -217,7 +217,8 @@ uint8_t parseValue(const string& extra) {
   return atoi(extra.c_str());
 }
 
-void cmdIOSet(const vector<string> args) {
+void cmdIOSet(const CommandParam param = CommandParam::INVALID) {
+  auto args = param.args;
   LOGF("cmdIOSet");
   if (args.size() < 3) {
     return;
@@ -234,7 +235,8 @@ void cmdIOSet(const vector<string> args) {
   }
 }
 
-void cmdIOSetHigh(const vector<string> args) {
+void cmdIOSetHigh(const CommandParam param = CommandParam::INVALID) {
+  auto args = param.args;
   LOGF("cmdIOSetHigh");
   if (args.size() < 2) {
     return;
@@ -251,7 +253,8 @@ void cmdIOSetHigh(const vector<string> args) {
   debugLog(msg);
 }
 
-void cmdIOSetLow(const vector<string> args) {
+void cmdIOSetLow(const CommandParam param = CommandParam::INVALID) {
+  auto args = param.args;
   LOGF("cmdIOSetLow");
   if (args.size() < 2) {
     return;
@@ -268,12 +271,12 @@ void cmdIOSetLow(const vector<string> args) {
   debugLog(msg);
 }
 
-void cmdHelp(const vector<string> args = vector<string>()) {
+void cmdHelp(const CommandParam param = CommandParam::INVALID) {
   LOGN("cmdHelp");
   sendMqttStatus(cmdMgr.getHelpDoc());
 }
 
-void cmdNotFound(const vector<string> args = vector<string>()) {
+void cmdNotFound(const CommandParam param = CommandParam::INVALID) {
   LOGN("cmdNotFound");
   sendMqttLog(F("Send /help to see available commands"));
 }
@@ -632,11 +635,9 @@ void loop(void) {
   timer.run();
 }
 
-void handleCommand(std::vector<string> args) {
-  auto processFunc = [args] {
+void handleCommand(const CommandParam& param) {
+  auto processFunc = [param] {
     showESP();
-    string cmd = args[0];
-    CommandParam param{cmd, args};
     LOG("[CMD] handleCommand ");
     LOGN(param.toString().c_str());
     if (!cmdMgr.handle(param)) {

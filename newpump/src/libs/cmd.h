@@ -11,14 +11,12 @@
 using std::string;
 using std::vector;
 
-using CMD_HANDLER_FUNC = std::function<void(std::vector<string>)>;
-
-struct Command {
-  const string name;
-  const string desc;
-  CMD_HANDLER_FUNC handler;
-
-  string toString() const;
+enum CommandSource {
+    MQTT,
+    HTTP,
+    REST,
+    UART,
+    NONE
 };
 
 struct CommandParam {
@@ -30,13 +28,24 @@ struct CommandParam {
 
   static const char* CMD_PREFIX;
   static const char* CMD_ARG_SEP;
+  static const CommandParam INVALID;
   static bool hasValidPrefix(const string& cmdStr);
-  static vector<string> parseArgs(const string& s);
+  static CommandParam parseArgs(const string& s);
+};
+
+using CMD_HANDLER_FUNC = std::function<void(const CommandParam&)>;
+
+struct Command {
+  const string name;
+  const string desc;
+  CMD_HANDLER_FUNC handler;
+
+  string toString() const;
 };
 
 class CommandManager {
  public:
-  bool handle(CommandParam& param);
+  bool handle(const CommandParam& param);
   void addCommand(Command* cmd);
   void addCommand(const char* name, const char* desc, CMD_HANDLER_FUNC handler);
   void addCommand(string& name, string& desc, CMD_HANDLER_FUNC handler);

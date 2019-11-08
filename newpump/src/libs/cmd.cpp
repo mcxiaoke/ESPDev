@@ -18,6 +18,7 @@ string CommandParam::toString() const {
 
 const char* CommandParam::CMD_PREFIX = "/#@!";
 const char* CommandParam::CMD_ARG_SEP = ",:;| \t\n\r";
+const CommandParam CommandParam::INVALID = {};
 
 bool CommandParam::hasValidPrefix(const string& cmdStr) {
   //   LOGN("checkCommand");
@@ -25,7 +26,7 @@ bool CommandParam::hasValidPrefix(const string& cmdStr) {
   return cmdStr.length() > 2 && strchr(CMD_PREFIX, cmdStr.at(0)) != nullptr;
 }
 
-vector<string> CommandParam::parseArgs(const string& s) {
+CommandParam CommandParam::parseArgs(const string& s) {
   vector<string> args = extstring::split_any(s, CommandParam::CMD_ARG_SEP);
   for (auto arg : args) {
     extstring::trim(arg);
@@ -36,17 +37,18 @@ vector<string> CommandParam::parseArgs(const string& s) {
   }
   // cmd to lower
   args[0] = extstring::tolower(args[0]);
-  return args;
+  CommandParam param{args[0], args};
+  return param;
 }
 
-bool CommandManager::handle(CommandParam& param) {
+bool CommandManager::handle(const CommandParam& param) {
   auto handler = _getHandler(param.name);
   if (handler != nullptr) {
-    handler(param.args);
+    handler(param);
     return true;
   } else {
     if (_defaultHandler != nullptr) {
-      _defaultHandler(param.args);
+      _defaultHandler(param);
       return true;
     }
   }
