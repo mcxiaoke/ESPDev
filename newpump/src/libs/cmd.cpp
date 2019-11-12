@@ -1,5 +1,12 @@
 #include "cmd.h"
 
+CommandParam::CommandParam(const string& name,
+                           const vector<string> args,
+                           const unsigned int id,
+                           const CommandSource source,
+                           const CMD_CALLBACK_FUNC callback)
+    : name(name), args(args), id(id), source(source), callback(callback) {}
+
 string Command::toString() const {
   string s("/");
   s.append(name).append(" - ").append(desc);

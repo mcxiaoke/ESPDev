@@ -45,7 +45,7 @@ String MqttManager::getClientId() {
 }
 
 bool MqttManager::isConnected() {
-  return _mqtt->connected();
+  return _mqtt->state() == MQTT_CONNECTED;
 }
 
 bool MqttManager::isCommandTopic(const string& topic) {

@@ -11,21 +11,31 @@
 using std::string;
 using std::vector;
 
-enum CommandSource {
-    MQTT,
-    HTTP,
-    REST,
-    UART,
-    NONE
+enum CommandSource { MQTT, HTTP, REST, UART, NONE };
+
+struct CommandResult {
+  const unsigned long id;
+  const string name;
+  const int code;
+  const string response;
 };
+
+using CMD_CALLBACK_FUNC = std::function<void(const CommandResult&)>;
 
 struct CommandParam {
   const string name;
-  // name == args[0]
-  vector<string> args;
+  const vector<string> args;
+  const unsigned long id;
+  const CommandSource source;
+  const CMD_CALLBACK_FUNC callback;
 
+  CommandParam(const string& name = "",
+               const vector<string> args = {},
+               const unsigned int id = 0,
+               const CommandSource source = ::NONE,
+               const CMD_CALLBACK_FUNC callback = nullptr);
   string toString() const;
-
+  
   static const char* CMD_PREFIX;
   static const char* CMD_ARG_SEP;
   static const CommandParam INVALID;

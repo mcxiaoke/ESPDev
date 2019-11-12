@@ -8,6 +8,7 @@
 #include "libs/cmd.h"
 #include "libs/compat.h"
 #include "libs/config.h"
+#include "libs/display.h"
 #include "libs/net.h"
 #include "libs/utils.h"
 #ifdef USING_MQTT
@@ -37,6 +38,7 @@ unsigned long lastSeconds = 0;
 unsigned long totalSeconds = 0;
 
 int runTimerId, mqttTimerId, statusTimerId;
+int displayTimerId;
 const char REBOOT_RESPONSE[] PROGMEM =
     "<META http-equiv=\"refresh\" content=\"15;URL=/\">Rebooting...\n";
 const char MIME_TEXT_PLAIN[] PROGMEM = "text/plain";
@@ -50,6 +52,7 @@ WebServer server(80);
 #endif
 // ESPPrivateAccess serverAccess;
 
+Display display;
 ESPUpdateServer otaUpdate(true);
 CommandManager cmdMgr;
 #ifdef USING_MQTT
@@ -93,6 +96,18 @@ String getFilesText() {
     text += " bytes)\n";
   }
   return text;
+}
+
+void updateDisplay() {
+  String s1 = "Timer: ";
+  s1 += humanTimeMs(timer.getRemain(runTimerId));
+  String s2 = "Pump Status: ";
+  s2 += (digitalRead(pump) == HIGH) ? "Running" : "Idle";
+  String s3 = "WiFi Status: ";
+  s3 += WiFi.isConnected() ? "Good" : "Broken";
+  String s4 = "MQTT Status: ";
+  s4 += mqttMgr.isConnected() ? "Good" : "Broken";
+  display.setText(s1, s2, s3, s4);
 }
 
 ////////// MQTT Handlers Begin //////////
@@ -582,6 +597,7 @@ void setupServer() {
 
 void setupTimers() {
   LOGN("setupTimers");
+  displayTimerId = timer.setInterval(1000, updateDisplay);
   runTimerId = timer.setInterval(RUN_INTERVAL, startPump);
   timer.setInterval(RUN_DURATION / 2 + 2000, checkPump);
   timer.setInterval(5 * 60 * 1000L, checkWiFi);
@@ -609,13 +625,19 @@ void setupCommands() {
   cmdMgr.addCommand("help", "show help message", cmdHelp);
 }
 
+void setupDisplay() {
+  display.begin();
+  display.setText("Pump", "Booting...", "Wifi", "Connecting...");
+}
+
 void setup(void) {
   pinMode(led, OUTPUT);
   pinMode(pump, OUTPUT);
   Serial.begin(115200);
-  delay(1000);
   showESP();
   fsCheck();
+  setupDisplay();
+  delay(1000);
   setupWiFi();
   setupDate();
   setupServer();
