@@ -48,10 +48,6 @@ bool MqttManager::isConnected() {
   return _mqtt->state() == MQTT_CONNECTED;
 }
 
-bool MqttManager::isCommandTopic(const string& topic) {
-  return topic == getCmdTopic();
-}
-
 string MqttManager::getStatusTopic() {
   // pump/%DEVICE%/status
   string topic("pump/");
@@ -76,6 +72,19 @@ string MqttManager::getCmdTopic() {
   return topic;
 }
 
+string MqttManager::getSerialTxTopic() {
+  string topic("pump/");
+  topic += getDeviceId();
+  topic += "/serial/tx";
+  return topic;
+}
+string MqttManager::getSerialRxTopic() {
+  string topic("pump/");
+  topic += getDeviceId();
+  topic += "/serial/rx";
+  return topic;
+}
+
 void MqttManager::sendStatus(const String& text) {
   //   LOGF("[MQTT] send message: [%s]\n", text.c_str());
   bool ret = sendMessage(getStatusTopic().c_str(), text.c_str());
@@ -93,6 +102,15 @@ void MqttManager::sendLog(const String& text) {
     LOGN("[MQTT] mqtt log sent successful.");
   } else {
     LOGN("[MQTT] mqtt log sent failed.");
+  }
+}
+
+void MqttManager::sendSerial(const String& text) {
+  bool ret = sendMessage(getSerialTxTopic().c_str(), text.c_str());
+  if (ret) {
+    LOGN("[MQTT] mqtt serial sent successful.");
+  } else {
+    LOGN("[MQTT] mqtt serial sent failed.");
   }
 }
 
@@ -196,7 +214,7 @@ void MqttManager::handleMessage(const char* _topic,
   snprintf(logBuf, COMMAND_MAX_LENGTH + 24, "[MQTT][%s] %s (%d)", topic.c_str(),
            message.c_str(), _length);
   mqttFileLog(logBuf);
-  if (!isCommandTopic(topic)) {
+  if (topic != getCmdTopic()) {
     LOGN(F("[MQTT] Not a command"));
     // sendLog("What?");
     return;

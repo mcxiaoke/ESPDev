@@ -44,6 +44,20 @@ String humanTime(unsigned long sec) {
   return s;
 }
 
+String monoTimeMs(unsigned long ms) {
+  return monoTime(ms / 1000);
+}
+
+// in seconds
+String monoTime(unsigned long sec) {
+  uint8_t h = sec / 3600;
+  uint8_t m = (sec % 3600) / 60;
+  uint8_t s = sec % 60;
+  char buf[16];
+  snprintf(buf, 16, "%02u:%02u:%02u", h, m, s);
+  return String(buf);
+}
+
 String formatDateTime(time_t ts) {
   char buf[26];
   getDateTimeStr(ts, buf);

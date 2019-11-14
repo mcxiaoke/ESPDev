@@ -7,6 +7,8 @@
 bool strEqual(const char* str1, const char* str2);
 String humanTimeMs(unsigned long ts);
 String humanTime(unsigned long ts);
+String monoTimeMs(unsigned long ms);
+String monoTime(unsigned long sec);
 String formatDateTime(time_t ts);
 String formatTime(time_t ts);
 void getDateTimeStr(time_t, char*);

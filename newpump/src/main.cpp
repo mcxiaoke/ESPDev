@@ -98,16 +98,54 @@ String getFilesText() {
   return text;
 }
 
+void displayBooting() {
+  display.u8g2->setFont(u8g2_font_profont15_tf);
+  display.u8g2->clearBuffer();
+  display.u8g2->setCursor(16, 20);
+  display.u8g2->print("Booting...");
+  display.u8g2->setCursor(16, 50);
+  display.u8g2->setFont(u8g2_font_profont29_tf);
+  display.u8g2->print(getDevice());
+  display.u8g2->sendBuffer();
+  display.u8g2->setFont(u8g2_font_profont12_tf);
+}
+
 void updateDisplay() {
-  String s1 = "Timer: ";
-  s1 += humanTimeMs(timer.getRemain(runTimerId));
-  String s2 = "Pump Status: ";
-  s2 += (digitalRead(pump) == HIGH) ? "Running" : "Idle";
-  String s3 = "WiFi Status: ";
-  s3 += WiFi.isConnected() ? "Good" : "Broken";
-  String s4 = "MQTT Status: ";
-  s4 += mqttMgr.isConnected() ? "Good" : "Broken";
-  display.setText(s1, s2, s3, s4);
+  auto upSecs = millis() / 1000;
+
+  String s1 = dateTimeString();
+  String s2 = "";
+  auto mod10 = upSecs % 10;
+  if (mod10 < 5) {
+    s2 += "MEM:";
+    s2 += ESP.getFreeHeap();
+    s2 += " NET:";
+    s2 += WiFi.isConnected() ? "WO" : "WE";
+    s2+=" ";
+    s2 += mqttMgr.isConnected() ? "MO" : "ME";
+  } else {
+    s2 += "PIN:";
+    s2 += (digitalRead(pump) == HIGH) ? "ON" : "OF";
+    s2 += " UP:";
+    s2 += monoTime(upSecs);
+  }
+  bool running = (digitalRead(pump) == HIGH);
+  String s3 = "";
+  if (running) {
+    s3 += "RUNNING";
+  } else {
+    s3 += monoTimeMs(timer.getRemain(runTimerId));
+  }
+  display.u8g2->clearBuffer();
+  display.u8g2->setFont(u8g2_font_profont12_tf);
+  display.u8g2->setCursor(2, 16);
+  display.u8g2->print(s1);
+  display.u8g2->setCursor(2, 30);
+  display.u8g2->print(s2);
+  display.u8g2->setCursor(2, 56);
+  display.u8g2->setFont(u8g2_font_profont29_tf);
+  display.u8g2->print(s3);
+  display.u8g2->sendBuffer();
 }
 
 ////////// MQTT Handlers Begin //////////
@@ -627,7 +665,7 @@ void setupCommands() {
 
 void setupDisplay() {
   display.begin();
-  display.setText("Pump", "Booting...", "Wifi", "Connecting...");
+  displayBooting();
 }
 
 void setup(void) {

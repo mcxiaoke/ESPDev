@@ -26,6 +26,7 @@ class MqttManager {
   String getClientId();
   void sendStatus(const String& text);
   void sendLog(const String& text);
+  void sendSerial(const String& text);
   void connect();
   void check();
   void begin(CMD_HANDLER_FUNC);
@@ -43,7 +44,6 @@ class MqttManager {
   WiFiClient _client;
   PubSubClient* _mqtt;
   CMD_HANDLER_FUNC _handler;
-  bool isCommandTopic(const string& topic);
   void handleStateChange(int state);
   void handleMessage(const char* topic,
                      const uint8_t* payload,
@@ -55,6 +55,8 @@ class MqttManager {
   string getStatusTopic();
   string getLogTopic();
   string getCmdTopic();
+  string getSerialTxTopic();
+  string getSerialRxTopic();
 };
 
 #endif
