@@ -132,7 +132,11 @@ String readLog(const String& path) {
   return s;
 }
 
-void setTimestamp() {
+bool hasValidTime() {
+  return upTimestamp > TIME_START_2019;
+}
+
+time_t setTimestamp() {
   auto timeOut = 3000U;
   auto time = getNtpTime(timeOut);
   auto startMs = millis();
@@ -146,6 +150,7 @@ void setTimestamp() {
   } else {
     Serial.println("[NTP] time failed\n");
   }
+  return upTimestamp;
 }
 
 time_t getTimestamp() {

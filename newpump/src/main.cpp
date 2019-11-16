@@ -18,20 +18,24 @@
 using std::string;
 
 #ifdef DEBUG_MODE
-const unsigned long RUN_INTERVAL = 5 * 60 * 1000UL;
-const unsigned long RUN_DURATION = 18 * 1000UL;
-const unsigned long STATUS_INTERVAL = 10 * 60 * 1000UL;
+#define RUN_INTERVAL_DEFAULT 5 * 60 * 1000UL
+#define RUN_DURATION_DEFAULT 18 * 1000UL
+#define STATUS_INTERVAL_DEFAULT 10 * 60 * 1000UL
 #else
-const unsigned long RUN_INTERVAL = 6 * 3600 * 1000UL;
-const unsigned long RUN_DURATION = 15 * 1000UL;
-const unsigned long STATUS_INTERVAL = 2 * 60 * 60 * 1000UL;
+#define RUN_INTERVAL_DEFAULT 8 * 3600 * 1000UL
+#define RUN_DURATION_DEFAULT 15 * 1000UL
+#define STATUS_INTERVAL_DEFAULT 2 * 60 * 60 * 1000UL
 #endif
 
 const char* ssid = STASSID;
 const char* password = STAPSK;
 const int led = LED_BUILTIN;
-const int pump = 14;  // nodemcu D5
 
+uint8_t pumpOnPin = 14;  // default pin nodemcu D5
+unsigned long runInterval = RUN_INTERVAL_DEFAULT;
+unsigned long runDuration = RUN_DURATION_DEFAULT;
+unsigned long statusInterval = STATUS_INTERVAL_DEFAULT;
+unsigned long timerReset = 0;
 unsigned long lastStart = 0;
 unsigned long lastStop = 0;
 unsigned long lastSeconds = 0;
@@ -59,6 +63,7 @@ CommandManager cmdMgr;
 MqttManager mqttMgr(MQTT_SERVER, MQTT_PORT, MQTT_USER, MQTT_PASS);
 #endif
 
+void setupTimers();
 void startPump();
 void stopPump();
 void checkPump();
@@ -69,6 +74,7 @@ void statusReport();
 void handleCommand(const CommandParam& param);
 void sendMqttStatus(const String& msg);
 void sendMqttLog(const String& msg);
+bool mqttConnected();
 
 String getFilesHtml() {
   auto items = listFiles();
@@ -121,20 +127,28 @@ void updateDisplay() {
     s2 += ESP.getFreeHeap();
     s2 += " NET:";
     s2 += WiFi.isConnected() ? "WO" : "WE";
-    s2+=" ";
-    s2 += mqttMgr.isConnected() ? "MO" : "ME";
+    s2 += " ";
+    s2 += mqttConnected() ? "MO" : "ME";
   } else {
     s2 += "PIN:";
-    s2 += (digitalRead(pump) == HIGH) ? "ON" : "OF";
+    s2 += (digitalRead(pumpOnPin) == HIGH) ? "ON" : "OF";
     s2 += " UP:";
     s2 += monoTime(upSecs);
   }
-  bool running = (digitalRead(pump) == HIGH);
+  bool running = (digitalRead(pumpOnPin) == HIGH);
   String s3 = "";
   if (running) {
     s3 += "RUNNING";
   } else {
-    s3 += monoTimeMs(timer.getRemain(runTimerId));
+    if (!hasValidTime()) {
+      s3 += "Time ERR";
+    } else if (!WiFi.isConnected()) {
+      s3 += "WiFi ERR";
+    } else if (!mqttConnected()) {
+      s3 += "MQTT ERR";
+    } else {
+      s3 += monoTimeMs(timer.getRemain(runTimerId));
+    }
   }
   display.u8g2->clearBuffer();
   display.u8g2->setFont(u8g2_font_profont12_tf);
@@ -195,14 +209,29 @@ void sendMqttLog(const String& msg) {
   mqttMgr.sendLog(msg);
 #endif
 }
+
+bool mqttConnected() {
+#ifdef USING_MQTT
+  return mqttMgr.isConnected();
+#else
+  return false;
+#endif
+}
 /////////// MQTT Handlers End ///////////
 
 ////////// Command Handlers Begin //////////
+
+void cmdReboot(const CommandParam param = CommandParam::INVALID) {
+  debugLog(F("Reboot now"));
+  sendMqttLog("System will reboot now");
+  timer.setTimeout(1000, []() { ESP.restart(); });
+}
 
 void cmdEnable(const CommandParam param = CommandParam::INVALID) {
   timer.enable(runTimerId);
   debugLog(F("Timer enabled"));
 }
+
 void cmdDisable(const CommandParam param = CommandParam::INVALID) {
   timer.disable(runTimerId);
   debugLog(F("Timer disabled"));
@@ -254,6 +283,13 @@ void cmdWiFi(const CommandParam param = CommandParam::INVALID) {
   sendMqttStatus(wf);
 }
 
+int parseInt(const string& extra) {
+  if (&extra == nullptr || extra.empty() || !extstring::is_digits(extra)) {
+    return 0;
+  }
+  return atoi(extra.c_str());
+}
+
 uint8_t parsePin(const string& extra) {
   if (&extra == nullptr || extra.empty() || extra.length() > 2 ||
       !extstring::is_digits(extra)) {
@@ -270,18 +306,62 @@ uint8_t parseValue(const string& extra) {
   return atoi(extra.c_str());
 }
 
-void cmdIOSet(const CommandParam param = CommandParam::INVALID) {
+void cmdSettings(const CommandParam param = CommandParam::INVALID) {
   auto args = param.args;
-  LOGF("cmdIOSet");
-  if (args.size() < 3) {
+  LOGN("cmdSettings");
+  if (args.size() < 1) {
     return;
   }
-  uint8_t pin = parsePin(args[1]);
+  auto oldPumpPin = pumpOnPin;
+  auto oldRunInterval = runInterval;
+  auto oldRunDuration = runDuration;
+  auto oldStatusInterval = statusInterval;
+  // in seconds
+  for (auto const& arg : args) {
+    auto kv = extstring::split(arg, "=");
+    if (kv.size() == 2) {
+      LOGF("Entry: %s=%s\n", kv[0].c_str(), kv[1].c_str());
+      auto entryValue = parseInt(kv[1]);
+      if (entryValue > 0) {
+        if (kv[0] == "pump_pin" || kv[0] == "pump") {
+          stopPump();
+          pumpOnPin = entryValue;
+        } else if (kv[0] == "run_interval" || kv[0] == "runi") {
+          runInterval = entryValue * 1000UL;
+        } else if (kv[0] == "run_duration" || kv[0] == "rund") {
+          runDuration = entryValue * 1000L;
+        } else if (kv[0] == "status_interval" || kv[0] == "stsi") {
+          statusInterval = entryValue * 1000L;
+        } else {
+          String log = "Invalid Entry: ";
+          log += kv[0].c_str();
+          sendMqttLog(log);
+        }
+      }
+    }
+  }
+  if (pumpOnPin != oldPumpPin) {
+    sendMqttLog("Pump pin changed");
+  }
+  if (runInterval != oldRunInterval || runDuration != oldRunDuration ||
+      statusInterval != oldStatusInterval) {
+    sendMqttLog("Settings changed, reset timers");
+    setupTimers();
+  }
+}
+
+void cmdIOSet(const CommandParam param = CommandParam::INVALID) {
+  auto args = param.args;
+  LOGN("cmdIOSet");
+  if (args.size() < 2) {
+    return;
+  }
+  uint8_t pin = parsePin(args[0]);
   if (pin == (uint8_t)0xff) {
     sendMqttLog(F("Invalid Pin"));
     return;
   }
-  uint8_t value = parseValue(args[2]);
+  uint8_t value = parseValue(args[1]);
   if (value > (uint8_t)1) {
     sendMqttLog(F("Invalid Value"));
     return;
@@ -290,11 +370,11 @@ void cmdIOSet(const CommandParam param = CommandParam::INVALID) {
 
 void cmdIOSetHigh(const CommandParam param = CommandParam::INVALID) {
   auto args = param.args;
-  LOGF("cmdIOSetHigh");
-  if (args.size() < 2) {
+  LOGN("cmdIOSetHigh");
+  if (args.size() < 1) {
     return;
   }
-  uint8_t pin = parsePin(args[1]);
+  uint8_t pin = parsePin(args[0]);
   if (pin > (uint8_t)0x80) {
     sendMqttLog("Invalid Pin");
     return;
@@ -308,11 +388,11 @@ void cmdIOSetHigh(const CommandParam param = CommandParam::INVALID) {
 
 void cmdIOSetLow(const CommandParam param = CommandParam::INVALID) {
   auto args = param.args;
-  LOGF("cmdIOSetLow");
-  if (args.size() < 2) {
+  LOGN("cmdIOSetLow");
+  if (args.size() < 1) {
     return;
   }
-  uint8_t pin = parsePin(args[1]);
+  uint8_t pin = parsePin(args[0]);
   if (pin > (uint8_t)0x80) {
     sendMqttLog("Invalid Pin");
     return;
@@ -338,14 +418,14 @@ void cmdNotFound(const CommandParam param = CommandParam::INVALID) {
 
 void startPump() {
   LOGN("startPump");
-  bool isOn = digitalRead(pump) == HIGH;
+  bool isOn = digitalRead(pumpOnPin) == HIGH;
   if (isOn) {
     return;
   }
   lastStart = millis();
-  digitalWrite(pump, HIGH);
+  digitalWrite(pumpOnPin, HIGH);
   digitalWrite(led, LOW);
-  timer.setTimeout(RUN_DURATION, stopPump);
+  timer.setTimeout(runDuration, stopPump);
   String msg = F("Pump Started");
   debugLog(msg);
   msg += "\n";
@@ -355,7 +435,7 @@ void startPump() {
 
 void stopPump() {
   LOGN("stopPump");
-  bool isOff = digitalRead(pump) == LOW;
+  bool isOff = digitalRead(pumpOnPin) == LOW;
   if (isOff) {
     return;
   }
@@ -364,7 +444,7 @@ void stopPump() {
     lastSeconds = (lastStop - lastStart) / 1000;
     totalSeconds += lastSeconds;
   }
-  digitalWrite(pump, LOW);
+  digitalWrite(pumpOnPin, LOW);
   digitalWrite(led, HIGH);
   String msg = F("Pump Stopped");
   debugLog(msg);
@@ -374,8 +454,8 @@ void stopPump() {
 }
 
 void checkPump() {
-  bool isOn = digitalRead(pump) == HIGH;
-  if (isOn && lastStart > 0 && (millis() - lastStart) / 1000 >= RUN_DURATION) {
+  bool isOn = digitalRead(pumpOnPin) == HIGH;
+  if (isOn && lastStart > 0 && (millis() - lastStart) / 1000 >= runDuration) {
     debugLog(F("Pump stopped by watchdog"));
     cmdStop();
   }
@@ -394,18 +474,28 @@ String getStatus() {
   String data = "";
   data += "Device: ";
   data += getDevice();
-  data += "\nTimer: ";
-  data += timer.isEnabled(runTimerId) ? "Enabled" : "Disabled";
-  data += "\nStatus: ";
-  data += (digitalRead(pump) == HIGH) ? "Running" : "Idle";
-  data += "\nMQTT: ";
+  data += "\nPump Pin: ";
+  data += pumpOnPin;
+  data += "\nPump Status: ";
+  data += (digitalRead(pumpOnPin) == HIGH) ? "Running" : "Idle";
+  data += "\nMQTT Status: ";
 #ifdef USING_MQTT
   data += mqttMgr.isConnected() ? "Connected" : "Disconnected";
 #else
   data += "Disabled";
 #endif
-  data += "\nWiFi: ";
+  data += "\nWiFi IP: ";
   data += WiFi.localIP().toString();
+  data += "\nRun Interval: ";
+  data += humanTimeMs(runInterval);
+  data += "\nRun Duration: ";
+  data += humanTimeMs(runDuration);
+  data += "\nStatus Interval: ";
+  data += humanTimeMs(statusInterval);
+  data += "\nTimer Status: ";
+  data += timer.isEnabled(runTimerId) ? "Enabled" : "Disabled";
+  data += "\nTimer Reset: ";
+  data += formatDateTime(getTimestamp() - (ts - timerReset) / 1000);
 #if defined(ESP8266)
   data += "\nFree Stack: ";
   data += ESP.getFreeContStack();
@@ -485,7 +575,7 @@ void handleReboot() {
   LOGN("handleReboot");
   if (server.hasArg("do")) {
     server.send(200, MIME_TEXT_PLAIN, "ok");
-    timer.setTimeout(1000, reboot);
+    cmdReboot();
   } else {
     server.send(200, MIME_TEXT_PLAIN, "ignore");
   }
@@ -515,20 +605,36 @@ void handleRoot() {
   LOGN("handleRoot");
   server.send(200, MIME_TEXT_PLAIN, getStatus().c_str());
   showESP();
-  //   String data = "text=";
-  //   data += urlencode("Pump_Status_Report_");
-  //   data += urlencode(getDevice());
-  //   data += "&desp=";
-  //   data += urlencode(getStatus());
-  //   httpsPost(WX_REPORT_URL, data);
+}
+
+void handleSettings() {
+  vector<string> args;
+  for (auto i = 0; i < server.args(); i++) {
+    LOGF("handleSettings %s=%s\n", server.argName(i).c_str(),
+         server.arg(i).c_str());
+    string arg(server.arg(i).c_str());
+    arg += "=";
+    arg += server.arg(i).c_str();
+    args.push_back(arg);
+  }
+  if (args.size() > 0) {
+    const CommandParam param{"settings", args};
+    cmdSettings(param);
+  }
 }
 
 void handleIOSet() {
+  vector<string> args;
   for (auto i = 0; i < server.args(); i++) {
     LOGF("handleIOSet %s=%s\n", server.argName(i).c_str(),
          server.arg(i).c_str());
+    args.push_back(server.argName(i).c_str());
+    args.push_back(server.arg(i).c_str());
   }
-  //   if (server.hasArg("pin") && server.hasArg("value")) {}
+  if (args.size() > 1) {
+    const CommandParam param{"ioset", args};
+    cmdIOSet(param);
+  }
 }
 
 void setupWiFi() {
@@ -539,9 +645,9 @@ void setupWiFi() {
   WiFi.setAutoConnect(true);
   WiFi.setAutoReconnect(true);
 #if defined(ESP8266)
-//   WiFi.hostname(getDevice().c_str());
+  WiFi.hostname(getDevice().c_str());
 #elif defined(ESP32)
-//   WiFi.setHostname(getDevice().c_str());
+  WiFi.setHostname(getDevice().c_str());
 #endif
   WiFi.begin(ssid, password);
   Serial.print("WiFi Connecting");
@@ -606,6 +712,7 @@ void setupServer() {
   }
   server.on("/", handleRoot);
   server.on("/cmd", handleControl);
+  server.on("/settings", handleSettings);
   server.on("/api/status", handleRoot);
   server.on("/reboot", handleReboot);
   server.on("/start", handleStart);
@@ -635,17 +742,20 @@ void setupServer() {
 
 void setupTimers() {
   LOGN("setupTimers");
+  timerReset = millis();
+  timer.reset();
   displayTimerId = timer.setInterval(1000, updateDisplay);
-  runTimerId = timer.setInterval(RUN_INTERVAL, startPump);
-  timer.setInterval(RUN_DURATION / 2 + 2000, checkPump);
+  runTimerId = timer.setInterval(runInterval, startPump);
+  timer.setInterval(runDuration / 2 + 2000, checkPump);
   timer.setInterval(5 * 60 * 1000L, checkWiFi);
-  timer.setInterval(STATUS_INTERVAL, statusReport);
+  timer.setInterval(statusInterval, statusReport);
   mqttTimer();
 }
 
 void setupCommands() {
   LOGN("setupCommands");
   cmdMgr.setDefaultHandler(cmdNotFound);
+  cmdMgr.addCommand("reboot", "reboot the board", cmdReboot);
   cmdMgr.addCommand("on", "set timer on", cmdEnable);
   cmdMgr.addCommand("enable", "set timer on", cmdEnable);
   cmdMgr.addCommand("off", "set timer off", cmdDisable);
@@ -656,6 +766,7 @@ void setupCommands() {
   cmdMgr.addCommand("wifi", "get wifi status", cmdWiFi);
   cmdMgr.addCommand("logs", "show logs", cmdLogs);
   cmdMgr.addCommand("files", "show files", cmdFiles);
+  cmdMgr.addCommand("settings", "change settings k1=v1 k2=v2", cmdSettings);
   cmdMgr.addCommand("ioset", "gpio set [pin] [value]", cmdIOSet);
   cmdMgr.addCommand("ioset1", "gpio set to 1 for [pin]", cmdIOSetHigh);
   cmdMgr.addCommand("ioset0", "gpio set to 0 for  [pin]", cmdIOSetLow);
@@ -670,7 +781,7 @@ void setupDisplay() {
 
 void setup(void) {
   pinMode(led, OUTPUT);
-  pinMode(pump, OUTPUT);
+  pinMode(pumpOnPin, OUTPUT);
   Serial.begin(115200);
   showESP();
   fsCheck();
@@ -683,7 +794,7 @@ void setup(void) {
   setupMqtt();
   setupCommands();
   showESP();
-  debugLog(F("System is up and running"));
+  debugLog(F("System is running"));
 }
 
 void loop(void) {

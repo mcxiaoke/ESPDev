@@ -17,3 +17,4 @@ __pycache__
 config.py
 config.ini
 config.json
+.history

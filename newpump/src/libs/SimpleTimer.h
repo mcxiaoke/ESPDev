@@ -46,7 +46,7 @@ typedef void (*timer_callback)();
 class SimpleTimer {
  public:
   // maximum number of timers
-  const static int MAX_TIMERS = 100;
+  const static int MAX_TIMERS = 20;
 
   // setTimer() constants
   const static int RUN_FOREVER = 0;
@@ -54,6 +54,9 @@ class SimpleTimer {
 
   // constructor
   SimpleTimer();
+
+  // clear timers
+  void reset();
 
   // this function must be called inside loop()
   void run();
@@ -92,7 +95,7 @@ class SimpleTimer {
   // returns the number of available timers
   int getNumAvailableTimers() { return MAX_TIMERS - numTimers; };
 
-    // return millis timer interval
+  // return millis timer interval
   unsigned long getInterval(int numTimer);
 
   // return elapsed after timer last run

@@ -32,6 +32,10 @@ static inline unsigned long elapsed() {
 }
 
 SimpleTimer::SimpleTimer() {
+    reset();
+}
+
+void SimpleTimer::reset(){
   auto current_millis = elapsed();
 
   for (int i = 0; i < MAX_TIMERS; i++) {

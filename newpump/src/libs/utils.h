@@ -30,7 +30,8 @@ size_t fileLog(const String& text,
 size_t _writeLog(const String& text, const String& path);
 String readLog(const String& path);
 
-void setTimestamp();
+bool hasValidTime();
+time_t setTimestamp();
 time_t getTimestamp();
 String dateString();
 String dateTimeString();
