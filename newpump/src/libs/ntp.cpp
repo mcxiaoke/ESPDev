@@ -51,6 +51,7 @@ time_t getNtpTime(unsigned int timeOut) {
   auto beginWait = millis();
   while (millis() - beginWait < timeOut) {
     delay(500);
+    yield();
     int size = udp.parsePacket();
     if (size >= NTP_PACKET_SIZE) {
       Serial.println("[NTP] Receive NTP Response");

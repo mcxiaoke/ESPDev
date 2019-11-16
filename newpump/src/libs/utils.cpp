@@ -137,7 +137,7 @@ bool hasValidTime() {
 }
 
 time_t setTimestamp() {
-  auto timeOut = 3000U;
+  auto timeOut = 5000U;
   auto time = getNtpTime(timeOut);
   auto startMs = millis();
   while (time < TIME_START_2019 && (millis() - startMs) < 30 * 1000L) {

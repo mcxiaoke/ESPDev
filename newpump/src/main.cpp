@@ -54,7 +54,7 @@ ESP8266WebServer server(80);
 #elif defined(ESP32)
 WebServer server(80);
 #endif
-// ESPPrivateAccess serverAccess;
+WiFiEventHandler gotIpHandler, lostHandler;
 
 Display display;
 ESPUpdateServer otaUpdate(true);
@@ -67,6 +67,7 @@ void setupTimers();
 void startPump();
 void stopPump();
 void checkPump();
+void checkDate();
 void checkWiFi();
 String getCommands();
 String getStatus();
@@ -141,7 +142,7 @@ void updateDisplay() {
     s3 += "RUNNING";
   } else {
     if (!hasValidTime()) {
-      s3 += "Time ERR";
+      s3 += "NTP ERR";
     } else if (!WiFi.isConnected()) {
       s3 += "WiFi ERR";
     } else if (!mqttConnected()) {
@@ -461,6 +462,13 @@ void checkPump() {
   }
 }
 
+void checkDate() {
+  if (!hasValidTime()) {
+    LOGN("checkDate");
+    setTimestamp();
+  }
+}
+
 void checkWiFi() {
   //   LOGN("checkWiFi");
   if (!WiFi.isConnected()) {
@@ -637,6 +645,21 @@ void handleIOSet() {
   }
 }
 
+void onWiFiGotIP(const WiFiEventStationModeGotIP& event) {
+  LOG("[WiFi] Connected to ");
+  LOG(ssid);
+  LOG(", IP: ");
+  LOGN(WiFi.localIP());
+  timer.setTimeout(50, []() {
+    checkDate();
+    checkMqtt();
+  });
+}
+
+void onWiFiLost(const WiFiEventStationModeDisconnected& event) {
+  LOGN("[WiFi] Connection lost");
+}
+
 void setupWiFi() {
   LOGN("setupWiFi");
   digitalWrite(led, LOW);
@@ -649,29 +672,29 @@ void setupWiFi() {
 #elif defined(ESP32)
   WiFi.setHostname(getDevice().c_str());
 #endif
+
+  gotIpHandler = WiFi.onStationModeGotIP(onWiFiGotIP);
+
+  lostHandler = WiFi.onStationModeDisconnected(onWiFiLost);
+
   WiFi.begin(ssid, password);
-  Serial.print("WiFi Connecting");
+  LOG("[WiFi] Connecting");
   unsigned long startMs = millis();
   while (WiFi.status() != WL_CONNECTED && (millis() - startMs) < 30 * 1000L) {
     delay(1000);
-    Serial.print(".");
+    LOG(".");
   }
-  Serial.println();
-  if (WiFi.isConnected()) {
-    Serial.println("");
-    Serial.print("Connected to ");
-    Serial.println(ssid);
-    Serial.print("IP address: ");
-    Serial.println(WiFi.localIP());
-    digitalWrite(led, HIGH);
-  } else {
-    Serial.println("WiFi connect failed");
+  LOGN();
+  if (!WiFi.isConnected()) {
+    LOGN("[WiFi] Connect failed");
   }
 }
 
 void setupDate() {
   LOGN("setupDate");
-  setTimestamp();
+  if (WiFi.isConnected()) {
+    setTimestamp();
+  }
 }
 
 void setupUpdate() {
@@ -730,20 +753,12 @@ void setupServer() {
   server.begin();
   MDNS.addService("http", "tcp", 80);
   LOGN(F("[Server] HTTP server started"));
-
-  //   auto h = serverAccess.getLastHandler(server);
-  //   while (h) {
-  //     if (instanceof <RequestHandler>(h)) {
-  //       // pass
-  //     }
-  //     h = h->next();
-  //   }
 }
 
 void setupTimers() {
   LOGN("setupTimers");
-  timerReset = millis();
   timer.reset();
+  timerReset = millis();
   displayTimerId = timer.setInterval(1000, updateDisplay);
   runTimerId = timer.setInterval(runInterval, startPump);
   timer.setInterval(runDuration / 2 + 2000, checkPump);

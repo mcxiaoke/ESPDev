@@ -116,7 +116,7 @@ void MqttManager::sendSerial(const String& text) {
 
 void MqttManager::connect() {
   // Loop until we're reconnected
-  int maxRetries = 5;
+  int maxRetries = 3;
   while (!_mqtt->connected() && maxRetries-- > 0) {
     LOGF("[MQTT] Connecting to mqtt://%s:%s@%s\n", getUser().c_str(),
          getPass().c_str(), _server);
@@ -134,9 +134,8 @@ void MqttManager::connect() {
       _mqtt->subscribe(getCmdTopic().c_str());
 
     } else {
-      LOGN("[MQTT] Connect failed, rc=");
-      LOG(_mqtt->state());
-      LOGN("[MQTT] Connect try again in 3 seconds");
+      LOG("[MQTT] Connect failed, rc=");
+      LOGN(_mqtt->state());
       delay(3000);
     }
   }
