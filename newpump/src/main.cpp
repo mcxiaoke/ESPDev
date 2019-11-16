@@ -17,6 +17,15 @@
 
 using std::string;
 
+#define STR1(x) #x
+#define STR(x) STR1(x)
+
+#ifdef PIO_SRC_REV
+#define CODE_VERSION STR(PIO_SRC_REV)
+#else
+#define CODE_VERSION "Unknown"
+#endif
+
 #ifdef DEBUG_MODE
 #define RUN_INTERVAL_DEFAULT 5 * 60 * 1000UL
 #define RUN_DURATION_DEFAULT 18 * 1000UL
@@ -27,6 +36,7 @@ using std::string;
 #define STATUS_INTERVAL_DEFAULT 2 * 60 * 60 * 1000UL
 #endif
 
+const char* version = CODE_VERSION;
 const char* ssid = STASSID;
 const char* password = STAPSK;
 const int led = LED_BUILTIN;
@@ -41,6 +51,8 @@ unsigned long lastStop = 0;
 unsigned long lastSeconds = 0;
 unsigned long totalSeconds = 0;
 
+bool wifiInitialized;
+int wifiInitTimerId;
 int runTimerId, mqttTimerId, statusTimerId;
 int displayTimerId;
 const char REBOOT_RESPONSE[] PROGMEM =
@@ -122,17 +134,15 @@ void updateDisplay() {
 
   String s1 = dateTimeString();
   String s2 = "";
-  auto mod10 = upSecs % 10;
-  if (mod10 < 5) {
-    s2 += "MEM:";
-    s2 += ESP.getFreeHeap();
-    s2 += " NET:";
-    s2 += WiFi.isConnected() ? "WO" : "WE";
-    s2 += " ";
-    s2 += mqttConnected() ? "MO" : "ME";
+  auto mod10 = upSecs % 16;
+  if (mod10 < 8) {
+    s2 += "WIFI:";
+    s2 += WiFi.isConnected() ? "GOOD " : "BAD ";
+    s2 += " MQTT:";
+    s2 += mqttConnected() ? "GOOD" : "BAD ";
   } else {
     s2 += "PIN:";
-    s2 += (digitalRead(pumpOnPin) == HIGH) ? "ON" : "OF";
+    s2 += (digitalRead(pumpOnPin) == HIGH) ? "ON " : "OF";
     s2 += " UP:";
     s2 += monoTime(upSecs);
   }
@@ -142,11 +152,11 @@ void updateDisplay() {
     s3 += "RUNNING";
   } else {
     if (!hasValidTime()) {
-      s3 += "NTP ERR";
+      s3 += "NO TIME";
     } else if (!WiFi.isConnected()) {
-      s3 += "WiFi ERR";
+      s3 += "NO WIFI";
     } else if (!mqttConnected()) {
-      s3 += "MQTT ERR";
+      s3 += "NO MQTT";
     } else {
       s3 += monoTimeMs(timer.getRemain(runTimerId));
     }
@@ -464,13 +474,15 @@ void checkPump() {
 
 void checkDate() {
   if (!hasValidTime()) {
-    LOGN("checkDate");
-    setTimestamp();
+    if (WiFi.isConnected()) {
+      LOGN("[System] checkDate");
+      setTimestamp();
+    }
   }
 }
 
 void checkWiFi() {
-  //   LOGN("checkWiFi");
+  //   LOGF("[WiFi] checkWiFi at %lus\n", millis() / 1000);
   if (!WiFi.isConnected()) {
     WiFi.reconnect();
     debugLog(F("WiFi Reconnect"));
@@ -482,6 +494,8 @@ String getStatus() {
   String data = "";
   data += "Device: ";
   data += getDevice();
+  data += "\nVersion: ";
+  data += version;
   data += "\nPump Pin: ";
   data += pumpOnPin;
   data += "\nPump Status: ";
@@ -654,6 +668,11 @@ void onWiFiGotIP(const WiFiEventStationModeGotIP& event) {
     checkDate();
     checkMqtt();
   });
+  if (!wifiInitialized) {
+    wifiInitialized = true;
+    timer.deleteTimer(wifiInitTimerId);
+    LOGN("[WiFi] Initialized");
+  }
 }
 
 void onWiFiLost(const WiFiEventStationModeDisconnected& event) {
@@ -678,15 +697,15 @@ void setupWiFi() {
   lostHandler = WiFi.onStationModeDisconnected(onWiFiLost);
 
   WiFi.begin(ssid, password);
-  LOG("[WiFi] Connecting");
+  LOGN("[WiFi] Connecting......");
   unsigned long startMs = millis();
-  while (WiFi.status() != WL_CONNECTED && (millis() - startMs) < 30 * 1000L) {
-    delay(1000);
-    LOG(".");
+  while (WiFi.status() != WL_CONNECTED && (millis() - startMs) < 10 * 1000L) {
+    delay(500);
   }
-  LOGN();
   if (!WiFi.isConnected()) {
     LOGN("[WiFi] Connect failed");
+    WiFi.reconnect();
+    wifiInitTimerId = timer.setTimer(9 * 1000L, checkWiFi, 30);
   }
 }
 
@@ -800,12 +819,13 @@ void setup(void) {
   Serial.begin(115200);
   showESP();
   fsCheck();
+  setupTimers();
   setupDisplay();
   delay(1000);
+  LOGN(version);
   setupWiFi();
   setupDate();
   setupServer();
-  setupTimers();
   setupMqtt();
   setupCommands();
   showESP();

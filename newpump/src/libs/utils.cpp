@@ -137,18 +137,18 @@ bool hasValidTime() {
 }
 
 time_t setTimestamp() {
-  auto timeOut = 5000U;
+  auto timeOut = 3000U;
   auto time = getNtpTime(timeOut);
   auto startMs = millis();
-  while (time < TIME_START_2019 && (millis() - startMs) < 30 * 1000L) {
+  while (time < TIME_START_2019 && (millis() - startMs) < 15 * 1000L) {
     time = getNtpTime(timeOut);
   }
   if (time > TIME_START_2019) {
     upTimestamp = time - millis() / 1000;
-    Serial.print("[NTP] Time: ");
+    Serial.print("[System] NTP Success: ");
     Serial.println(dateTimeString());
   } else {
-    Serial.println("[NTP] time failed\n");
+    Serial.println("[System] NTP Failure\n");
   }
   return upTimestamp;
 }

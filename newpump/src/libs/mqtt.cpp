@@ -117,7 +117,7 @@ void MqttManager::sendSerial(const String& text) {
 void MqttManager::connect() {
   // Loop until we're reconnected
   int maxRetries = 3;
-  while (!_mqtt->connected() && maxRetries-- > 0) {
+  while (WiFi.isConnected() && !_mqtt->connected() && maxRetries-- > 0) {
     LOGF("[MQTT] Connecting to mqtt://%s:%s@%s\n", getUser().c_str(),
          getPass().c_str(), _server);
     // Attempt to connect
@@ -136,13 +136,16 @@ void MqttManager::connect() {
     } else {
       LOG("[MQTT] Connect failed, rc=");
       LOGN(_mqtt->state());
-      delay(3000);
+      delay(2000);
     }
   }
 }
 
 void MqttManager::check() {
   if (_silentMode) {
+    return;
+  }
+  if (!WiFi.isConnected()) {
     return;
   }
   if (!_mqtt->connected()) {
