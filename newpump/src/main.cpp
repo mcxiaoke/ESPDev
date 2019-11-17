@@ -1,10 +1,12 @@
-#include <Arduino.h>
-#include <Wire.h>
+// #define BLYNK_PRINT Serial
+#define BLYNK_NO_BUILTIN
+#define BLYNK_NO_FLOAT
+
 #include "ext/string/string.hpp"
 #include "ext/utility.hpp"
+#include "libs/ArduinoTimer.h"
 #include "libs/ESPUpdateServer.h"
 #include "libs/FileServer.h"
-#include "libs/SimpleTimer.h"
 #include "libs/cmd.h"
 #include "libs/compat.h"
 #include "libs/config.h"
@@ -13,6 +15,18 @@
 #include "libs/utils.h"
 #ifdef USING_MQTT
 #include "libs/mqtt.h"
+#endif
+
+#if defined(ESP8266)
+#include <BlynkSimpleEsp8266.h>
+#include <ESP8266WiFi.h>
+// #include <BlynkSimpleEsp8266_SSL.h>
+#elif defined(ESP32)
+#include <BlynkSimpleEsp32.h>
+#include <WiFi.h>
+#include <WiFiClient.h>
+// #include <WiFiClientSecure.h>
+// #include <BlynkSimpleEsp32_SSL.h>
 #endif
 
 using std::string;
@@ -60,7 +74,8 @@ const char REBOOT_RESPONSE[] PROGMEM =
 const char MIME_TEXT_PLAIN[] PROGMEM = "text/plain";
 const char MIME_TEXT_HTML[] PROGMEM = "text/html";
 
-SimpleTimer timer;
+WidgetTerminal terminal(V20);
+ArduinoTimer aTimer;
 #if defined(ESP8266)
 ESP8266WebServer server(80);
 #elif defined(ESP32)
@@ -80,6 +95,7 @@ void startPump();
 void stopPump();
 void checkPump();
 void checkDate();
+void checkBlynk();
 void checkWiFi();
 String getCommands();
 String getStatus();
@@ -137,7 +153,7 @@ void updateDisplay() {
   auto mod10 = upSecs % 16;
   if (mod10 < 8) {
     s2 += "WIFI:";
-    s2 += WiFi.isConnected() ? "GOOD " : "BAD ";
+    s2 += WiFi.isConnected() ? "GOOD" : "BAD ";
     s2 += " MQTT:";
     s2 += mqttConnected() ? "GOOD" : "BAD ";
   } else {
@@ -158,7 +174,7 @@ void updateDisplay() {
     } else if (!mqttConnected()) {
       s3 += "NO MQTT";
     } else {
-      s3 += monoTimeMs(timer.getRemain(runTimerId));
+      s3 += monoTimeMs(aTimer.getRemain(runTimerId));
     }
   }
   display.u8g2->clearBuffer();
@@ -205,13 +221,15 @@ void checkMqtt() {
 
 void mqttTimer() {
 #ifdef USING_MQTT
-  timer.setInterval((MQTT_KEEPALIVE * 2 - 5) * 1000L, checkMqtt);
+  aTimer.setInterval((MQTT_KEEPALIVE * 2 - 5) * 1000L, checkMqtt);
 #endif
 }
 
 void sendMqttStatus(const String& msg) {
 #ifdef USING_MQTT
   mqttMgr.sendStatus(msg);
+  terminal.println(msg);
+  terminal.flush();
 #endif
 }
 
@@ -235,17 +253,19 @@ bool mqttConnected() {
 void cmdReboot(const CommandParam param = CommandParam::INVALID) {
   debugLog(F("Reboot now"));
   sendMqttLog("System will reboot now");
-  timer.setTimeout(1000, []() { ESP.restart(); });
+  aTimer.setTimeout(1000, []() { ESP.restart(); });
 }
 
 void cmdEnable(const CommandParam param = CommandParam::INVALID) {
-  timer.enable(runTimerId);
+  aTimer.enable(runTimerId);
   debugLog(F("Timer enabled"));
+  Blynk.virtualWrite(V0, aTimer.isEnabled(runTimerId) ? HIGH : LOW);
 }
 
 void cmdDisable(const CommandParam param = CommandParam::INVALID) {
-  timer.disable(runTimerId);
+  aTimer.disable(runTimerId);
   debugLog(F("Timer disabled"));
+  Blynk.virtualWrite(V0, aTimer.isEnabled(runTimerId) ? HIGH : LOW);
 }
 
 void cmdStart(const CommandParam param = CommandParam::INVALID) {
@@ -436,12 +456,13 @@ void startPump() {
   lastStart = millis();
   digitalWrite(pumpOnPin, HIGH);
   digitalWrite(led, LOW);
-  timer.setTimeout(runDuration, stopPump);
+  aTimer.setTimeout(runDuration, stopPump);
   String msg = F("Pump Started");
   debugLog(msg);
   msg += "\n";
-  msg += getStatus();
+  //   msg += getStatus();
   sendMqttStatus(msg);
+  Blynk.virtualWrite(V1, digitalRead(pumpOnPin));
 }
 
 void stopPump() {
@@ -460,8 +481,9 @@ void stopPump() {
   String msg = F("Pump Stopped");
   debugLog(msg);
   msg += "\n";
-  msg += getStatus();
+  //   msg += getStatus();
   sendMqttStatus(msg);
+  Blynk.virtualWrite(V1, digitalRead(pumpOnPin));
 }
 
 void checkPump() {
@@ -478,6 +500,12 @@ void checkDate() {
       LOGN("[System] checkDate");
       setTimestamp();
     }
+  }
+}
+
+void checkBlynk() {
+  if (!Blynk.connected()) {
+    Blynk.connect();
   }
 }
 
@@ -515,7 +543,7 @@ String getStatus() {
   data += "\nStatus Interval: ";
   data += humanTimeMs(statusInterval);
   data += "\nTimer Status: ";
-  data += timer.isEnabled(runTimerId) ? "Enabled" : "Disabled";
+  data += aTimer.isEnabled(runTimerId) ? "Enabled" : "Disabled";
   data += "\nTimer Reset: ";
   data += formatDateTime(getTimestamp() - (ts - timerReset) / 1000);
 #if defined(ESP8266)
@@ -539,7 +567,7 @@ String getStatus() {
     data += formatDateTime(getTimestamp() - (ts - lastStop) / 1000);
   }
   data += "\nNext Start: ";
-  data += formatDateTime(getTimestamp() + timer.getRemain(runTimerId) / 1000);
+  data += formatDateTime(getTimestamp() + aTimer.getRemain(runTimerId) / 1000);
   return data;
 }
 
@@ -664,13 +692,14 @@ void onWiFiGotIP(const WiFiEventStationModeGotIP& event) {
   LOG(ssid);
   LOG(", IP: ");
   LOGN(WiFi.localIP());
-  timer.setTimeout(50, []() {
+  aTimer.setTimeout(100, []() {
     checkDate();
     checkMqtt();
+    checkBlynk();
   });
   if (!wifiInitialized) {
     wifiInitialized = true;
-    timer.deleteTimer(wifiInitTimerId);
+    aTimer.deleteTimer(wifiInitTimerId);
     LOGN("[WiFi] Initialized");
   }
 }
@@ -703,9 +732,9 @@ void setupWiFi() {
     delay(500);
   }
   if (!WiFi.isConnected()) {
-    LOGN("[WiFi] Connect failed");
+    LOGN("[WiFi] Connect failed, will retry");
     WiFi.reconnect();
-    wifiInitTimerId = timer.setTimer(9 * 1000L, checkWiFi, 30);
+    wifiInitTimerId = aTimer.setTimer(8 * 1000L, checkWiFi, 30);
   }
 }
 
@@ -776,13 +805,13 @@ void setupServer() {
 
 void setupTimers() {
   LOGN("setupTimers");
-  timer.reset();
+  aTimer.reset();
   timerReset = millis();
-  displayTimerId = timer.setInterval(1000, updateDisplay);
-  runTimerId = timer.setInterval(runInterval, startPump);
-  timer.setInterval(runDuration / 2 + 2000, checkPump);
-  timer.setInterval(5 * 60 * 1000L, checkWiFi);
-  timer.setInterval(statusInterval, statusReport);
+  displayTimerId = aTimer.setInterval(1000, updateDisplay);
+  runTimerId = aTimer.setInterval(runInterval, startPump);
+  aTimer.setInterval(runDuration / 2 + 2000, checkPump);
+  aTimer.setInterval(5 * 60 * 1000L, checkWiFi);
+  aTimer.setInterval(statusInterval, statusReport);
   mqttTimer();
 }
 
@@ -828,6 +857,7 @@ void setup(void) {
   setupServer();
   setupMqtt();
   setupCommands();
+  Blynk.config(BLYNK_AUTH, BLYNK_HOST, BLYNK_PORT);
   showESP();
   debugLog(F("System is running"));
 }
@@ -838,7 +868,8 @@ void loop(void) {
 #if defined(ESP8266)
   MDNS.update();
 #endif
-  timer.run();
+  aTimer.run();
+  Blynk.run();
 }
 
 void handleCommand(const CommandParam& param) {
@@ -852,5 +883,67 @@ void handleCommand(const CommandParam& param) {
     yield();
     showESP();
   };
-  timer.setTimeout(5, processFunc);
+  aTimer.setTimeout(5, processFunc);
+}
+
+void blynkSync() {
+  Blynk.virtualWrite(V0, aTimer.isEnabled(runTimerId) ? HIGH : LOW);
+  Blynk.virtualWrite(V1, digitalRead(pumpOnPin));
+  terminal.clear();
+  terminal.println(getStatus());
+  terminal.flush();
+}
+
+BLYNK_CONNECTED() {
+  LOGN("BLYNK_CONNECTED");
+}
+
+BLYNK_APP_CONNECTED() {
+  LOGN("BLYNK_APP_CONNECTED");
+  blynkSync();
+}
+
+BLYNK_APP_DISCONNECTED() {
+  LOGN("BLYNK_APP_DISCONNECTED");
+}
+
+BLYNK_DISCONNECTED() {
+  LOGN("BLYNK_DISCONNECTED");
+}
+
+BLYNK_READ(V0) {
+  Blynk.virtualWrite(V0, aTimer.isEnabled(runTimerId) ? HIGH : LOW);
+}
+
+BLYNK_WRITE(V0) {
+  // global timer switch
+  int value = param.asInt();
+  LOGF("BLYNK_WRITE V0=%d\n", value);
+  if (value == 0) {
+    cmdDisable();
+  } else if (value == 1) {
+    cmdEnable();
+  }
+}
+
+BLYNK_READ(V1) {
+  Blynk.virtualWrite(V1, digitalRead(pumpOnPin));
+}
+
+BLYNK_WRITE(V1) {
+  // pump switch
+  int value = param.asInt();
+  LOGF("BLYNK_WRITE V1=%d\n", value);
+  if (value == 0) {
+    cmdStop();
+  } else if (value == 1) {
+    cmdStart();
+  }
+}
+
+BLYNK_WRITE(V20) {
+  const char* value = param.asStr();
+  const auto cmd = CommandParam::parseArgs(value);
+  handleCommand(cmd);
+  terminal.flush();
 }

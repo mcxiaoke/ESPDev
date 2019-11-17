@@ -23,7 +23,7 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "SimpleTimer.h"
+#include "ArduinoTimer.h"
 
 // Select time function:
 // static inline unsigned long elapsed() { return micros(); }
@@ -31,11 +31,11 @@ static inline unsigned long elapsed() {
   return millis();
 }
 
-SimpleTimer::SimpleTimer() {
-    reset();
+ArduinoTimer::ArduinoTimer() {
+  reset();
 }
 
-void SimpleTimer::reset(){
+void ArduinoTimer::reset() {
   auto current_millis = elapsed();
 
   for (int i = 0; i < MAX_TIMERS; i++) {
@@ -49,7 +49,7 @@ void SimpleTimer::reset(){
   numTimers = 0;
 }
 
-void SimpleTimer::run() {
+void ArduinoTimer::run() {
   int i;
   auto current_millis = elapsed();
 
@@ -107,7 +107,7 @@ void SimpleTimer::run() {
 
 // find the first available slot
 // return -1 if none found
-int SimpleTimer::findFirstFreeSlot() {
+int ArduinoTimer::findFirstFreeSlot() {
   int i;
 
   // all slots are used
@@ -126,7 +126,7 @@ int SimpleTimer::findFirstFreeSlot() {
   return -1;
 }
 
-int SimpleTimer::setTimer(unsigned long d, timer_callback f, int n) {
+int ArduinoTimer::setTimer(unsigned long d, timer_callback_func f, int n) {
   int freeTimer = findFirstFreeSlot();
   if (freeTimer < 0) {
     return -1;
@@ -147,15 +147,15 @@ int SimpleTimer::setTimer(unsigned long d, timer_callback f, int n) {
   return freeTimer;
 }
 
-int SimpleTimer::setInterval(unsigned long d, timer_callback f) {
+int ArduinoTimer::setInterval(unsigned long d, timer_callback_func f) {
   return setTimer(d, f, RUN_FOREVER);
 }
 
-int SimpleTimer::setTimeout(unsigned long d, timer_callback f) {
+int ArduinoTimer::setTimeout(unsigned long d, timer_callback_func f) {
   return setTimer(d, f, RUN_ONCE);
 }
 
-void SimpleTimer::deleteTimer(int timerId) {
+void ArduinoTimer::deleteTimer(int timerId) {
   if (timerId >= MAX_TIMERS) {
     return;
   }
@@ -180,7 +180,7 @@ void SimpleTimer::deleteTimer(int timerId) {
 }
 
 // function contributed by code@rowansimms.com
-void SimpleTimer::restartTimer(int numTimer) {
+void ArduinoTimer::restartTimer(int numTimer) {
   if (numTimer >= MAX_TIMERS) {
     return;
   }
@@ -188,7 +188,7 @@ void SimpleTimer::restartTimer(int numTimer) {
   prev_millis[numTimer] = elapsed();
 }
 
-boolean SimpleTimer::isEnabled(int numTimer) {
+boolean ArduinoTimer::isEnabled(int numTimer) {
   if (numTimer >= MAX_TIMERS) {
     return false;
   }
@@ -196,7 +196,7 @@ boolean SimpleTimer::isEnabled(int numTimer) {
   return enabled[numTimer];
 }
 
-void SimpleTimer::enable(int numTimer) {
+void ArduinoTimer::enable(int numTimer) {
   if (numTimer >= MAX_TIMERS) {
     return;
   }
@@ -204,7 +204,7 @@ void SimpleTimer::enable(int numTimer) {
   enabled[numTimer] = true;
 }
 
-void SimpleTimer::disable(int numTimer) {
+void ArduinoTimer::disable(int numTimer) {
   if (numTimer >= MAX_TIMERS) {
     return;
   }
@@ -212,7 +212,7 @@ void SimpleTimer::disable(int numTimer) {
   enabled[numTimer] = false;
 }
 
-void SimpleTimer::toggle(int numTimer) {
+void ArduinoTimer::toggle(int numTimer) {
   if (numTimer >= MAX_TIMERS) {
     return;
   }
@@ -220,22 +220,22 @@ void SimpleTimer::toggle(int numTimer) {
   enabled[numTimer] = !enabled[numTimer];
 }
 
-int SimpleTimer::getNumTimers() {
+int ArduinoTimer::getNumTimers() {
   return numTimers;
 }
 
-unsigned long SimpleTimer::getInterval(int numTimer) {
+unsigned long ArduinoTimer::getInterval(int numTimer) {
   return delays[numTimer];
 }
 
-unsigned long SimpleTimer::getElapsed(int numTimer) {
+unsigned long ArduinoTimer::getElapsed(int numTimer) {
   return millis() - prev_millis[numTimer];
 }
 
-unsigned long SimpleTimer::getPrevMs(int numTimer) {
+unsigned long ArduinoTimer::getPrevMs(int numTimer) {
   return prev_millis[numTimer];
 }
 
-unsigned long SimpleTimer::getRemain(int numTimer) {
+unsigned long ArduinoTimer::getRemain(int numTimer) {
   return prev_millis[numTimer] + delays[numTimer] - millis();
 }
