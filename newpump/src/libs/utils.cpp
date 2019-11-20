@@ -157,6 +157,10 @@ time_t getTimestamp() {
   return upTimestamp + millis() / 1000;
 }
 
+time_t getBootTime() {
+  return upTimestamp;
+}
+
 String dateString() {
   time_t ts = getTimestamp();
   char buf[12];

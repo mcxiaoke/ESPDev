@@ -33,6 +33,7 @@ String readLog(const String& path);
 bool hasValidTime();
 time_t setTimestamp();
 time_t getTimestamp();
+time_t getBootTime();
 String dateString();
 String dateTimeString();
 String timeString();

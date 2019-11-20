@@ -35,17 +35,19 @@ ArduinoTimer::ArduinoTimer() {
   reset();
 }
 
+void ArduinoTimer::setDebug(bool debug) {
+  debugMode = debug;
+}
+
+void ArduinoTimer::setBootTime(time_t timestamp) {
+  bootTime = timestamp;
+}
+
 void ArduinoTimer::reset() {
-  auto current_millis = elapsed();
-
+  Serial.println("Timer.reset()");
   for (int i = 0; i < MAX_TIMERS; i++) {
-    enabled[i] = false;
-    callbacks[i] = 0;  // if the callback pointer is zero, the slot is free,
-                       // i.e. doesn't "contain" any timer
-    prev_millis[i] = current_millis;
-    numRuns[i] = 0;
+    deleteTimer(i);
   }
-
   numTimers = 0;
 }
 
@@ -82,6 +84,12 @@ void ArduinoTimer::run() {
             if (numRuns[i] >= maxNumRuns[i]) {
               toBeCalled[i] = DEFCALL_RUNANDDEL;
             }
+          }
+
+          if (debugMode) {
+            Serial.printf("Timer(%d) %s run at %lu (%d)\n", i,
+                          descriptions[i].c_str(), current_millis / 1000UL,
+                          toBeCalled[i]);
           }
         }
       }
@@ -126,7 +134,10 @@ int ArduinoTimer::findFirstFreeSlot() {
   return -1;
 }
 
-int ArduinoTimer::setTimer(unsigned long d, timer_callback_func f, int n) {
+int ArduinoTimer::setTimer(unsigned long d,
+                           timer_callback_func f,
+                           int n,
+                           const String s) {
   int freeTimer = findFirstFreeSlot();
   if (freeTimer < 0) {
     return -1;
@@ -138,21 +149,31 @@ int ArduinoTimer::setTimer(unsigned long d, timer_callback_func f, int n) {
 
   delays[freeTimer] = d;
   callbacks[freeTimer] = f;
+  descriptions[freeTimer] = s;
   maxNumRuns[freeTimer] = n;
   enabled[freeTimer] = true;
   prev_millis[freeTimer] = elapsed();
 
   numTimers++;
 
+  if (debugMode) {
+    Serial.printf("Timer(%d) %s added\n", freeTimer,
+                  descriptions[freeTimer].c_str());
+  }
+
   return freeTimer;
 }
 
-int ArduinoTimer::setInterval(unsigned long d, timer_callback_func f) {
-  return setTimer(d, f, RUN_FOREVER);
+int ArduinoTimer::setInterval(unsigned long d,
+                              timer_callback_func f,
+                              const String s) {
+  return setTimer(d, f, RUN_FOREVER, s);
 }
 
-int ArduinoTimer::setTimeout(unsigned long d, timer_callback_func f) {
-  return setTimer(d, f, RUN_ONCE);
+int ArduinoTimer::setTimeout(unsigned long d,
+                             timer_callback_func f,
+                             const String s) {
+  return setTimer(d, f, RUN_ONCE, s);
 }
 
 void ArduinoTimer::deleteTimer(int timerId) {
@@ -168,7 +189,12 @@ void ArduinoTimer::deleteTimer(int timerId) {
   // don't decrease the number of timers if the
   // specified slot is already empty
   if (callbacks[timerId] != NULL) {
+    if (debugMode) {
+      Serial.printf("Timer(%d) %s deleted\n", timerId,
+                    descriptions[timerId].c_str());
+    }
     callbacks[timerId] = 0;
+    descriptions[timerId] = "";
     enabled[timerId] = false;
     toBeCalled[timerId] = DEFCALL_DONTRUN;
     delays[timerId] = 0;
@@ -238,4 +264,8 @@ unsigned long ArduinoTimer::getPrevMs(int numTimer) {
 
 unsigned long ArduinoTimer::getRemain(int numTimer) {
   return prev_millis[numTimer] + delays[numTimer] - millis();
+}
+
+String ArduinoTimer::getDescription(int numTimer) {
+  return descriptions[numTimer];
 }

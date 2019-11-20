@@ -55,6 +55,12 @@ class ArduinoTimer {
   // constructor
   ArduinoTimer();
 
+  // debug mode
+  void setDebug(bool debug);
+
+  // set boot timestamp
+  void setBootTime(time_t timestamp);
+
   // clear timers
   void reset();
 
@@ -62,13 +68,20 @@ class ArduinoTimer {
   void run();
 
   // call function f every d milliseconds
-  int setInterval(unsigned long d, timer_callback_func f);
+  int setInterval(unsigned long d,
+                  timer_callback_func f,
+                  const String desc = "timer");
 
   // call function f once after d milliseconds
-  int setTimeout(unsigned long d, timer_callback_func f);
+  int setTimeout(unsigned long d,
+                 timer_callback_func f,
+                 const String desc = "timer");
 
   // call function f every d milliseconds for n times
-  int setTimer(unsigned long d, timer_callback_func f, int n);
+  int setTimer(unsigned long d,
+               timer_callback_func f,
+               int n,
+               const String desc = "timer");
 
   // destroy the specified timer
   void deleteTimer(int numTimer);
@@ -107,6 +120,9 @@ class ArduinoTimer {
   // return duration before timer next run
   unsigned long getRemain(int numTimer);
 
+  // return description of timer
+  String getDescription(int numTimer);
+
  private:
   // deferred call constants
   const static int DEFCALL_DONTRUN = 0;  // don't call the callback function
@@ -125,6 +141,9 @@ class ArduinoTimer {
   // pointers to the callback functions
   timer_callback_func callbacks[MAX_TIMERS];
 
+  // callback descriptions
+  String descriptions[MAX_TIMERS];
+
   // delay values
   unsigned long delays[MAX_TIMERS];
 
@@ -142,6 +161,10 @@ class ArduinoTimer {
 
   // actual number of timers in use
   int numTimers;
+  // debug mode flag
+  bool debugMode;
+  // boot time
+  time_t bootTime;
 };
 
 #endif

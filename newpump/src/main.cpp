@@ -66,9 +66,9 @@ unsigned long lastSeconds = 0;
 unsigned long totalSeconds = 0;
 
 bool wifiInitialized;
-int wifiInitTimerId;
-int runTimerId, mqttTimerId, statusTimerId;
-int displayTimerId;
+int wifiInitTimerId = -1;
+int runTimerId = -1, mqttTimerId = -1, statusTimerId = -1;
+int displayTimerId = -1;
 const char REBOOT_RESPONSE[] PROGMEM =
     "<META http-equiv=\"refresh\" content=\"15;URL=/\">Rebooting...\n";
 const char MIME_TEXT_PLAIN[] PROGMEM = "text/plain";
@@ -90,7 +90,7 @@ CommandManager cmdMgr;
 MqttManager mqttMgr(MQTT_SERVER, MQTT_PORT, MQTT_USER, MQTT_PASS);
 #endif
 
-void setupTimers();
+void setupTimers(bool);
 void startPump();
 void stopPump();
 void checkPump();
@@ -221,7 +221,7 @@ void checkMqtt() {
 
 void mqttTimer() {
 #ifdef USING_MQTT
-  aTimer.setInterval((MQTT_KEEPALIVE * 2 - 5) * 1000L, checkMqtt);
+  aTimer.setInterval((MQTT_KEEPALIVE * 2 - 5) * 1000L, checkMqtt, "checkMqtt");
 #endif
 }
 
@@ -253,7 +253,7 @@ bool mqttConnected() {
 void cmdReboot(const CommandParam param = CommandParam::INVALID) {
   debugLog(F("Reboot now"));
   sendMqttLog("System will reboot now");
-  aTimer.setTimeout(1000, []() { ESP.restart(); });
+  aTimer.setTimeout(1000, []() { ESP.restart(); }, "cmdReboot");
 }
 
 void cmdEnable(const CommandParam param = CommandParam::INVALID) {
@@ -377,7 +377,7 @@ void cmdSettings(const CommandParam param = CommandParam::INVALID) {
   if (runInterval != oldRunInterval || runDuration != oldRunDuration ||
       statusInterval != oldStatusInterval) {
     sendMqttLog("Settings changed, reset timers");
-    setupTimers();
+    setupTimers(true);
   }
 }
 
@@ -456,7 +456,7 @@ void startPump() {
   lastStart = millis();
   digitalWrite(pumpOnPin, HIGH);
   digitalWrite(led, LOW);
-  aTimer.setTimeout(runDuration, stopPump);
+  aTimer.setTimeout(runDuration, stopPump, "stopPump");
   String msg = F("Pump Started");
   debugLog(msg);
   msg += "\n";
@@ -499,6 +499,9 @@ void checkDate() {
     if (WiFi.isConnected()) {
       LOGN("[System] checkDate");
       setTimestamp();
+      if (hasValidTime()) {
+        aTimer.setBootTime(getBootTime());
+      }
     }
   }
 }
@@ -692,15 +695,20 @@ void onWiFiGotIP(const WiFiEventStationModeGotIP& event) {
   LOG(ssid);
   LOG(", IP: ");
   LOGN(WiFi.localIP());
-  aTimer.setTimeout(100, []() {
-    checkDate();
-    checkMqtt();
-    checkBlynk();
-  });
+  aTimer.setTimeout(100,
+                    []() {
+                      checkDate();
+                      checkMqtt();
+                      checkBlynk();
+                    },
+                    "onWiFiGotIP");
   if (!wifiInitialized) {
     wifiInitialized = true;
-    aTimer.deleteTimer(wifiInitTimerId);
     LOGN("[WiFi] Initialized");
+  }
+  if (wifiInitTimerId >= 0) {
+    aTimer.deleteTimer(wifiInitTimerId);
+    wifiInitTimerId = -1;
   }
 }
 
@@ -722,19 +730,20 @@ void setupWiFi() {
 #endif
 
   gotIpHandler = WiFi.onStationModeGotIP(onWiFiGotIP);
-
   lostHandler = WiFi.onStationModeDisconnected(onWiFiLost);
 
   WiFi.begin(ssid, password);
-  LOGN("[WiFi] Connecting......");
+  LOGN("[WiFi] Connecting");
   unsigned long startMs = millis();
-  while (WiFi.status() != WL_CONNECTED && (millis() - startMs) < 10 * 1000L) {
-    delay(500);
+  while (WiFi.status() != WL_CONNECTED && (millis() - startMs) < 30 * 1000L) {
+    delay(1000);
+    LOG(".");
   }
+  LOGN();
   if (!WiFi.isConnected()) {
     LOGN("[WiFi] Connect failed, will retry");
     WiFi.reconnect();
-    wifiInitTimerId = aTimer.setTimer(8 * 1000L, checkWiFi, 30);
+    wifiInitTimerId = aTimer.setTimer(10 * 1000L, checkWiFi, 15);
   }
 }
 
@@ -803,15 +812,18 @@ void setupServer() {
   LOGN(F("[Server] HTTP server started"));
 }
 
-void setupTimers() {
+void setupTimers(bool reset) {
   LOGN("setupTimers");
-  aTimer.reset();
+  //   aTimer.setDebug(true);
+  if (reset) {
+    aTimer.reset();
+  }
   timerReset = millis();
-  displayTimerId = aTimer.setInterval(1000, updateDisplay);
-  runTimerId = aTimer.setInterval(runInterval, startPump);
-  aTimer.setInterval(runDuration / 2 + 2000, checkPump);
-  aTimer.setInterval(5 * 60 * 1000L, checkWiFi);
-  aTimer.setInterval(statusInterval, statusReport);
+  displayTimerId = aTimer.setInterval(1000, updateDisplay, "updateDisplay");
+  runTimerId = aTimer.setInterval(runInterval, startPump, "startPump");
+  aTimer.setInterval(runDuration / 2 + 2000, checkPump, "checkPump");
+  aTimer.setInterval(5 * 60 * 1000L, checkWiFi, "checkWiFi");
+  aTimer.setInterval(statusInterval, statusReport, "statusReport");
   mqttTimer();
 }
 
@@ -848,10 +860,10 @@ void setup(void) {
   Serial.begin(115200);
   showESP();
   fsCheck();
-  setupTimers();
   setupDisplay();
   delay(1000);
   LOGN(version);
+  setupTimers(false);
   setupWiFi();
   setupDate();
   setupServer();
@@ -863,12 +875,12 @@ void setup(void) {
 }
 
 void loop(void) {
+  aTimer.run();
   mqttLoop();
   server.handleClient();
 #if defined(ESP8266)
   MDNS.update();
 #endif
-  aTimer.run();
   Blynk.run();
 }
 
@@ -883,24 +895,22 @@ void handleCommand(const CommandParam& param) {
     yield();
     showESP();
   };
-  aTimer.setTimeout(5, processFunc);
+  aTimer.setTimeout(5, processFunc, "handleCommand");
 }
 
 void blynkSync() {
   Blynk.virtualWrite(V0, aTimer.isEnabled(runTimerId) ? HIGH : LOW);
   Blynk.virtualWrite(V1, digitalRead(pumpOnPin));
   terminal.clear();
-  terminal.println(getStatus());
-  terminal.flush();
 }
 
 BLYNK_CONNECTED() {
   LOGN("BLYNK_CONNECTED");
+  blynkSync();
 }
 
 BLYNK_APP_CONNECTED() {
   LOGN("BLYNK_APP_CONNECTED");
-  blynkSync();
 }
 
 BLYNK_APP_DISCONNECTED() {
