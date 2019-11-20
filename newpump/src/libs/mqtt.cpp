@@ -10,6 +10,11 @@ static void mqttFileLog(const String& text) {
   fileLog(text, logFileName("mqtt"), true);
 }
 
+// static const unsigned int COMMAND_MAX_LENGTH = 128;
+// fix c++ linker undefined reference
+// see https://stackoverflow.com/questions/16957458
+const unsigned int MqttManager::COMMAND_MAX_LENGTH;
+
 MqttManager::MqttManager(const char* server,
                          const int port,
                          const char* username,
@@ -201,7 +206,8 @@ void MqttManager::handleMessage(const char* _topic,
                                 const unsigned int _length) {
   yield();
   string topic(_topic);
-  string message(_payload, _payload + std::min(_length, COMMAND_MAX_LENGTH));
+  string message(_payload,
+                 _payload + std::min(_length, MqttManager::COMMAND_MAX_LENGTH));
 
   if (strcmp("test", _topic) == 0) {
     LOGF("[MQTT] Test message: %s\n", message.c_str());
@@ -213,8 +219,8 @@ void MqttManager::handleMessage(const char* _topic,
   message = extstring::replace_all(message, "\n", " ");
   extstring::trim(message);
   char logBuf[message.size() + topic.size() + 24];
-  snprintf(logBuf, COMMAND_MAX_LENGTH + 24, "[MQTT][%s] %s (%d)", topic.c_str(),
-           message.c_str(), _length);
+  snprintf(logBuf, MqttManager::COMMAND_MAX_LENGTH + 24, "[MQTT][%s] %s (%d)",
+           topic.c_str(), message.c_str(), _length);
   mqttFileLog(logBuf);
   if (topic != getCmdTopic()) {
     LOGN(F("[MQTT] Not a command"));

@@ -81,7 +81,6 @@ ESP8266WebServer server(80);
 #elif defined(ESP32)
 WebServer server(80);
 #endif
-WiFiEventHandler gotIpHandler, lostHandler;
 
 Display display;
 ESPUpdateServer otaUpdate(true);
@@ -690,7 +689,7 @@ void handleIOSet() {
   }
 }
 
-void onWiFiGotIP(const WiFiEventStationModeGotIP& event) {
+void handleWiFiGotIP() {
   LOG("[WiFi] Connected to ");
   LOG(ssid);
   LOG(", IP: ");
@@ -712,9 +711,29 @@ void onWiFiGotIP(const WiFiEventStationModeGotIP& event) {
   }
 }
 
-void onWiFiLost(const WiFiEventStationModeDisconnected& event) {
+void handleWiFiLost() {
   LOGN("[WiFi] Connection lost");
 }
+
+#if defined(ESP8266)
+
+void onWiFiGotIP(const WiFiEventStationModeGotIP& event) {
+  handleWiFiGotIP();
+}
+
+void onWiFiLost(const WiFiEventStationModeDisconnected& event) {
+  handleWiFiLost();
+}
+
+#elif defined(ESP32)
+void onWiFiGotIP(WiFiEvent_t event, WiFiEventInfo_t info) {
+  handleWiFiGotIP();
+}
+
+void onWiFiLost(WiFiEvent_t event, WiFiEventInfo_t info) {
+  handleWiFiLost();
+}
+#endif
 
 void setupWiFi() {
   LOGN("setupWiFi");
@@ -729,8 +748,23 @@ void setupWiFi() {
   WiFi.setHostname(getDevice().c_str());
 #endif
 
-  gotIpHandler = WiFi.onStationModeGotIP(onWiFiGotIP);
-  lostHandler = WiFi.onStationModeDisconnected(onWiFiLost);
+#if defined(ESP8266)
+  //   WiFi.onStationModeGotIP(onWiFiGotIP);
+  //   WiFi.onStationModeDisconnected(onWiFiLost);
+  WiFi.onStationModeGotIP(
+      [](const WiFiEventStationModeGotIP& event) { handleWiFiGotIP(); });
+  WiFi.onStationModeDisconnected(
+      [](const WiFiEventStationModeDisconnected& event) { handleWiFiLost(); });
+#elif defined(ESP32)
+  //   WiFi.onEvent(onWiFiGotIP, WiFiEvent_t::SYSTEM_EVENT_STA_GOT_IP);
+  //   WiFi.onEvent(onWiFiLost, WiFiEvent_t::SYSTEM_EVENT_STA_DISCONNECTED);
+  WiFi.onEvent(
+      [](WiFiEvent_t event, WiFiEventInfo_t info) { handleWiFiGotIP(); },
+      WiFiEvent_t::SYSTEM_EVENT_STA_GOT_IP);
+  WiFi.onEvent(
+      [](WiFiEvent_t event, WiFiEventInfo_t info) { handleWiFiLost(); },
+      WiFiEvent_t::SYSTEM_EVENT_STA_DISCONNECTED);
+#endif
 
   WiFi.begin(ssid, password);
   LOGN("[WiFi] Connecting");

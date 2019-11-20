@@ -13,9 +13,8 @@ using std::string;
 using MQTT_CALLBACK_FUNC = std::function<void(char*, uint8_t*, unsigned int)>;
 
 class MqttManager {
-  static const unsigned int COMMAND_MAX_LENGTH = 128;
-
  public:
+  static const unsigned int COMMAND_MAX_LENGTH = 128;
   MqttManager(const char* server,
               const int port,
               const char* username,
