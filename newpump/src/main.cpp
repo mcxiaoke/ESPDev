@@ -302,15 +302,20 @@ void cmdStatus(const CommandParam param = CommandParam::INVALID) {
 
 void cmdWiFi(const CommandParam param = CommandParam::INVALID) {
   LOGN("cmdWiFi");
-  String wf = "Mac=";
-  wf += WiFi.macAddress();
-  wf += "\nIP=";
-  wf += WiFi.localIP().toString();
-  wf += "\nSSID=";
-  wf += WiFi.SSID();
-  wf += "\nStatus=";
-  wf += WiFi.status();
-  sendMqttStatus(wf);
+  String data = "";
+  data += "Device: ";
+  data += getDevice();
+  data += "\nVersion: ";
+  data += version;
+  data += "\nMac: ";
+  data += WiFi.macAddress();
+  data += "\nIP: ";
+  data += WiFi.localIP().toString();
+  data += "\nSSID: ";
+  data += WiFi.SSID();
+  data += "\nUpTime: ";
+  data += millis() / 1000;
+  sendMqttStatus(data);
 }
 
 int parseInt(const string& extra) {
@@ -864,23 +869,24 @@ void setupTimers(bool reset) {
 void setupCommands() {
   LOGN("setupCommands");
   cmdMgr.setDefaultHandler(cmdNotFound);
-  cmdMgr.addCommand("reboot", "reboot the board", cmdReboot);
-  cmdMgr.addCommand("on", "set timer on", cmdEnable);
-  cmdMgr.addCommand("enable", "set timer on", cmdEnable);
-  cmdMgr.addCommand("off", "set timer off", cmdDisable);
-  cmdMgr.addCommand("disable", "set timer off", cmdDisable);
-  cmdMgr.addCommand("start", "start pump", cmdStart);
-  cmdMgr.addCommand("stop", "stop pump", cmdStop);
-  cmdMgr.addCommand("status", "get pump status", cmdStatus);
+  cmdMgr.addCommand("reboot", "device reboot", cmdReboot);
+  cmdMgr.addCommand("on", "enable timers", cmdEnable);
+  cmdMgr.addCommand("enable", "enable timers", cmdEnable);
+  cmdMgr.addCommand("off", "disable timers", cmdDisable);
+  cmdMgr.addCommand("disable", "disable timers", cmdDisable);
+  cmdMgr.addCommand("start", "start device at pin", cmdStart);
+  cmdMgr.addCommand("stop", "stop device at pin", cmdStop);
+  cmdMgr.addCommand("status", "get device pin status", cmdStatus);
   cmdMgr.addCommand("wifi", "get wifi status", cmdWiFi);
-  cmdMgr.addCommand("logs", "show logs", cmdLogs);
-  cmdMgr.addCommand("files", "show files", cmdFiles);
-  cmdMgr.addCommand("settings", "change settings k1=v1 k2=v2", cmdSettings);
+  cmdMgr.addCommand("online", "check device online", cmdWiFi);
+  cmdMgr.addCommand("logs", "show device logs", cmdLogs);
+  cmdMgr.addCommand("files", "show device files", cmdFiles);
+  cmdMgr.addCommand("settings", "settings k1=v1 k2=v2", cmdSettings);
   cmdMgr.addCommand("ioset", "gpio set [pin] [value]", cmdIOSet);
-  cmdMgr.addCommand("ioset1", "gpio set to 1 for [pin]", cmdIOSetHigh);
-  cmdMgr.addCommand("ioset0", "gpio set to 0 for  [pin]", cmdIOSetLow);
-  cmdMgr.addCommand("list", "show available commands", cmdHelp);
-  cmdMgr.addCommand("help", "show help message", cmdHelp);
+  cmdMgr.addCommand("ioset1", "gpio set 1 for [pin]", cmdIOSetHigh);
+  cmdMgr.addCommand("ioset0", "gpio set 0 for [pin]", cmdIOSetLow);
+  cmdMgr.addCommand("list", "show commands", cmdHelp);
+  cmdMgr.addCommand("help", "show help", cmdHelp);
 }
 
 void setupDisplay() {
@@ -920,14 +926,12 @@ void loop(void) {
 
 void handleCommand(const CommandParam& param) {
   auto processFunc = [param] {
-    showESP();
+    yield();
     LOG("[CMD] handleCommand ");
     LOGN(param.toString().c_str());
     if (!cmdMgr.handle(param)) {
       LOGN("[CMD] Unknown command");
     }
-    yield();
-    showESP();
   };
   aTimer.setTimeout(5, processFunc, "handleCommand");
 }

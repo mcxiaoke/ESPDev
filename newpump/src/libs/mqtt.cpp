@@ -13,7 +13,10 @@ static void mqttFileLog(const String& text) {
 // static const unsigned int COMMAND_MAX_LENGTH = 128;
 // fix c++ linker undefined reference
 // see https://stackoverflow.com/questions/16957458
-const unsigned int MqttManager::COMMAND_MAX_LENGTH;
+const unsigned int MqttManager::COMMAND_MAX_LENGTH = 128;
+const string MqttManager::TOPIC_DEVICE_CHECK = "device/check";
+const string MqttManager::TOPIC_DEVICE_ONLINE = "device/online";
+const string MqttManager::CMD_DEVICE_CHECK = "check";
 
 MqttManager::MqttManager(const char* server,
                          const int port,
@@ -94,7 +97,7 @@ void MqttManager::sendStatus(const String& text) {
   //   LOGF("[MQTT] send message: [%s]\n", text.c_str());
   bool ret = sendMessage(getStatusTopic().c_str(), text.c_str());
   if (ret) {
-    LOGN("[MQTT] mqtt status sent successful.");
+    LOGF("[MQTT] mqtt status: [%s] (%d)\n", text.c_str(), text.length());
   } else {
     LOGN("[MQTT] mqtt status sent failed.");
   }
@@ -135,9 +138,7 @@ void MqttManager::connect() {
       mqttFileLog(msg);
       fileLog("MQTT Connected");
       sendOnline();
-      _mqtt->subscribe("test");
-      _mqtt->subscribe(getCmdTopic().c_str());
-
+      initSubscribe();
     } else {
       LOG("[MQTT] Connect failed, rc=");
       LOGN(_mqtt->state());
@@ -165,8 +166,7 @@ void MqttManager::check() {
       msg += _server;
       mqttFileLog(msg);
       sendOnline();
-      _mqtt->subscribe("test");
-      _mqtt->subscribe(getCmdTopic().c_str());
+      initSubscribe();
     } else {
       String msg = "[MQTT] Reconnect failed, rc=";
       msg += _mqtt->state();
@@ -209,19 +209,34 @@ void MqttManager::handleMessage(const char* _topic,
   string message(_payload,
                  _payload + std::min(_length, MqttManager::COMMAND_MAX_LENGTH));
 
+  char logBuf[message.size() + topic.size() + 24];
+  snprintf(logBuf, MqttManager::COMMAND_MAX_LENGTH + 24, "[MQTT][%s] %s (%d)",
+           topic.c_str(), message.c_str(), _length);
+  mqttFileLog(logBuf);
   if (strcmp("test", _topic) == 0) {
     LOGF("[MQTT] Test message: %s\n", message.c_str());
     _mqtt->publish("test/resp", message.c_str());
     return;
   }
 
+  if (MqttManager::TOPIC_DEVICE_CHECK == topic) {
+    LOGF("[MQTT] Device check message: %s\n", message.c_str());
+    // send response
+    String msg = "";
+    msg += getDevice();
+    msg += "/";
+    msg += WiFi.localIP().toString();
+    sendMessage(TOPIC_DEVICE_ONLINE.c_str(), msg.c_str());
+    if (MqttManager::CMD_DEVICE_CHECK == message) {
+      // hook for online command
+      topic = getCmdTopic();
+      message = "/online";
+    }
+  }
+
   // replace newline for log print
   message = extstring::replace_all(message, "\n", " ");
   extstring::trim(message);
-  char logBuf[message.size() + topic.size() + 24];
-  snprintf(logBuf, MqttManager::COMMAND_MAX_LENGTH + 24, "[MQTT][%s] %s (%d)",
-           topic.c_str(), message.c_str(), _length);
-  mqttFileLog(logBuf);
   if (topic != getCmdTopic()) {
     LOGN(F("[MQTT] Not a command"));
     // sendLog("What?");
@@ -258,4 +273,10 @@ void MqttManager::sendOnline() {
   } else {
     LOGN("[MQTT] mqtt online sent successfully.");
   }
+}
+
+void MqttManager::initSubscribe() {
+  _mqtt->subscribe("test");
+  _mqtt->subscribe(TOPIC_DEVICE_CHECK.c_str());
+  _mqtt->subscribe(getCmdTopic().c_str());
 }
