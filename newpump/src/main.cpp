@@ -717,29 +717,14 @@ void handleWiFiGotIP() {
 }
 
 void handleWiFiLost() {
-  LOGN("[WiFi] Connection lost");
+  LOG("---");
 }
 
 #if defined(ESP8266)
-
-void onWiFiGotIP(const WiFiEventStationModeGotIP& event) {
-  handleWiFiGotIP();
-}
-
-void onWiFiLost(const WiFiEventStationModeDisconnected& event) {
-  handleWiFiLost();
-}
-
+WiFiEventHandler h1, h2;
 #elif defined(ESP32)
-void onWiFiGotIP(WiFiEvent_t event, WiFiEventInfo_t info) {
-  handleWiFiGotIP();
-}
-
-void onWiFiLost(WiFiEvent_t event, WiFiEventInfo_t info) {
-  handleWiFiLost();
-}
+wifi_event_id_t h1, h2;
 #endif
-
 void setupWiFi() {
   LOGN("setupWiFi");
   digitalWrite(led, LOW);
@@ -754,35 +739,34 @@ void setupWiFi() {
 #endif
 
 #if defined(ESP8266)
-  //   WiFi.onStationModeGotIP(onWiFiGotIP);
-  //   WiFi.onStationModeDisconnected(onWiFiLost);
-  WiFi.onStationModeGotIP(
+  h1 = WiFi.onStationModeGotIP(
       [](const WiFiEventStationModeGotIP& event) { handleWiFiGotIP(); });
-  WiFi.onStationModeDisconnected(
+  h2 = WiFi.onStationModeDisconnected(
       [](const WiFiEventStationModeDisconnected& event) { handleWiFiLost(); });
 #elif defined(ESP32)
-  //   WiFi.onEvent(onWiFiGotIP, WiFiEvent_t::SYSTEM_EVENT_STA_GOT_IP);
-  //   WiFi.onEvent(onWiFiLost, WiFiEvent_t::SYSTEM_EVENT_STA_DISCONNECTED);
-  WiFi.onEvent(
+  h1 = WiFi.onEvent(
       [](WiFiEvent_t event, WiFiEventInfo_t info) { handleWiFiGotIP(); },
       WiFiEvent_t::SYSTEM_EVENT_STA_GOT_IP);
-  WiFi.onEvent(
+  h2 = WiFi.onEvent(
       [](WiFiEvent_t event, WiFiEventInfo_t info) { handleWiFiLost(); },
       WiFiEvent_t::SYSTEM_EVENT_STA_DISCONNECTED);
 #endif
 
   WiFi.begin(ssid, password);
-  LOGN("[WiFi] Connecting");
-  unsigned long startMs = millis();
-  while (WiFi.status() != WL_CONNECTED && (millis() - startMs) < 30 * 1000L) {
-    delay(1000);
+  LOG("[WiFi] Connecting");
+  auto startMs = millis();
+  // setup wifi timeout 60 seconds
+  while (WiFi.status() != WL_CONNECTED && (millis() - startMs) < 60 * 1000L) {
     LOG(".");
+    delay(1000);
   }
   LOGN();
   if (!WiFi.isConnected()) {
     LOGN("[WiFi] Connect failed, will retry");
     WiFi.reconnect();
     wifiInitTimerId = aTimer.setTimer(10 * 1000L, checkWiFi, 15);
+  } else {
+    LOGF("[WiFi] Setup connection using %lus.\n", millis() / 1000);
   }
 }
 
