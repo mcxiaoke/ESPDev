@@ -1,7 +1,7 @@
 #include "FileServer.h"
 
-bool FileServer::handle(SERVER_CLASS* server) {
-  String path = server->uri();
+bool FileServer::handle(AsyncWebServerRequest* request) {
+  String path = request->url();
   //   LOGN("[FileServer] Handling " + path);
   String delSuffix = "/delete";
   if (path.endsWith(delSuffix)) {
@@ -9,8 +9,7 @@ bool FileServer::handle(SERVER_CLASS* server) {
     if (SPIFFS.exists(path)) {
       LOGN("[FileServer] Delete " + path);
       SPIFFS.remove(path);
-      server->sendHeader("Location", "/files", true);
-      server->send(302, "text/html", "");
+      request->redirect("/files");
       return true;
     }
     return false;
@@ -66,19 +65,22 @@ bool FileServer::handle(SERVER_CLASS* server) {
   // if SPIFFS.exists
   if (SPIFFS.exists(path)) {
     LOGN("[FileServer] Sending " + path);
+
+    AsyncWebServerResponse* response =
+        request->beginResponse(SPIFFS, path, contentType);
+
     File file = SPIFFS.open(path, "r");
-    if (server->hasArg("download"))
-      server->sendHeader("Content-Disposition", " attachment;");
-    if (server->uri().indexOf("nocache") < 0)
-      server->sendHeader("Cache-Control", " max-age=14400");
+    if (request->hasParam("download", false))
+      response->addHeader("Content-Disposition", " attachment;");
+    if (path.indexOf("nocache") < 0)
+      response->addHeader("Cache-Control", " max-age=14400");
 
     // optional alt arg (encoded url), server sends redirect to file on the web
-    if (server->hasArg("alt")) {
-      server->sendHeader("Location", server->arg("alt"), true);
-      server->send(302, "text/plain", "");
+    if (request->hasParam("alt", false)) {
+      request->redirect(request->getParam("alt")->value());
     } else {
       // server sends file
-      server->streamFile(file, contentType);
+      request->send(response);
     }
     file.close();
     return true;

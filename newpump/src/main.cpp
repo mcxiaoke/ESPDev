@@ -2,6 +2,7 @@
 #define BLYNK_NO_BUILTIN
 #define BLYNK_NO_FLOAT
 
+#include <Arduino.h>
 #include "ext/string/string.hpp"
 #include "ext/utility.hpp"
 #include "libs/ArduinoTimer.h"
@@ -12,6 +13,7 @@
 #include "libs/config.h"
 #include "libs/display.h"
 #include "libs/net.h"
+#include "libs/rest.h"
 #include "libs/utils.h"
 #ifdef USING_MQTT
 #include "libs/mqtt.h"
@@ -35,9 +37,9 @@ using std::string;
 #define STR(x) STR1(x)
 
 #ifdef PIO_SRC_REV
-#define CODE_VERSION STR(PIO_SRC_REV)
+#define BUILD_VERSION STR(PIO_SRC_REV)
 #else
-#define CODE_VERSION "Unknown"
+#define BUILD_VERSION "-"
 #endif
 
 #ifdef DEBUG_MODE
@@ -50,7 +52,7 @@ using std::string;
 #define STATUS_INTERVAL_DEFAULT 2 * 60 * 60 * 1000UL
 #endif
 
-const char* version = CODE_VERSION;
+const char* buildVersion = BUILD_VERSION;
 const char* ssid = STASSID;
 const char* password = STAPSK;
 const int led = LED_BUILTIN;
@@ -76,11 +78,7 @@ const char MIME_TEXT_HTML[] PROGMEM = "text/html";
 
 WidgetTerminal terminal(V20);
 ArduinoTimer aTimer;
-#if defined(ESP8266)
-ESP8266WebServer server(80);
-#elif defined(ESP32)
-WebServer server(80);
-#endif
+AsyncWebServer server(80);
 
 Display display;
 ESPUpdateServer otaUpdate(true);
@@ -305,8 +303,6 @@ void cmdWiFi(const CommandParam param = CommandParam::INVALID) {
   String data = "";
   data += "Device: ";
   data += getDevice();
-  data += "\nVersion: ";
-  data += version;
   data += "\nMac: ";
   data += WiFi.macAddress();
   data += "\nIP: ";
@@ -530,7 +526,7 @@ String getStatus() {
   data += "Device: ";
   data += getDevice();
   data += "\nVersion: ";
-  data += version;
+  data += buildVersion;
   data += "\nPump Pin: ";
   data += pumpOnPin;
   data += "\nPump Status: ";
@@ -583,44 +579,44 @@ void statusReport() {
   sendMqttStatus(getStatus());
 }
 
-void handleFiles() {
+void handleFiles(AsyncWebServerRequest* request) {
   LOGN("handleFiles");
-  server.send(200, MIME_TEXT_HTML, getFilesHtml());
+  request->send(200, MIME_TEXT_HTML, getFilesHtml());
 }
 
-void handleLogs() {
+void handleLogs(AsyncWebServerRequest* request) {
   LOGN("handleLogs");
-  File file = SPIFFS.open(logFileName(), "r");
-  server.streamFile(file, MIME_TEXT_PLAIN);
+  //   File file = SPIFFS.open(logFileName(), "r");
+  request->send(SPIFFS, logFileName(), MIME_TEXT_PLAIN);
 }
 
-void handleStart() {
+void handleStart(AsyncWebServerRequest* request) {
   LOGN("handleStart");
-  if (server.hasArg("do")) {
-    server.send(200, MIME_TEXT_PLAIN, "ok");
+  if (request->hasParam("do", false)) {
+    request->send(200, MIME_TEXT_PLAIN, "ok");
     cmdStart();
   } else {
-    server.send(200, MIME_TEXT_PLAIN, "ignore");
+    request->send(200, MIME_TEXT_PLAIN, "ignore");
   }
 }
 
-void handleStop() {
+void handleStop(AsyncWebServerRequest* request) {
   LOGN("handleStop");
-  if (server.hasArg("do")) {
-    server.send(200, MIME_TEXT_PLAIN, "ok");
+  if (request->hasParam("do", false)) {
+    request->send(200, MIME_TEXT_PLAIN, "ok");
     cmdStop();
   } else {
-    server.send(200, MIME_TEXT_PLAIN, "ignore");
+    request->send(200, MIME_TEXT_PLAIN, "ignore");
   }
 }
 
-void handleClear() {
+void handleClear(AsyncWebServerRequest* request) {
   LOGN("handleClear");
-  if (server.hasArg("do")) {
-    server.send(200, MIME_TEXT_PLAIN, "ok");
+  if (request->hasParam("do", false)) {
+    request->send(200, MIME_TEXT_PLAIN, "ok");
     cmdClear();
   } else {
-    server.send(200, MIME_TEXT_PLAIN, "ignore");
+    request->send(200, MIME_TEXT_PLAIN, "ignore");
   }
 }
 
@@ -628,50 +624,50 @@ void reboot() {
   ESP.restart();
 }
 
-void handleReboot() {
+void handleReboot(AsyncWebServerRequest* request) {
   LOGN("handleReboot");
-  if (server.hasArg("do")) {
-    server.send(200, MIME_TEXT_PLAIN, "ok");
+  if (request->hasParam("do", false)) {
+    request->send(200, MIME_TEXT_PLAIN, "ok");
     cmdReboot();
   } else {
-    server.send(200, MIME_TEXT_PLAIN, "ignore");
+    request->send(200, MIME_TEXT_PLAIN, "ignore");
   }
 }
 
-void handleDisable() {
+void handleDisable(AsyncWebServerRequest* request) {
   LOGN("handleDisable");
-  if (server.hasArg("do")) {
-    server.send(200, MIME_TEXT_PLAIN, "ok");
+  if (request->hasParam("do", false)) {
+    request->send(200, MIME_TEXT_PLAIN, "ok");
     cmdDisable();
   } else {
-    server.send(200, MIME_TEXT_PLAIN, "ignore");
+    request->send(200, MIME_TEXT_PLAIN, "ignore");
   }
 }
 
-void handleEnable() {
+void handleEnable(AsyncWebServerRequest* request) {
   LOGN("handleEnable");
-  if (server.hasArg("do")) {
-    server.send(200, MIME_TEXT_PLAIN, "ok");
+  if (request->hasParam("do", false)) {
+    request->send(200, MIME_TEXT_PLAIN, "ok");
     cmdEnable();
   } else {
-    server.send(200, MIME_TEXT_PLAIN, "ignore");
+    request->send(200, MIME_TEXT_PLAIN, "ignore");
   }
 }
 
-void handleRoot() {
+void handleRoot(AsyncWebServerRequest* request) {
   LOGN("handleRoot");
-  server.send(200, MIME_TEXT_PLAIN, getStatus().c_str());
+  request->send(200, MIME_TEXT_PLAIN, getStatus().c_str());
   showESP();
 }
 
-void handleSettings() {
+void handleSettings(AsyncWebServerRequest* request) {
   vector<string> args;
-  for (auto i = 0; i < server.args(); i++) {
-    LOGF("handleSettings %s=%s\n", server.argName(i).c_str(),
-         server.arg(i).c_str());
-    string arg(server.arg(i).c_str());
+  for (size_t i = 0U; i < request->params(); i++) {
+    auto p = request->getParam(i);
+    LOGF("handleSettings %s=%s\n", p->name().c_str(), p->value().c_str());
+    string arg(p->value().c_str());
     arg += "=";
-    arg += server.arg(i).c_str();
+    arg += p->value().c_str();
     args.push_back(arg);
   }
   if (args.size() > 0) {
@@ -680,13 +676,15 @@ void handleSettings() {
   }
 }
 
-void handleIOSet() {
+void handleIOSet(AsyncWebServerRequest* request) {
   vector<string> args;
-  for (auto i = 0; i < server.args(); i++) {
-    LOGF("handleIOSet %s=%s\n", server.argName(i).c_str(),
-         server.arg(i).c_str());
-    args.push_back(server.argName(i).c_str());
-    args.push_back(server.arg(i).c_str());
+  for (size_t i = 0U; i < request->params(); i++) {
+    auto p = request->getParam(i);
+    LOGF("handleIOSet %s=%s\n", p->name().c_str(), p->value().c_str());
+    string arg(p->value().c_str());
+    arg += "=";
+    arg += p->value().c_str();
+    args.push_back(arg);
   }
   if (args.size() > 1) {
     const CommandParam param{"ioset", args};
@@ -782,11 +780,13 @@ void setupUpdate() {
   otaUpdate.setup(&server);
 }
 
-void handleControl() {
+void handleControl(AsyncWebServerRequest* request) {
   String text = "";
-  for (int i = 0; i < server.args(); i++) {
-    if (server.argName(i) == "args") {
-      text = server.arg(i);
+  for (size_t i = 0U; i < request->params(); i++) {
+    auto p = request->getParam(i);
+    LOGF("handleControl %s=%s\n", p->name().c_str(), p->value().c_str());
+    if (p->name() == "args") {
+      text = p->value();
       break;
     }
   }
@@ -795,16 +795,16 @@ void handleControl() {
     string s(text.c_str());
     handleCommand(CommandParam::parseArgs(s));
   }
-  server.send(200, MIME_TEXT_PLAIN, "ok");
+  request->send(200, MIME_TEXT_PLAIN, "ok");
 }
 
-void handleNotFound() {
-  if (!FileServer::handle(&server)) {
-    LOGN("handleNotFound " + server.uri());
+void handleNotFound(AsyncWebServerRequest* request) {
+  if (!FileServer::handle(request)) {
+    LOGN("handleNotFound " + request->url());
     String data = F("ERROR: NOT FOUND\nURI: ");
-    data += server.uri();
+    data += request->url();
     data += "\n";
-    server.send(404, MIME_TEXT_PLAIN, data);
+    request->send(404, MIME_TEXT_PLAIN, data);
   }
 }
 
@@ -828,6 +828,8 @@ void setupServer() {
   server.on("/ioset", handleIOSet);
   server.on("/files", handleFiles);
   server.on("/logs", handleLogs);
+  //   server.serveStatic("/www/", SPIFFS,
+  //   "/www/").setCacheControl("max-age=600");
   server.onNotFound(handleNotFound);
   setupUpdate();
   server.begin();
@@ -886,7 +888,6 @@ void setup(void) {
   fsCheck();
   setupDisplay();
   delay(1000);
-  LOGN(version);
   setupTimers(false);
   setupWiFi();
   setupDate();
@@ -896,12 +897,13 @@ void setup(void) {
   Blynk.config(BLYNK_AUTH, BLYNK_HOST, BLYNK_PORT);
   showESP();
   debugLog(F("System is running"));
+  LOGN(__TIME__);
 }
 
 void loop(void) {
   aTimer.run();
   mqttLoop();
-  server.handleClient();
+//   server.handleClient();
 #if defined(ESP8266)
   MDNS.update();
 #endif

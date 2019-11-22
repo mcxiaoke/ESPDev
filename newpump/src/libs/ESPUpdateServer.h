@@ -3,64 +3,61 @@
 
 #include "compat.h"
 
-#if defined(ESP8266)
-#define ESP_SERVER_CLASS ESP8266WebServer
-#elif defined(ESP32)
+#if defined(ESP32)
+#include <AsyncTCP.h>
 #include <Update.h>
-#define ESP_SERVER_CLASS WebServer
+#elif defined(ESP8266)
+#include <ESPAsyncTCP.h>
 #endif
+#include <ESPAsyncWebServer.h>
 
-class ESP_SERVER_CLASS;
+class ESPUpdateServer {
+ public:
+  ESPUpdateServer(bool serial_debug = false);
 
-// template<typename Base, typename T>
-// inline bool instanceof(const T *ptr) {
-//     return dynamic_cast<const Base*>(ptr) != nullptr;
-// }
+  void setup(AsyncWebServer* server) {
+    setup(server, emptyString, emptyString);
+  }
 
-// class ESPPrivateAccess {
-//  public:
-//   RequestHandler* getLastHandler(ESP_SERVER_CLASS& w) { return w._lastHandler; }
-// };
+  void setup(AsyncWebServer* server, const String& path) {
+    setup(server, path, emptyString, emptyString);
+  }
 
-class ESPUpdateServer
-{
-  public:
-    ESPUpdateServer(bool serial_debug=false);
+  void setup(AsyncWebServer* server,
+             const String& username,
+             const String& password) {
+    setup(server, "/update", username, password);
+  }
 
-    void setup(ESP_SERVER_CLASS *server)
-    {
-      setup(server, emptyString, emptyString);
-    }
+  void setup(AsyncWebServer* server,
+             const String& path,
+             const String& username,
+             const String& password);
 
-    void setup(ESP_SERVER_CLASS *server, const String& path)
-    {
-      setup(server, path, emptyString, emptyString);
-    }
+  void updateCredentials(const String& username, const String& password) {
+    _username = username;
+    _password = password;
+  }
 
-    void setup(ESP_SERVER_CLASS *server, const String& username, const String& password)
-    {
-      setup(server, "/update", username, password);
-    }
+ protected:
+  void _setUpdaterError();
 
-    void setup(ESP_SERVER_CLASS *server, const String& path, const String& username, const String& password);
-
-    void updateCredentials(const String& username, const String& password)
-    {
-      _username = username;
-      _password = password;
-    }
-
-  protected:
-    void _setUpdaterError();
-
-  private:
-    bool _serial_output;
-    ESP_SERVER_CLASS *_server;
-    String _username;
-    String _password;
-    bool _authenticated;
-    String _updaterError;
+ private:
+  bool _serial_output;
+  AsyncWebServer* _server;
+  String _username;
+  String _password;
+  bool _authenticated;
+  String _updaterError;
+  void handleUpdate(AsyncWebServerRequest* request);
+  void handleUploadEnd(AsyncWebServerRequest* request);
+  void handleUploadProgress(size_t progress, size_t total);
+  void handleUpload(AsyncWebServerRequest* request,
+                    const String& filename,
+                    size_t index,
+                    uint8_t* data,
+                    size_t len,
+                    bool final);
 };
-
 
 #endif
