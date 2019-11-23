@@ -112,7 +112,7 @@ void CommandManager::setDefaultHandler(CMD_HANDLER_FUNC handler) {
 }
 
 void CommandManager::_addHandler(Command* cmd) {
-  _handlers.insert(std::pair<std::string, Command>(cmd->name, *cmd));
+  _handlers.insert({cmd->name, *cmd});
 }
 
 CMD_HANDLER_FUNC CommandManager::_getHandler(const string& name) {

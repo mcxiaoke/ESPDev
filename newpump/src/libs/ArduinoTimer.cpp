@@ -31,7 +31,8 @@ static inline unsigned long elapsed() {
   return millis();
 }
 
-ArduinoTimer::ArduinoTimer() {
+ArduinoTimer::ArduinoTimer(const char* _name) {
+  name = _name;
   reset();
 }
 
@@ -44,7 +45,7 @@ void ArduinoTimer::setBootTime(time_t timestamp) {
 }
 
 void ArduinoTimer::reset() {
-  Serial.println("Timer.reset()");
+  Serial.printf("Timer<%s>.reset()", name);
   for (int i = 0; i < MAX_TIMERS; i++) {
     deleteTimer(i);
   }
@@ -87,7 +88,7 @@ void ArduinoTimer::run() {
           }
 
           if (debugMode) {
-            Serial.printf("Timer(%d) %s run at %lu (%d)\n", i,
+            Serial.printf("Timer<%s>(%d) %s run at %lu (%d)\n", name, i,
                           descriptions[i].c_str(), current_millis / 1000UL,
                           toBeCalled[i]);
           }
@@ -157,7 +158,7 @@ int ArduinoTimer::setTimer(unsigned long d,
   numTimers++;
 
   if (debugMode) {
-    Serial.printf("Timer(%d) %s added\n", freeTimer,
+    Serial.printf("Timer<%s>(%d) %s added\n", name, freeTimer,
                   descriptions[freeTimer].c_str());
   }
 
@@ -190,7 +191,7 @@ void ArduinoTimer::deleteTimer(int timerId) {
   // specified slot is already empty
   if (callbacks[timerId] != NULL) {
     if (debugMode) {
-      Serial.printf("Timer(%d) %s deleted\n", timerId,
+      Serial.printf("Timer<%s>(%d) %s deleted\n", name, timerId,
                     descriptions[timerId].c_str());
     }
     callbacks[timerId] = 0;
@@ -214,7 +215,7 @@ void ArduinoTimer::restartTimer(int numTimer) {
   prev_millis[numTimer] = elapsed();
 }
 
-boolean ArduinoTimer::isEnabled(int numTimer) {
+bool ArduinoTimer::isEnabled(int numTimer) {
   if (numTimer >= MAX_TIMERS) {
     return false;
   }

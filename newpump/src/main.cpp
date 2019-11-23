@@ -4,10 +4,10 @@
 
 #include <Arduino.h>
 #include "ext/string/string.hpp"
-#include "ext/utility.hpp"
 #include "libs/ArduinoTimer.h"
 #include "libs/ESPUpdateServer.h"
 #include "libs/FileServer.h"
+#include "libs/RelayUnit.h"
 #include "libs/cmd.h"
 #include "libs/compat.h"
 #include "libs/config.h"
@@ -57,19 +57,12 @@ const char* ssid = STASSID;
 const char* password = STAPSK;
 const int led = LED_BUILTIN;
 
-uint8_t pumpOnPin = 14;  // default pin nodemcu D5
-unsigned long runInterval = RUN_INTERVAL_DEFAULT;
-unsigned long runDuration = RUN_DURATION_DEFAULT;
 unsigned long statusInterval = STATUS_INTERVAL_DEFAULT;
 unsigned long timerReset = 0;
-unsigned long lastStart = 0;
-unsigned long lastStop = 0;
-unsigned long lastSeconds = 0;
-unsigned long totalSeconds = 0;
 
 bool wifiInitialized;
 int wifiInitTimerId = -1;
-int runTimerId = -1, mqttTimerId = -1, statusTimerId = -1;
+int mqttTimerId = -1, statusTimerId = -1;
 int displayTimerId = -1;
 const char REBOOT_RESPONSE[] PROGMEM =
     "<META http-equiv=\"refresh\" content=\"15;URL=/\">Rebooting...\n";
@@ -77,8 +70,9 @@ const char MIME_TEXT_PLAIN[] PROGMEM = "text/plain";
 const char MIME_TEXT_HTML[] PROGMEM = "text/html";
 
 WidgetTerminal terminal(V20);
-ArduinoTimer aTimer;
+ArduinoTimer aTimer{"main"};
 AsyncWebServer server(80);
+RelayUnit pump;
 
 Display display;
 ESPUpdateServer otaUpdate(true);
@@ -88,9 +82,6 @@ MqttManager mqttMgr(MQTT_SERVER, MQTT_PORT, MQTT_USER, MQTT_PASS);
 #endif
 
 void setupTimers(bool);
-void startPump();
-void stopPump();
-void checkPump();
 void checkDate();
 void checkBlynk();
 void checkWiFi();
@@ -155,11 +146,11 @@ void updateDisplay() {
     s2 += mqttConnected() ? "GOOD" : "BAD ";
   } else {
     s2 += "PIN:";
-    s2 += (digitalRead(pumpOnPin) == HIGH) ? "ON " : "OF";
+    s2 += (pump.pinValue() == HIGH) ? "ON " : "OF";
     s2 += " UP:";
     s2 += monoTime(upSecs);
   }
-  bool running = (digitalRead(pumpOnPin) == HIGH);
+  bool running = (pump.pinValue() == HIGH);
   String s3 = "";
   if (running) {
     s3 += "RUNNING";
@@ -171,9 +162,12 @@ void updateDisplay() {
     } else if (!mqttConnected()) {
       s3 += "NO MQTT";
     } else {
-      s3 += monoTimeMs(aTimer.getRemain(runTimerId));
+      auto remains =
+          pump.getStatus()->lastStart + pump.getConfig()->interval - millis();
+      s3 += monoTimeMs(remains);
     }
   }
+  //   yield();
   display.u8g2->clearBuffer();
   display.u8g2->setFont(u8g2_font_profont12_tf);
   display.u8g2->setCursor(2, 16);
@@ -254,25 +248,21 @@ void cmdReboot(const CommandParam param = CommandParam::INVALID) {
 }
 
 void cmdEnable(const CommandParam param = CommandParam::INVALID) {
-  aTimer.enable(runTimerId);
-  debugLog(F("Timer enabled"));
-  Blynk.virtualWrite(V0, aTimer.isEnabled(runTimerId) ? HIGH : LOW);
+  pump.setEnabled(true);
 }
 
 void cmdDisable(const CommandParam param = CommandParam::INVALID) {
-  aTimer.disable(runTimerId);
-  debugLog(F("Timer disabled"));
-  Blynk.virtualWrite(V0, aTimer.isEnabled(runTimerId) ? HIGH : LOW);
+  pump.setEnabled(false);
 }
 
 void cmdStart(const CommandParam param = CommandParam::INVALID) {
   LOGN("cmdStart");
-  startPump();
+  pump.start();
 }
 
 void cmdStop(const CommandParam param = CommandParam::INVALID) {
   LOGN("cmdStop");
-  stopPump();
+  pump.stop();
 }
 
 void cmdClear(const CommandParam param = CommandParam::INVALID) {
@@ -314,11 +304,11 @@ void cmdWiFi(const CommandParam param = CommandParam::INVALID) {
   sendMqttStatus(data);
 }
 
-int parseInt(const string& extra) {
+unsigned long parseLong(const string& extra) {
   if (&extra == nullptr || extra.empty() || !extstring::is_digits(extra)) {
     return 0;
   }
-  return atoi(extra.c_str());
+  return strtoul(extra.c_str(), nullptr, 0);
 }
 
 uint8_t parsePin(const string& extra) {
@@ -343,39 +333,42 @@ void cmdSettings(const CommandParam param = CommandParam::INVALID) {
   if (args.size() < 1) {
     return;
   }
-  auto oldPumpPin = pumpOnPin;
-  auto oldRunInterval = runInterval;
-  auto oldRunDuration = runDuration;
+  uint8_t pin = 0;
+  unsigned long interval = 0;
+  unsigned long duration = 0;
   auto oldStatusInterval = statusInterval;
   // in seconds
   for (auto const& arg : args) {
     auto kv = extstring::split(arg, "=");
     if (kv.size() == 2) {
       LOGF("Entry: %s=%s\n", kv[0].c_str(), kv[1].c_str());
-      auto entryValue = parseInt(kv[1]);
-      if (entryValue > 0) {
-        if (kv[0] == "pump_pin" || kv[0] == "pump") {
-          stopPump();
-          pumpOnPin = entryValue;
-        } else if (kv[0] == "run_interval" || kv[0] == "runi") {
-          runInterval = entryValue * 1000UL;
-        } else if (kv[0] == "run_duration" || kv[0] == "rund") {
-          runDuration = entryValue * 1000L;
-        } else if (kv[0] == "status_interval" || kv[0] == "stsi") {
-          statusInterval = entryValue * 1000L;
-        } else {
-          String log = "Invalid Entry: ";
-          log += kv[0].c_str();
-          sendMqttLog(log);
-        }
+      if (kv[0] == "pump_pin" || kv[0] == "pump") {
+        pin = parsePin(kv[1]);
+      } else if (kv[0] == "run_interval" || kv[0] == "runi") {
+        interval = parseLong(kv[1]) * 1000UL;
+      } else if (kv[0] == "run_duration" || kv[0] == "rund") {
+        duration = parseLong(kv[1]) * 1000L;
+      } else if (kv[0] == "status_interval" || kv[0] == "stsi") {
+        statusInterval = parseLong(kv[1]) * 1000L;
+      } else {
+        String log = "Invalid Entry: ";
+        log += kv[0].c_str();
+        sendMqttLog(log);
+        return;
       }
     }
   }
-  if (pumpOnPin != oldPumpPin) {
-    sendMqttLog("Pump pin changed");
+
+  if (pin == 0 || interval == 0 || duration == 0) {
+    debugLog("Invalid Setting Value");
+    return;
   }
-  if (runInterval != oldRunInterval || runDuration != oldRunDuration ||
-      statusInterval != oldStatusInterval) {
+
+  int changed = pump.updateConfig({"newPump", pin, interval, duration});
+  if (changed > 0) {
+    sendMqttLog("Pump config changed");
+  }
+  if (statusInterval != oldStatusInterval) {
     sendMqttLog("Settings changed, reset timers");
     setupTimers(true);
   }
@@ -447,53 +440,6 @@ void cmdNotFound(const CommandParam param = CommandParam::INVALID) {
 
 /////////// Command Handlers End ///////////
 
-void startPump() {
-  LOGN("startPump");
-  bool isOn = digitalRead(pumpOnPin) == HIGH;
-  if (isOn) {
-    return;
-  }
-  lastStart = millis();
-  digitalWrite(pumpOnPin, HIGH);
-  digitalWrite(led, LOW);
-  aTimer.setTimeout(runDuration, stopPump, "stopPump");
-  String msg = F("Pump Started");
-  debugLog(msg);
-  msg += "\n";
-  //   msg += getStatus();
-  sendMqttStatus(msg);
-  Blynk.virtualWrite(V1, digitalRead(pumpOnPin));
-}
-
-void stopPump() {
-  LOGN("stopPump");
-  bool isOff = digitalRead(pumpOnPin) == LOW;
-  if (isOff) {
-    return;
-  }
-  lastStop = millis();
-  if (lastStart > 0) {
-    lastSeconds = (lastStop - lastStart) / 1000;
-    totalSeconds += lastSeconds;
-  }
-  digitalWrite(pumpOnPin, LOW);
-  digitalWrite(led, HIGH);
-  String msg = F("Pump Stopped");
-  debugLog(msg);
-  msg += "\n";
-  //   msg += getStatus();
-  sendMqttStatus(msg);
-  Blynk.virtualWrite(V1, digitalRead(pumpOnPin));
-}
-
-void checkPump() {
-  bool isOn = digitalRead(pumpOnPin) == HIGH;
-  if (isOn && lastStart > 0 && (millis() - lastStart) / 1000 >= runDuration) {
-    debugLog(F("Pump stopped by watchdog"));
-    cmdStop();
-  }
-}
-
 void checkDate() {
   if (!hasValidTime()) {
     if (WiFi.isConnected()) {
@@ -522,15 +468,17 @@ void checkWiFi() {
 
 String getStatus() {
   auto ts = millis();
+  auto cfg = pump.getConfig();
+  auto st = pump.getStatus();
   String data = "";
   data += "Device: ";
   data += getDevice();
   data += "\nVersion: ";
   data += buildVersion;
   data += "\nPump Pin: ";
-  data += pumpOnPin;
+  data += pump.pin();
   data += "\nPump Status: ";
-  data += (digitalRead(pumpOnPin) == HIGH) ? "Running" : "Idle";
+  data += (pump.pinValue() == HIGH) ? "Running" : "Idle";
   data += "\nMQTT Status: ";
 #ifdef USING_MQTT
   data += mqttMgr.isConnected() ? "Connected" : "Disconnected";
@@ -540,13 +488,13 @@ String getStatus() {
   data += "\nWiFi IP: ";
   data += WiFi.localIP().toString();
   data += "\nRun Interval: ";
-  data += humanTimeMs(runInterval);
+  data += humanTimeMs(cfg->interval);
   data += "\nRun Duration: ";
-  data += humanTimeMs(runDuration);
+  data += humanTimeMs(cfg->duration);
   data += "\nStatus Interval: ";
   data += humanTimeMs(statusInterval);
   data += "\nTimer Status: ";
-  data += aTimer.isEnabled(runTimerId) ? "Enabled" : "Disabled";
+  data += pump.isEnabled() ? "Enabled" : "Disabled";
   data += "\nTimer Reset: ";
   data += formatDateTime(getTimestamp() - (ts - timerReset) / 1000);
 #if defined(ESP8266)
@@ -556,21 +504,22 @@ String getStatus() {
   data += "\nFree Heap: ";
   data += ESP.getFreeHeap();
   data += "\nLast Elapsed: ";
-  data += lastSeconds;
+  data += st->lastElapsed / 1000;
   data += "s\nTotal Elapsed: ";
-  data += totalSeconds;
+  data += st->totalElapsed / 1000;
   data += "s\nSystem Boot: ";
   data += formatDateTime(getTimestamp() - ts / 1000);
-  if (lastStart > 0) {
+  if (st->lastStart > 0) {
     data += "\nLast Start: ";
-    data += formatDateTime(getTimestamp() - (ts - lastStart) / 1000);
+    data += formatDateTime(getTimestamp() - (ts - st->lastStart) / 1000);
   }
-  if (lastStop > 0) {
+  if (st->lastStop > 0) {
     data += "\nLast Stop: ";
-    data += formatDateTime(getTimestamp() - (ts - lastStop) / 1000);
+    data += formatDateTime(getTimestamp() - (ts - st->lastStop) / 1000);
   }
   data += "\nNext Start: ";
-  data += formatDateTime(getTimestamp() + aTimer.getRemain(runTimerId) / 1000);
+  auto remains = st->lastStart + cfg->interval - millis();
+  data += formatDateTime(getTimestamp() + remains / 1000);
   return data;
 }
 
@@ -837,6 +786,42 @@ void setupServer() {
   LOGN(F("[Server] HTTP server started"));
 }
 
+void setupPump() {
+  // default pin nodemcu D5
+  pump.begin({"pump", 14, RUN_INTERVAL_DEFAULT, RUN_DURATION_DEFAULT});
+  pump.setCallback([](const RelayEvent evt, int reason) {
+    switch (evt) {
+      case RelayEvent::STARTED: {
+        String msg = F("Pump Started");
+        debugLog(msg);
+        sendMqttStatus(msg);
+        Blynk.virtualWrite(V1, pump.pinValue());
+      } break;
+      case RelayEvent::STOPPED: {
+        digitalWrite(led, HIGH);
+        String msg = F("Pump Stopped");
+        debugLog(msg);
+        sendMqttStatus(msg);
+        Blynk.virtualWrite(V1, pump.pinValue());
+      } break;
+      case RelayEvent::ENABLED: {
+        debugLog(F("Pump enabled"));
+        Blynk.virtualWrite(V0, pump.isEnabled() ? HIGH : LOW);
+      } break;
+      case RelayEvent::DISABLED: {
+        debugLog(F("Pump disabled"));
+        Blynk.virtualWrite(V0, pump.isEnabled() ? HIGH : LOW);
+      } break;
+      case RelayEvent::RESET: {
+        debugLog(F("Pump reset"));
+        Blynk.virtualWrite(V0, pump.isEnabled() ? HIGH : LOW);
+      } break;
+      default:
+        break;
+    }
+  });
+}
+
 void setupTimers(bool reset) {
   LOGN("setupTimers");
   //   aTimer.setDebug(true);
@@ -845,8 +830,6 @@ void setupTimers(bool reset) {
   }
   timerReset = millis();
   displayTimerId = aTimer.setInterval(1000, updateDisplay, "updateDisplay");
-  runTimerId = aTimer.setInterval(runInterval, startPump, "startPump");
-  aTimer.setInterval(runDuration / 2 + 2000, checkPump, "checkPump");
   aTimer.setInterval(5 * 60 * 1000L, checkWiFi, "checkWiFi");
   aTimer.setInterval(statusInterval, statusReport, "statusReport");
   mqttTimer();
@@ -882,12 +865,12 @@ void setupDisplay() {
 
 void setup(void) {
   pinMode(led, OUTPUT);
-  pinMode(pumpOnPin, OUTPUT);
   Serial.begin(115200);
   showESP();
   fsCheck();
   setupDisplay();
   delay(1000);
+  setupPump();
   setupTimers(false);
   setupWiFi();
   setupDate();
@@ -901,9 +884,9 @@ void setup(void) {
 }
 
 void loop(void) {
+  pump.run();
   aTimer.run();
   mqttLoop();
-//   server.handleClient();
 #if defined(ESP8266)
   MDNS.update();
 #endif
@@ -923,8 +906,8 @@ void handleCommand(const CommandParam& param) {
 }
 
 void blynkSync() {
-  Blynk.virtualWrite(V0, aTimer.isEnabled(runTimerId) ? HIGH : LOW);
-  Blynk.virtualWrite(V1, digitalRead(pumpOnPin));
+  Blynk.virtualWrite(V0, pump.isEnabled() ? HIGH : LOW);
+  Blynk.virtualWrite(V1, pump.pinValue());
   terminal.clear();
 }
 
@@ -946,7 +929,7 @@ BLYNK_DISCONNECTED() {
 }
 
 BLYNK_READ(V0) {
-  Blynk.virtualWrite(V0, aTimer.isEnabled(runTimerId) ? HIGH : LOW);
+  Blynk.virtualWrite(V0, pump.isEnabled() ? HIGH : LOW);
 }
 
 BLYNK_WRITE(V0) {
@@ -961,7 +944,7 @@ BLYNK_WRITE(V0) {
 }
 
 BLYNK_READ(V1) {
-  Blynk.virtualWrite(V1, digitalRead(pumpOnPin));
+  Blynk.virtualWrite(V1, pump.pinValue());
 }
 
 BLYNK_WRITE(V1) {

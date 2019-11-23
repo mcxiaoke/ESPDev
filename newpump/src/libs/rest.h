@@ -17,6 +17,16 @@ struct Response {
   const std::string body;
 };
 
-class RestApi {};
+class RestApi {
+ public:
+  String getStatus();
+  String getNetwork();
+  String getDevice();
+  String getTask();
+  String getTimer();
+  String getLogs();
+  String getFiles();
+  String control();
+};
 
 #endif

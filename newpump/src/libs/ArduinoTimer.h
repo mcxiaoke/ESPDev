@@ -43,6 +43,17 @@ typedef std::function<void(void)> timer_callback_func;
 typedef void (*timer_callback_func)();
 #endif  // __AVR__
 
+struct TimerTask {
+  unsigned long prevMillis;
+  unsigned long interval;
+  bool enabled;
+  String name;
+  int maxNumRuns;
+  int numRuns;
+  int runType;
+  timer_callback_func action;
+};
+
 class ArduinoTimer {
  public:
   // maximum number of timers
@@ -53,7 +64,7 @@ class ArduinoTimer {
   const static int RUN_ONCE = 1;
 
   // constructor
-  ArduinoTimer();
+  ArduinoTimer(const char* _name = "default");
 
   // debug mode
   void setDebug(bool debug);
@@ -90,7 +101,7 @@ class ArduinoTimer {
   void restartTimer(int numTimer);
 
   // returns true if the specified timer is enabled
-  boolean isEnabled(int numTimer);
+  bool isEnabled(int numTimer);
 
   // enables the specified timer
   void enable(int numTimer);
@@ -165,6 +176,8 @@ class ArduinoTimer {
   bool debugMode;
   // boot time
   time_t bootTime;
+  // timer name
+  const char* name;
 };
 
 #endif
