@@ -1,33 +1,68 @@
 #include "RelayUnit.h"
 
-void RelayStatus::onStart() {
-  lastStart = millis();
+static void updateStatusOnStart(std::shared_ptr<RelayStatus>& st) {
+  st->lastStart = millis();
 }
 
-void RelayStatus::onStop() {
-  lastStop = millis();
-  if (lastStart > 0) {
-    lastElapsed = lastStop - lastStart;
-    totalElapsed += lastElapsed;
+static void updateStatusOnSop(std::shared_ptr<RelayStatus>& st) {
+  st->lastStop = millis();
+  if (st->lastStart > 0) {
+    st->lastElapsed = st->lastStop - st->lastStart;
+    st->totalElapsed += st->lastElapsed;
   }
 }
 
-RelayUnit::RelayUnit() {
-  // nothing
+String RelayConfig::toString() const {
+  String data = "RelayConfig(";
+  data += "name=";
+  data += name;
+  data += ",pin=";
+  data += pin;
+  data += ",interval=";
+  data += interval;
+  data += ",duration=";
+  data += duration;
+  data += ")";
+  return data;
+}
+
+String RelayStatus::toString() const {
+  String data = "RelayStatus(";
+  data += "enabled=";
+  data += enabled;
+  data += ",setup=";
+  data += setupAt;
+  data += ",reset=";
+  data += timerResetAt;
+  data += ",start=";
+  data += lastStart;
+  data += ",stop=";
+  data += lastStop;
+  data += ",elapsed=";
+  data += lastElapsed;
+  data += "/";
+  data += totalElapsed;
+  data += ")";
+  return data;
+}
+
+RelayUnit::RelayUnit() : pStatus(std::make_shared<RelayStatus>()) {
+  LOGN("RelayUnit::RelayUnit()");
 }
 
 RelayUnit::RelayUnit(const RelayConfig& cfg)
     : pConfig(std::make_shared<RelayConfig>(cfg)),
-      pStatus(std::make_shared<RelayStatus>()) {}
+      pStatus(std::make_shared<RelayStatus>()) {
+  LOGN("RelayUnit::RelayUnit(cfg)");
+}
 
 void RelayUnit::begin(const RelayConfig& cfg) {
+  LOGN("RelayUnit::begin");
   pConfig = std::make_shared<RelayConfig>(cfg);
-  Serial.printf("RelayUnit::begin name=%s interval=%lu, duration=%lu\n",
-                pConfig->name.c_str(), pConfig->interval, pConfig->duration);
-  pinMode(pConfig->pin, OUTPUT);
-  pStatus = std::make_shared<RelayStatus>();
   pStatus->setupAt = millis();
   resetTimer();
+  LOGN(pConfig->toString());
+  pinMode(pConfig->pin, OUTPUT);
 }
 
 void RelayUnit::run() {
@@ -35,16 +70,16 @@ void RelayUnit::run() {
 }
 
 bool RelayUnit::start() {
-  LOGN("start");
   if (isOn()) {
     return false;
   }
-  pStatus->onStart();
+  LOGN("RelayUnit::start");
+  updateStatusOnStart(pStatus);
   digitalWrite(pConfig->pin, HIGH);
   auto stopFunc = std::bind(&RelayUnit::stop, this);
   stopTimerId = timer.setTimeout(pConfig->duration, stopFunc, "stop");
   if (callback) {
-    callback(RelayEvent::STARTED, 0);
+    callback(RelayEvent::Started, 0);
   }
   return true;
 }
@@ -53,25 +88,28 @@ bool RelayUnit::stop() {
   if (!isOn()) {
     return false;
   }
-  pStatus->onStop();
+  LOGN("RelayUnit::stop");
+  updateStatusOnSop(pStatus);
   digitalWrite(pConfig->pin, LOW);
   if (callback) {
-    callback(RelayEvent::STOPPED, 0);
+    callback(RelayEvent::Stopped, 0);
   }
   return true;
 }
 
 void RelayUnit::check() {
+  LOGN("RelayUnit::check");
   if (isOn() && pStatus->lastStart > 0 &&
       (millis() - pStatus->lastStart) / 1000 >= pConfig->duration) {
-    LOGN(F("Stopped by watchdog"));
+    fileLog(F("Stopped by watchdog"));
     stop();
   }
 }
 
 void RelayUnit::resetTimer() {
+  LOGN("RelayUnit::resetTimer");
   pStatus->timerResetAt = millis();
-  timer.setDebug(true);
+  //   timer.setDebug(true);
   timer.reset();
   auto startFunc = std::bind(&RelayUnit::start, this);
   runTimerId = timer.setInterval(pConfig->interval, startFunc, "start");
@@ -90,17 +128,19 @@ bool RelayUnit::isEnabled() {
 
 void RelayUnit::setEnabled(bool enable) {
   pStatus->enabled = enable;
+  if (enable == timer.isEnabled(runTimerId)) {
+    return;
+  }
+  LOGF("RelayUnit::setEnabled:%s\n", enable ? "true" : "false");
   if (enable) {
     timer.enable(runTimerId);
-    timer.enable(checkTimerId);
     if (callback) {
-      callback(RelayEvent::ENABLED, 0);
+      callback(RelayEvent::Enabled, 0);
     }
   } else {
     timer.disable(runTimerId);
-    timer.disable(checkTimerId);
     if (callback) {
-      callback(RelayEvent::DISABLED, 0);
+      callback(RelayEvent::Disabled, 0);
     }
   }
 }
@@ -118,6 +158,8 @@ uint8_t RelayUnit::pinValue() {
 }
 
 int RelayUnit::updateConfig(const RelayConfig& config) {
+  LOGF("RelayUnit::updateConfig, new:%s\n", config.toString().c_str());
+  LOGF("RelayUnit::updateConfig, old:%s\n", pConfig->toString().c_str());
   int changed = 0;
   if (pConfig->pin != config.pin) {
     pConfig->pin = config.pin;
@@ -132,11 +174,12 @@ int RelayUnit::updateConfig(const RelayConfig& config) {
     changed++;
   }
   if (changed > 0) {
+    LOGN("RelayUnit::updateConfig changed");
     // ensure relay stopped
     stop();
     resetTimer();
     if (callback) {
-      callback(RelayEvent::RESET, 0);
+      callback(RelayEvent::ConfigChanged, 0);
     }
   }
   return changed;

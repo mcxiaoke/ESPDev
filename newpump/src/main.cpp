@@ -155,10 +155,10 @@ void updateDisplay() {
   if (running) {
     s3 += "RUNNING";
   } else {
-    if (!hasValidTime()) {
-      s3 += "NO TIME";
-    } else if (!WiFi.isConnected()) {
+    if (!WiFi.isConnected()) {
       s3 += "NO WIFI";
+    } else if (!hasValidTime()) {
+      s3 += "NO TIME";
     } else if (!mqttConnected()) {
       s3 += "NO MQTT";
     } else {
@@ -646,16 +646,17 @@ void handleWiFiGotIP() {
   LOG(ssid);
   LOG(", IP: ");
   LOGN(WiFi.localIP());
-  aTimer.setTimeout(100,
-                    []() {
-                      checkDate();
-                      checkMqtt();
-                      checkBlynk();
-                    },
-                    "onWiFiGotIP");
   if (!wifiInitialized) {
+    // on on setup stage
     wifiInitialized = true;
     LOGN("[WiFi] Initialized");
+    aTimer.setTimeout(100,
+                      []() {
+                        checkDate();
+                        checkMqtt();
+                        checkBlynk();
+                      },
+                      "wifiAfter");
   }
   if (wifiInitTimerId >= 0) {
     aTimer.deleteTimer(wifiInitTimerId);
@@ -676,10 +677,10 @@ void setupWiFi() {
   LOGN("setupWiFi");
   digitalWrite(led, LOW);
   WiFi.mode(WIFI_STA);
-  //   WiFi.setSleepMode(WIFI_NONE_SLEEP);
   WiFi.setAutoConnect(true);
   WiFi.setAutoReconnect(true);
 #if defined(ESP8266)
+  WiFi.setSleepMode(WIFI_NONE_SLEEP);
   WiFi.hostname(getDevice().c_str());
 #elif defined(ESP32)
   WiFi.setHostname(getDevice().c_str());
@@ -706,6 +707,10 @@ void setupWiFi() {
   while (WiFi.status() != WL_CONNECTED && (millis() - startMs) < 60 * 1000L) {
     LOG(".");
     delay(1000);
+    if (millis() / 1000 % 8 == 0) {
+      WiFi.reconnect();
+      LOG("=");
+    }
   }
   LOGN();
   if (!WiFi.isConnected()) {
@@ -791,29 +796,29 @@ void setupPump() {
   pump.begin({"pump", 14, RUN_INTERVAL_DEFAULT, RUN_DURATION_DEFAULT});
   pump.setCallback([](const RelayEvent evt, int reason) {
     switch (evt) {
-      case RelayEvent::STARTED: {
+      case RelayEvent::Started: {
         String msg = F("Pump Started");
         debugLog(msg);
         sendMqttStatus(msg);
         Blynk.virtualWrite(V1, pump.pinValue());
       } break;
-      case RelayEvent::STOPPED: {
+      case RelayEvent::Stopped: {
         digitalWrite(led, HIGH);
         String msg = F("Pump Stopped");
         debugLog(msg);
         sendMqttStatus(msg);
         Blynk.virtualWrite(V1, pump.pinValue());
       } break;
-      case RelayEvent::ENABLED: {
+      case RelayEvent::Enabled: {
         debugLog(F("Pump enabled"));
         Blynk.virtualWrite(V0, pump.isEnabled() ? HIGH : LOW);
       } break;
-      case RelayEvent::DISABLED: {
+      case RelayEvent::Disabled: {
         debugLog(F("Pump disabled"));
         Blynk.virtualWrite(V0, pump.isEnabled() ? HIGH : LOW);
       } break;
-      case RelayEvent::RESET: {
-        debugLog(F("Pump reset"));
+      case RelayEvent::ConfigChanged: {
+        debugLog(F("Pump config changed"));
         Blynk.virtualWrite(V0, pump.isEnabled() ? HIGH : LOW);
       } break;
       default:
@@ -869,17 +874,16 @@ void setup(void) {
   fsCheck();
   setupDisplay();
   delay(1000);
-  setupTimers(false);
   setupWiFi();
   setupDate();
   setupServer();
   setupMqtt();
   setupCommands();
-  Blynk.config(BLYNK_AUTH, BLYNK_HOST, BLYNK_PORT);
+  setupTimers(false);
   setupPump();
+  Blynk.config(BLYNK_AUTH, BLYNK_HOST, BLYNK_PORT);
   showESP();
   debugLog(F("System is running"));
-  LOGN(__TIME__);
 }
 
 void loop(void) {

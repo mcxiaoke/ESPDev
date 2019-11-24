@@ -78,7 +78,7 @@ struct TimerTask {
             int maxNumRuns,
             String name = "task",
             bool debug = false);
-
+  TimerTask();
   ~TimerTask();
 };
 
@@ -122,6 +122,9 @@ class ArduinoTimer {
                const String name = "task",
                bool debug = false);
 
+  // return timer task struct
+  TimerTask* getTask(int taskId);
+
   // destroy the specified timer
   void deleteTimer(int taskId);
 
@@ -140,9 +143,6 @@ class ArduinoTimer {
   // enables the specified timer if it's currently disabled,
   // and vice-versa
   void toggle(int taskId);
-
-  // returns the number of used timers
-  int getNumTimers();
 
   // return millis timer interval
   unsigned long getInterval(int taskId);

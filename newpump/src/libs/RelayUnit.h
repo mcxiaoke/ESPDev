@@ -19,6 +19,8 @@ struct RelayConfig {
   uint8_t pin;
   unsigned long interval;
   unsigned long duration;
+
+  String toString() const;
 };
 
 struct RelayStatus {
@@ -29,12 +31,10 @@ struct RelayStatus {
   unsigned long lastStop;
   unsigned long lastElapsed;
   unsigned long totalElapsed;
-
-  void onStart();
-  void onStop();
+  String toString() const;
 };
-
-enum class RelayEvent { STARTED, STOPPED, ENABLED, DISABLED, RESET };
+// enum value can conflict with #define variable
+enum class RelayEvent { Started, Stopped, Enabled, Disabled, ConfigChanged };
 
 class RelayUnit {
  public:

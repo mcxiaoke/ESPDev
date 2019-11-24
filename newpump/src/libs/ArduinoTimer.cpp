@@ -53,26 +53,23 @@ TimerTask::TimerTask(unsigned long interval,
       prevMillis(0),
       offset(0),
       id(generateId()),
-      debug(debug) {}
-
-TimerTask::~TimerTask() {
-  Serial.printf("TimerTask<%s,%d,%d>::~TimerTask()\n", name.c_str(), id,
-                numRuns);
-  //   interval = 0;
-  action = nullptr;
-  //   maxNumRuns = 0;
-  name = "";
-  //   enabled = false;
-  //   numRuns = 0;
-  //   runType = 0;
-  //   prevMillis = 0;
-  //   offset = 0;
-  //   id = 0;
-  //   debug = false;
+      debug(debug) {
+  if (debug) {
+    Serial.printf("TimerTask(%s,%d,%lu)\n", name.c_str(), id, interval);
+  }
 }
 
-// Select time function:
-// static inline unsigned long elapsed() { return micros(); }
+TimerTask::TimerTask() : id(0) {}
+
+TimerTask::~TimerTask() {
+  if (debug) {
+    Serial.printf("~TimerTask(%s,%d,%lu,%d)\n", name.c_str(), id, interval,
+                  numRuns);
+  }
+  action = nullptr;
+  name = "";
+}
+
 static inline unsigned long elapsed() {
   return millis();
 }
@@ -92,7 +89,9 @@ void ArduinoTimer::setBootTime(time_t timestamp) {
 }
 
 void ArduinoTimer::reset() {
-  Serial.printf("[Timer-%s].reset()\n", name);
+  if (debugMode) {
+    Serial.printf("[Timer-%s].reset()\n", name);
+  }
   tasks.clear();
 }
 
@@ -148,9 +147,10 @@ void ArduinoTimer::run() {
     }
   }
   if (toDelete.size() > 0) {
-    Serial.printf("[Timer-%s] after run: toDelete size=%d\n", name,
-                  toDelete.size());
-    Serial.flush();
+    if (debugMode) {
+      Serial.printf("[Timer-%s] after run: toDelete size=%d\n", name,
+                    toDelete.size());
+    }
     for (auto i : toDelete) {
       yield();
       deleteTimer(i);
@@ -193,6 +193,15 @@ int ArduinoTimer::setTimeout(unsigned long interval,
   return setTimer(interval, action, RUN_ONCE, name, debug);
 }
 
+TimerTask* ArduinoTimer::getTask(int taskId) {
+  for (auto& task : tasks) {
+    if (task->id == taskId) {
+      return task.get();
+    }
+  }
+  return nullptr;
+}
+
 void ArduinoTimer::deleteTimer(int timerId) {
   if (tasks.empty()) {
     return;
@@ -202,27 +211,6 @@ void ArduinoTimer::deleteTimer(int timerId) {
                                return t->id == timerId;
                              }),
               tasks.end());
-  //   size_t index = -1;
-  //   String tn = "";
-  //   for (size_t i = 0; i < tasks.size(); i++) {
-  //     if (tasks[i]->id == timerId) {
-  //       index = i;
-  //       tn = tasks[i]->name;
-  //       break;
-  //     }
-  //   }
-  //   if (index >= 0) {
-  //     tasks.erase(tasks.begin() + index);
-  //     if (debugMode) {
-  //       Serial.printf("Delete task<%s>(%d) index:%d in timer<%s>\n",
-  //       tn.c_str(),
-  //                     timerId, index, name);
-  //     }
-  //   }
-  for (auto& task : tasks) {
-    Serial.printf("After deleteTimer: task %d %s in %s\n", task->id,
-                  task->name.c_str(), name);
-  }
 }
 
 void ArduinoTimer::restartTimer(int taskId) {
@@ -264,10 +252,6 @@ void ArduinoTimer::toggle(int taskId) {
       task->enabled = !task->enabled;
     }
   }
-}
-
-int ArduinoTimer::getNumTimers() {
-  return tasks.size();
 }
 
 unsigned long ArduinoTimer::getInterval(int taskId) {
