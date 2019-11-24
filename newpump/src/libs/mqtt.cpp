@@ -2,7 +2,7 @@
 
 static string getDeviceId() {
   string mac(WiFi.macAddress().c_str());
-  mac = extstring::replace_all(mac, ":", "");
+  mac = ext::string::replace_all(mac, ":", "");
   return mac.substr(mac.length() / 2);
 }
 
@@ -235,8 +235,8 @@ void MqttManager::handleMessage(const char* _topic,
   }
 
   // replace newline for log print
-  message = extstring::replace_all(message, "\n", " ");
-  extstring::trim(message);
+  message = ext::string::replace_all(message, "\n", " ");
+  ext::string::trim(message);
   if (topic != getCmdTopic()) {
     LOGN(F("[MQTT] Not a command"));
     // sendLog("What?");

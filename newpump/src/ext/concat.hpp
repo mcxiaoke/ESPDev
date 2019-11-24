@@ -15,7 +15,9 @@
 #include <tuple>
 #include <utility>
 
-namespace extconcat {  // rename this to something that fits your code
+namespace ext {
+
+namespace concat {  // rename this to something that fits your code
 
 template <typename CharT>
 struct separator_t {  // this class shouldn't be explicitly invoked in client
@@ -349,6 +351,7 @@ std::basic_string<CharT> concat(F&& first, Args&&... rest) {
   return concat_impl<CharT>(sep, std::forward<F>(first),
                             std::forward<Args>(rest)...);
 }
-}  // namespace theypsilon
+}  // namespace concat
+}  // namespace ext
 
 #endif

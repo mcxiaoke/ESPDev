@@ -1,4 +1,5 @@
 #include "RelayUnit.h"
+#include "../ext/format.hpp"
 
 static void updateStatusOnStart(std::shared_ptr<RelayStatus>& st) {
   st->lastStart = millis();
@@ -13,37 +14,19 @@ static void updateStatusOnSop(std::shared_ptr<RelayStatus>& st) {
 }
 
 String RelayConfig::toString() const {
-  String data = "RelayConfig(";
-  data += "name=";
-  data += name;
-  data += ",pin=";
-  data += pin;
-  data += ",interval=";
-  data += interval;
-  data += ",duration=";
-  data += duration;
-  data += ")";
-  return data;
+  std::string str = ext::format::strFormat(
+      "RelayConfig(name=%s,pin=%d,interval=%lu,duration=%lu)", name, pin,
+      interval, duration);
+  return String(str.c_str());
 }
 
 String RelayStatus::toString() const {
-  String data = "RelayStatus(";
-  data += "enabled=";
-  data += enabled;
-  data += ",setup=";
-  data += setupAt;
-  data += ",reset=";
-  data += timerResetAt;
-  data += ",start=";
-  data += lastStart;
-  data += ",stop=";
-  data += lastStop;
-  data += ",elapsed=";
-  data += lastElapsed;
-  data += "/";
-  data += totalElapsed;
-  data += ")";
-  return data;
+  std::string str = ext::format::strFormat(
+      "RelayStatus(enabled=%d,setup=%lu,reset=%lu,start=%lu,stop=%lu,"
+      "elapsed=%lu/%lu)",
+      enabled, setupAt, timerResetAt, lastStart, lastStop, lastElapsed,
+      totalElapsed);
+  return String(str.c_str());
 }
 
 RelayUnit::RelayUnit() : pStatus(std::make_shared<RelayStatus>()) {
@@ -61,8 +44,9 @@ void RelayUnit::begin(const RelayConfig& cfg) {
   pConfig = std::make_shared<RelayConfig>(cfg);
   pStatus->setupAt = millis();
   resetTimer();
-  LOGN(pConfig->toString());
   pinMode(pConfig->pin, OUTPUT);
+  LOGN(pConfig->toString());
+  LOGN(pStatus->toString());
 }
 
 void RelayUnit::run() {
@@ -98,7 +82,7 @@ bool RelayUnit::stop() {
 }
 
 void RelayUnit::check() {
-  LOGN("RelayUnit::check");
+  //   LOGN("RelayUnit::check");
   if (isOn() && pStatus->lastStart > 0 &&
       (millis() - pStatus->lastStart) / 1000 >= pConfig->duration) {
     fileLog(F("Stopped by watchdog"));
@@ -108,9 +92,9 @@ void RelayUnit::check() {
 
 void RelayUnit::resetTimer() {
   LOGN("RelayUnit::resetTimer");
+  timer.reset();
   pStatus->timerResetAt = millis();
   //   timer.setDebug(true);
-  timer.reset();
   auto startFunc = std::bind(&RelayUnit::start, this);
   runTimerId = timer.setInterval(pConfig->interval, startFunc, "start");
   auto checkFunc = std::bind(&RelayUnit::check, this);

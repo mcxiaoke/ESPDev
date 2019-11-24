@@ -5,7 +5,7 @@
 #include <PubSubClient.h>
 #include "cmd.h"
 #include "config.h"
-#include "ext/string/string.hpp"
+#include "ext/string.hpp"
 #include "utils.h"
 
 using std::string;

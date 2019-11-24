@@ -9,7 +9,6 @@
 #include "libs/utils.h"
 
 using namespace std;
-using namespace extutils;
 
 struct RelayConfig;
 struct RelayStatus;
@@ -24,7 +23,7 @@ struct RelayConfig {
 };
 
 struct RelayStatus {
-  bool enabled;
+  bool enabled = true;
   unsigned long setupAt;
   unsigned long timerResetAt;
   unsigned long lastStart;

@@ -4,7 +4,9 @@
 #include <algorithm>
 #include <vector>
 
-namespace extutils {
+namespace ext {
+
+namespace utils {
 
 template <typename T>
 void pop_front(std::vector<T>& vec) {
@@ -18,6 +20,7 @@ std::unique_ptr<T> make_unique(Ts&&... params) {
   return std::unique_ptr<T>(new T(std::forward<Ts>(params)...));
 }
 
-}  // namespace extutils
+}  // namespace utils
+}  // namespace ext
 
 #endif

@@ -34,16 +34,16 @@ bool CommandParam::hasValidPrefix(const string& cmdStr) {
 }
 
 CommandParam CommandParam::parseArgs(const string& s) {
-  vector<string> args = extstring::split_any(s, CommandParam::CMD_ARG_SEP);
+  vector<string> args = ext::string::split_any(s, CommandParam::CMD_ARG_SEP);
   for (auto arg : args) {
-    extstring::trim(arg);
+    ext::string::trim(arg);
   }
   // remove cmd prefix if has
-  if (extstring::contains_any(args[0], CommandParam::CMD_PREFIX)) {
+  if (ext::string::contains_any(args[0], CommandParam::CMD_PREFIX)) {
     args[0].erase(0, 1);
   }
   // cmd to lower
-  args[0] = extstring::tolower(args[0]);
+  args[0] = ext::string::tolower(args[0]);
   CommandParam param{args[0], args};
   return param;
 }

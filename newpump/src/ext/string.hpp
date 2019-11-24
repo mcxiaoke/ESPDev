@@ -3,11 +3,13 @@
 
 // https://github.com/q191201771/libchef/blob/master/include/chef_base/chef_strings_op.hpp
 
+#include <algorithm>
 #include <string>
 #include <vector>
-#include <algorithm>
 
-namespace extstring {
+namespace ext {
+
+namespace string {
 
 using std::string;
 using std::vector;
@@ -414,6 +416,7 @@ inline string url_decode(const string& s) {
   return result;
 }
 
-}  // namespace extstring
+}  // namespace string
+}  // namespace ext
 
 #endif

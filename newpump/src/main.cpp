@@ -3,7 +3,7 @@
 #define BLYNK_NO_FLOAT
 
 #include <Arduino.h>
-#include "ext/string/string.hpp"
+#include "ext/string.hpp"
 #include "libs/ArduinoTimer.h"
 #include "libs/ESPUpdateServer.h"
 #include "libs/FileServer.h"
@@ -305,7 +305,7 @@ void cmdWiFi(const CommandParam param = CommandParam::INVALID) {
 }
 
 unsigned long parseLong(const string& extra) {
-  if (&extra == nullptr || extra.empty() || !extstring::is_digits(extra)) {
+  if (&extra == nullptr || extra.empty() || !ext::string::is_digits(extra)) {
     return 0;
   }
   return strtoul(extra.c_str(), nullptr, 0);
@@ -313,7 +313,7 @@ unsigned long parseLong(const string& extra) {
 
 uint8_t parsePin(const string& extra) {
   if (&extra == nullptr || extra.empty() || extra.length() > 2 ||
-      !extstring::is_digits(extra)) {
+      !ext::string::is_digits(extra)) {
     return 0xff;
   }
   return atoi(extra.c_str());
@@ -321,7 +321,7 @@ uint8_t parsePin(const string& extra) {
 
 uint8_t parseValue(const string& extra) {
   if (&extra == nullptr || extra.empty() || extra.length() > 1 ||
-      !extstring::is_digits(extra)) {
+      !ext::string::is_digits(extra)) {
     return 0xff;
   }
   return atoi(extra.c_str());
@@ -339,7 +339,7 @@ void cmdSettings(const CommandParam param = CommandParam::INVALID) {
   auto oldStatusInterval = statusInterval;
   // in seconds
   for (auto const& arg : args) {
-    auto kv = extstring::split(arg, "=");
+    auto kv = ext::string::split(arg, "=");
     if (kv.size() == 2) {
       LOGF("Entry: %s=%s\n", kv[0].c_str(), kv[1].c_str());
       if (kv[0] == "pump_pin" || kv[0] == "pump") {

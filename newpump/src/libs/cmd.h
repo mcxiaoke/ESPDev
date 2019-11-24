@@ -6,7 +6,7 @@
 #include <functional>
 #include <map>
 #include <vector>
-#include "../ext/string/string.hpp"
+#include "../ext/string.hpp"
 
 using std::string;
 using std::vector;
@@ -35,7 +35,7 @@ struct CommandParam {
                const CommandSource source = ::NONE,
                const CMD_CALLBACK_FUNC callback = nullptr);
   string toString() const;
-  
+
   static const char* CMD_PREFIX;
   static const char* CMD_ARG_SEP;
   static const CommandParam INVALID;
