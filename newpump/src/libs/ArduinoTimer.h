@@ -27,6 +27,11 @@
 #ifndef _ARDUINO_TIMER_H_
 #define _ARDUINO_TIMER_H_
 
+#include <algorithm>
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
 #ifndef __AVR__
 #include <functional>
 #endif  // __AVR__
@@ -36,6 +41,10 @@
 #else
 #include <WProgram.h>
 #endif
+#include "ext/utility.hpp"
+#include "libs/utils.h"
+
+using namespace std;
 
 #ifndef __AVR__
 typedef std::function<void(void)> timer_callback_func;
@@ -43,25 +52,41 @@ typedef std::function<void(void)> timer_callback_func;
 typedef void (*timer_callback_func)();
 #endif  // __AVR__
 
+struct Task {
+  int mId;
+  Task(int id) : mId(id) { Serial.println("Task::Constructor"); }
+  ~Task() { Serial.println("Task::Destructor"); }
+};
+
 struct TimerTask {
-  unsigned long prevMillis;
   unsigned long interval;
-  bool enabled;
-  String name;
+  timer_callback_func action;
   int maxNumRuns;
+  String name;
+  bool enabled;
   int numRuns;
   int runType;
-  timer_callback_func action;
+  unsigned long prevMillis;
+  unsigned long offset;
+  int id;
+  bool debug;
+
+  static int idCounter;
+
+  TimerTask(unsigned long interval,
+            timer_callback_func action,
+            int maxNumRuns,
+            String name = "task",
+            bool debug = false);
+
+  ~TimerTask();
 };
 
 class ArduinoTimer {
  public:
-  // maximum number of timers
-  const static int MAX_TIMERS = 20;
-
   // setTimer() constants
-  const static int RUN_FOREVER = 0;
-  const static int RUN_ONCE = 1;
+  constexpr static int RUN_FOREVER = INT_MAX / 10;  // 6 years
+  constexpr static int RUN_ONCE = 1;
 
   // constructor
   ArduinoTimer(const char* _name = "default");
@@ -79,105 +104,71 @@ class ArduinoTimer {
   void run();
 
   // call function f every d milliseconds
-  int setInterval(unsigned long d,
-                  timer_callback_func f,
-                  const String desc = "timer");
+  int setInterval(unsigned long interval,
+                  timer_callback_func action,
+                  const String name = "task",
+                  bool debug = false);
 
   // call function f once after d milliseconds
-  int setTimeout(unsigned long d,
-                 timer_callback_func f,
-                 const String desc = "timer");
+  int setTimeout(unsigned long interval,
+                 timer_callback_func action,
+                 const String name = "task",
+                 bool debug = false);
 
   // call function f every d milliseconds for n times
-  int setTimer(unsigned long d,
-               timer_callback_func f,
-               int n,
-               const String desc = "timer");
+  int setTimer(unsigned long interval,
+               timer_callback_func action,
+               int numRuns,
+               const String name = "task",
+               bool debug = false);
 
   // destroy the specified timer
-  void deleteTimer(int numTimer);
+  void deleteTimer(int taskId);
 
   // restart the specified timer
-  void restartTimer(int numTimer);
+  void restartTimer(int taskId);
 
   // returns true if the specified timer is enabled
-  bool isEnabled(int numTimer);
+  bool isEnabled(int taskId);
 
   // enables the specified timer
-  void enable(int numTimer);
+  void enable(int taskId);
 
   // disables the specified timer
-  void disable(int numTimer);
+  void disable(int taskId);
 
   // enables the specified timer if it's currently disabled,
   // and vice-versa
-  void toggle(int numTimer);
+  void toggle(int taskId);
 
   // returns the number of used timers
   int getNumTimers();
 
-  // returns the number of available timers
-  int getNumAvailableTimers() { return MAX_TIMERS - numTimers; };
-
   // return millis timer interval
-  unsigned long getInterval(int numTimer);
+  unsigned long getInterval(int taskId);
 
   // return elapsed after timer last run
-  unsigned long getElapsed(int numTimer);
+  unsigned long getElapsed(int taskId);
 
   // return millis timer last run at
-  unsigned long getPrevMs(int numTimer);
+  unsigned long getPrevMs(int taskId);
 
   // return duration before timer next run
-  unsigned long getRemain(int numTimer);
+  unsigned long getRemain(int taskId);
 
   // return description of timer
-  String getDescription(int numTimer);
+  String getDescription(int taskId);
 
  private:
-  // deferred call constants
-  const static int DEFCALL_DONTRUN = 0;  // don't call the callback function
-  const static int DEFCALL_RUNONLY =
-      1;  // call the callback function but don't delete the timer
-  const static int DEFCALL_RUNANDDEL =
-      2;  // call the callback function and delete the timer
-
-  // find the first available slot
-  int findFirstFreeSlot();
-
-  // value returned by the millis() function
-  // in the previous run() call
-  unsigned long prev_millis[MAX_TIMERS];
-
-  // pointers to the callback functions
-  timer_callback_func callbacks[MAX_TIMERS];
-
-  // callback descriptions
-  String descriptions[MAX_TIMERS];
-
-  // delay values
-  unsigned long delays[MAX_TIMERS];
-
-  // number of runs to be executed for each timer
-  int maxNumRuns[MAX_TIMERS];
-
-  // number of executed runs for each timer
-  int numRuns[MAX_TIMERS];
-
-  // which timers are enabled
-  boolean enabled[MAX_TIMERS];
-
-  // deferred function call (sort of) - N.B.: this array is only used in run()
-  int toBeCalled[MAX_TIMERS];
-
-  // actual number of timers in use
-  int numTimers;
   // debug mode flag
   bool debugMode;
   // boot time
   time_t bootTime;
   // timer name
   const char* name;
+  // task array
+  std::vector<std::unique_ptr<TimerTask> > tasks;
+  std::vector<std::unique_ptr<Task> > infos;
 };
 
 #endif

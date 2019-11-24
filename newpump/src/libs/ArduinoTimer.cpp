@@ -25,6 +25,52 @@
 
 #include "ArduinoTimer.h"
 
+// deferred call constants
+const static int DEFCALL_DONTRUN = 0;  // don't call the callback function
+const static int DEFCALL_RUNONLY =
+    1;  // call the callback function but don't delete the timer
+const static int DEFCALL_RUNANDDEL =
+    2;  // call the callback function and delete the timer
+const static int DEFCALL_DELETEONLY = 3;
+
+static int _taskId = 0;
+static int generateId() {
+  return ++_taskId;
+}
+
+TimerTask::TimerTask(unsigned long interval,
+                     timer_callback_func action,
+                     int maxNumRuns,
+                     String name,
+                     bool debug)
+    : interval(interval),
+      action(action),
+      maxNumRuns(maxNumRuns),
+      name(name),
+      enabled(true),
+      numRuns(0),
+      runType(DEFCALL_DONTRUN),
+      prevMillis(0),
+      offset(0),
+      id(generateId()),
+      debug(debug) {}
+
+TimerTask::~TimerTask() {
+  Serial.printf("TimerTask<%s,%d,%d>::~TimerTask()\n", name.c_str(), id,
+                numRuns);
+  //   interval = 0;
+  action = nullptr;
+  //   maxNumRuns = 0;
+  name = "";
+  //   enabled = false;
+  //   numRuns = 0;
+  //   runType = 0;
+  //   prevMillis = 0;
+  //   offset = 0;
+  //   id = 0;
+  //   debug = false;
+}
+
 // Select time function:
 // static inline unsigned long elapsed() { return micros(); }
 static inline unsigned long elapsed() {
@@ -33,6 +79,7 @@ static inline unsigned long elapsed() {
 
 ArduinoTimer::ArduinoTimer(const char* _name) {
   name = _name;
+  tasks.reserve(5);
   reset();
 }
 
@@ -45,228 +92,215 @@ void ArduinoTimer::setBootTime(time_t timestamp) {
 }
 
 void ArduinoTimer::reset() {
-  Serial.printf("Timer<%s>.reset()", name);
-  for (int i = 0; i < MAX_TIMERS; i++) {
-    deleteTimer(i);
-  }
-  numTimers = 0;
+  Serial.printf("[Timer-%s].reset()\n", name);
+  tasks.clear();
 }
 
 void ArduinoTimer::run() {
-  int i;
   auto current_millis = elapsed();
+  vector<int> toDelete;
+  for (auto& task : tasks) {
+    yield();
+    if (current_millis - task->offset - task->prevMillis < task->interval) {
+      continue;
+    }
+    task->runType = DEFCALL_DONTRUN;
+    task->prevMillis += task->interval;
+    if (task->enabled) {
+      if (task->numRuns < task->maxNumRuns) {
+        task->runType = DEFCALL_RUNONLY;
+        task->numRuns++;
+        // after last run, delete task
+        if (task->numRuns >= task->maxNumRuns) {
+          task->runType = DEFCALL_RUNANDDEL;
+        }
+      } else {
+        task->runType = DEFCALL_DELETEONLY;
+      }
 
-  for (i = 0; i < MAX_TIMERS; i++) {
-    toBeCalled[i] = DEFCALL_DONTRUN;
+      if (debugMode || task->debug) {
+        Serial.printf(
+            "[Timer-%s][%s][%d] num=%d max=%d int=%lu prev=%lu cur=%lu\n", name,
+            task->name.c_str(), task->id, task->numRuns, task->maxNumRuns,
+            task->interval / 1000, task->prevMillis / 1000,
+            current_millis / 1000);
+      }
 
-    // no callback == no timer, i.e. jump over empty slots
-    if (callbacks[i]) {
-      // is it time to process this timer ?
-      // see
-      // http://arduino.cc/forum/index.php/topic,124048.msg932592.html#msg932592
+      if (task->action != nullptr) {
+        switch (task->runType) {
+          case DEFCALL_RUNONLY:
+            task->action();
+            break;
 
-      if (current_millis - prev_millis[i] >= delays[i]) {
-        // update time
-        // prev_millis[i] = current_millis;
-        prev_millis[i] += delays[i];
-
-        // check if the timer callback has to be executed
-        if (enabled[i]) {
-          // "run forever" timers must always be executed
-          if (maxNumRuns[i] == RUN_FOREVER) {
-            toBeCalled[i] = DEFCALL_RUNONLY;
-          }
-          // other timers get executed the specified number of times
-          else if (numRuns[i] < maxNumRuns[i]) {
-            toBeCalled[i] = DEFCALL_RUNONLY;
-            numRuns[i]++;
-
-            // after the last run, delete the timer
-            if (numRuns[i] >= maxNumRuns[i]) {
-              toBeCalled[i] = DEFCALL_RUNANDDEL;
-            }
-          }
-
-          if (debugMode) {
-            Serial.printf("Timer<%s>(%d) %s run at %lu (%d)\n", name, i,
-                          descriptions[i].c_str(), current_millis / 1000UL,
-                          toBeCalled[i]);
-          }
+          case DEFCALL_RUNANDDEL:
+            task->action();
+            // !do not erase item in loop, will crash
+            // delay execute task delete
+            toDelete.push_back(task->id);
+            break;
+          case DEFCALL_DELETEONLY:
+            toDelete.push_back(task->id);
+            break;
+          default:
+            break;
         }
       }
     }
   }
-
-  for (i = 0; i < MAX_TIMERS; i++) {
-    switch (toBeCalled[i]) {
-      case DEFCALL_DONTRUN:
-        break;
-
-      case DEFCALL_RUNONLY:
-        callbacks[i]();
-        break;
-
-      case DEFCALL_RUNANDDEL:
-        callbacks[i]();
-        deleteTimer(i);
-        break;
+  if (toDelete.size() > 0) {
+    Serial.printf("[Timer-%s] after run: toDelete size=%d\n", name,
+                  toDelete.size());
+    Serial.flush();
+    for (auto i : toDelete) {
+      yield();
+      deleteTimer(i);
     }
+    toDelete.clear();
   }
 }
 
-// find the first available slot
-// return -1 if none found
-int ArduinoTimer::findFirstFreeSlot() {
-  int i;
-
-  // all slots are used
-  if (numTimers >= MAX_TIMERS) {
+int ArduinoTimer::setTimer(unsigned long interval,
+                           timer_callback_func action,
+                           int numRuns,
+                           const String _name,
+                           bool debug) {
+  if (action == nullptr) {
     return -1;
   }
-
-  // return the first slot with no callback (i.e. free)
-  for (i = 0; i < MAX_TIMERS; i++) {
-    if (callbacks[i] == 0) {
-      return i;
-    }
-  }
-
-  // no free slots found
-  return -1;
-}
-
-int ArduinoTimer::setTimer(unsigned long d,
-                           timer_callback_func f,
-                           int n,
-                           const String s) {
-  int freeTimer = findFirstFreeSlot();
-  if (freeTimer < 0) {
-    return -1;
-  }
-
-  if (f == NULL) {
-    return -1;
-  }
-
-  delays[freeTimer] = d;
-  callbacks[freeTimer] = f;
-  descriptions[freeTimer] = s;
-  maxNumRuns[freeTimer] = n;
-  enabled[freeTimer] = true;
-  prev_millis[freeTimer] = elapsed();
-
-  numTimers++;
-
+  std::unique_ptr<TimerTask> task(
+      new TimerTask(interval, action, numRuns, _name));
+  int id = task->id;
+  task->offset = elapsed();
   if (debugMode) {
-    Serial.printf("Timer<%s>(%d) %s added\n", name, freeTimer,
-                  descriptions[freeTimer].c_str());
+    Serial.printf("Timer<%s>(%d/%d/%lu) %s added\n", name, task->id,
+                  tasks.size(), task->interval, task->name.c_str());
   }
-
-  return freeTimer;
+  tasks.push_back(std::move(task));
+  return id;
 }
 
-int ArduinoTimer::setInterval(unsigned long d,
-                              timer_callback_func f,
-                              const String s) {
-  return setTimer(d, f, RUN_FOREVER, s);
+int ArduinoTimer::setInterval(unsigned long interval,
+                              timer_callback_func action,
+                              const String name,
+                              bool debug) {
+  return setTimer(interval, action, RUN_FOREVER, name, debug);
 }
 
-int ArduinoTimer::setTimeout(unsigned long d,
-                             timer_callback_func f,
-                             const String s) {
-  return setTimer(d, f, RUN_ONCE, s);
+int ArduinoTimer::setTimeout(unsigned long interval,
+                             timer_callback_func action,
+                             const String name,
+                             bool debug) {
+  return setTimer(interval, action, RUN_ONCE, name, debug);
 }
 
 void ArduinoTimer::deleteTimer(int timerId) {
-  if (timerId >= MAX_TIMERS) {
+  if (tasks.empty()) {
     return;
   }
-
-  // nothing to delete if no timers are in use
-  if (numTimers == 0) {
-    return;
+  tasks.erase(std::remove_if(tasks.begin(), tasks.end(),
+                             [timerId](unique_ptr<TimerTask>& t) {
+                               return t->id == timerId;
+                             }),
+              tasks.end());
+  //   size_t index = -1;
+  //   String tn = "";
+  //   for (size_t i = 0; i < tasks.size(); i++) {
+  //     if (tasks[i]->id == timerId) {
+  //       index = i;
+  //       tn = tasks[i]->name;
+  //       break;
+  //     }
+  //   }
+  //   if (index >= 0) {
+  //     tasks.erase(tasks.begin() + index);
+  //     if (debugMode) {
+  //       Serial.printf("Delete task<%s>(%d) index:%d in timer<%s>\n",
+  //       tn.c_str(),
+  //                     timerId, index, name);
+  //     }
+  //   }
+  for (auto& task : tasks) {
+    Serial.printf("After deleteTimer: task %d %s in %s\n", task->id,
+                  task->name.c_str(), name);
   }
+}
 
-  // don't decrease the number of timers if the
-  // specified slot is already empty
-  if (callbacks[timerId] != NULL) {
-    if (debugMode) {
-      Serial.printf("Timer<%s>(%d) %s deleted\n", name, timerId,
-                    descriptions[timerId].c_str());
+void ArduinoTimer::restartTimer(int taskId) {
+  for (auto& task : tasks) {
+    if (task->id == taskId) {
+      task->prevMillis = elapsed();
     }
-    callbacks[timerId] = 0;
-    descriptions[timerId] = "";
-    enabled[timerId] = false;
-    toBeCalled[timerId] = DEFCALL_DONTRUN;
-    delays[timerId] = 0;
-    numRuns[timerId] = 0;
-
-    // update number of timers
-    numTimers--;
   }
 }
 
-// function contributed by code@rowansimms.com
-void ArduinoTimer::restartTimer(int numTimer) {
-  if (numTimer >= MAX_TIMERS) {
-    return;
+bool ArduinoTimer::isEnabled(int taskId) {
+  for (auto& task : tasks) {
+    if (task->id == taskId) {
+      return task->enabled;
+    }
   }
-
-  prev_millis[numTimer] = elapsed();
+  return false;
 }
 
-bool ArduinoTimer::isEnabled(int numTimer) {
-  if (numTimer >= MAX_TIMERS) {
-    return false;
+void ArduinoTimer::enable(int taskId) {
+  for (auto& task : tasks) {
+    if (task->id == taskId) {
+      task->enabled = true;
+    }
   }
-
-  return enabled[numTimer];
 }
 
-void ArduinoTimer::enable(int numTimer) {
-  if (numTimer >= MAX_TIMERS) {
-    return;
+void ArduinoTimer::disable(int taskId) {
+  for (auto& task : tasks) {
+    if (task->id == taskId) {
+      task->enabled = false;
+    }
   }
-
-  enabled[numTimer] = true;
 }
 
-void ArduinoTimer::disable(int numTimer) {
-  if (numTimer >= MAX_TIMERS) {
-    return;
+void ArduinoTimer::toggle(int taskId) {
+  for (auto& task : tasks) {
+    if (task->id == taskId) {
+      task->enabled = !task->enabled;
+    }
   }
-
-  enabled[numTimer] = false;
-}
-
-void ArduinoTimer::toggle(int numTimer) {
-  if (numTimer >= MAX_TIMERS) {
-    return;
-  }
-
-  enabled[numTimer] = !enabled[numTimer];
 }
 
 int ArduinoTimer::getNumTimers() {
-  return numTimers;
+  return tasks.size();
 }
 
-unsigned long ArduinoTimer::getInterval(int numTimer) {
-  return delays[numTimer];
+unsigned long ArduinoTimer::getInterval(int taskId) {
+  for (auto& task : tasks) {
+    if (task->id == taskId) {
+      return task->interval;
+    }
+  }
+  return ULONG_MAX;
 }
 
-unsigned long ArduinoTimer::getElapsed(int numTimer) {
-  return millis() - prev_millis[numTimer];
+unsigned long ArduinoTimer::getElapsed(int taskId) {
+  return millis() - getPrevMs(taskId);
 }
 
-unsigned long ArduinoTimer::getPrevMs(int numTimer) {
-  return prev_millis[numTimer];
+unsigned long ArduinoTimer::getPrevMs(int taskId) {
+  for (auto& task : tasks) {
+    if (task->id == taskId) {
+      return task->prevMillis;
+    }
+  }
+  return ULONG_MAX;
 }
 
-unsigned long ArduinoTimer::getRemain(int numTimer) {
-  return prev_millis[numTimer] + delays[numTimer] - millis();
+unsigned long ArduinoTimer::getRemain(int taskId) {
+  return getPrevMs(taskId) + getInterval(taskId) - millis();
 }
 
-String ArduinoTimer::getDescription(int numTimer) {
-  return descriptions[numTimer];
+String ArduinoTimer::getDescription(int taskId) {
+  for (auto& task : tasks) {
+    if (task->id == taskId) {
+      return task->name;
+    }
+  }
+  return "";
 }

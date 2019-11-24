@@ -22,6 +22,8 @@ RelayUnit::RelayUnit(const RelayConfig& cfg)
 
 void RelayUnit::begin(const RelayConfig& cfg) {
   pConfig = std::make_shared<RelayConfig>(cfg);
+  Serial.printf("RelayUnit::begin name=%s interval=%lu, duration=%lu\n",
+                pConfig->name.c_str(), pConfig->interval, pConfig->duration);
   pinMode(pConfig->pin, OUTPUT);
   pStatus = std::make_shared<RelayStatus>();
   pStatus->setupAt = millis();
@@ -39,7 +41,8 @@ bool RelayUnit::start() {
   }
   pStatus->onStart();
   digitalWrite(pConfig->pin, HIGH);
-  stopTimerId = timer.setTimeout(pConfig->duration, [&]() { stop(); }, "stop");
+  auto stopFunc = std::bind(&RelayUnit::stop, this);
+  stopTimerId = timer.setTimeout(pConfig->duration, stopFunc, "stop");
   if (callback) {
     callback(RelayEvent::STARTED, 0);
   }
@@ -52,10 +55,6 @@ bool RelayUnit::stop() {
   }
   pStatus->onStop();
   digitalWrite(pConfig->pin, LOW);
-  if (stopTimerId >= 0) {
-    timer.deleteTimer(stopTimerId);
-    stopTimerId = -1;
-  }
   if (callback) {
     callback(RelayEvent::STOPPED, 0);
   }
@@ -74,10 +73,11 @@ void RelayUnit::resetTimer() {
   pStatus->timerResetAt = millis();
   timer.setDebug(true);
   timer.reset();
-  runTimerId =
-      timer.setInterval(pConfig->interval, [&]() { start(); }, "start");
-  checkTimerId = timer.setInterval(pConfig->duration / 2 + 2000,
-                                   [&]() { check(); }, "check");
+  auto startFunc = std::bind(&RelayUnit::start, this);
+  runTimerId = timer.setInterval(pConfig->interval, startFunc, "start");
+  auto checkFunc = std::bind(&RelayUnit::check, this);
+  checkTimerId =
+      timer.setInterval(pConfig->duration / 2 + 2000, checkFunc, "check");
 }
 
 bool RelayUnit::isOn() {

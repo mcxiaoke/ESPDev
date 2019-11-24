@@ -711,7 +711,7 @@ void setupWiFi() {
   if (!WiFi.isConnected()) {
     LOGN("[WiFi] Connect failed, will retry");
     WiFi.reconnect();
-    wifiInitTimerId = aTimer.setTimer(10 * 1000L, checkWiFi, 15);
+    wifiInitTimerId = aTimer.setTimer(10 * 1000L, checkWiFi, 15, "wifiInit");
   } else {
     LOGF("[WiFi] Setup connection using %lus.\n", millis() / 1000);
   }
@@ -824,7 +824,6 @@ void setupPump() {
 
 void setupTimers(bool reset) {
   LOGN("setupTimers");
-  //   aTimer.setDebug(true);
   if (reset) {
     aTimer.reset();
   }
@@ -870,7 +869,6 @@ void setup(void) {
   fsCheck();
   setupDisplay();
   delay(1000);
-  setupPump();
   setupTimers(false);
   setupWiFi();
   setupDate();
@@ -878,6 +876,7 @@ void setup(void) {
   setupMqtt();
   setupCommands();
   Blynk.config(BLYNK_AUTH, BLYNK_HOST, BLYNK_PORT);
+  setupPump();
   showESP();
   debugLog(F("System is running"));
   LOGN(__TIME__);
