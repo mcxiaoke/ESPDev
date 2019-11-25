@@ -7,6 +7,14 @@
 #include "ntp.h"
 #include "tools.h"
 
+// https://forum.arduino.cc/index.php/topic,46643.0.html
+// Serial << "hello,World" << "End\n";
+template <typename Arg>
+inline Print& operator<<(Print& obj, Arg arg) {
+  obj.print(arg);
+  return obj;
+}
+
 std::vector<std::tuple<String, size_t>> listFiles();
 void fsCheck();
 String getDevice();

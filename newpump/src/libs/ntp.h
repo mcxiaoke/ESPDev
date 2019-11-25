@@ -4,6 +4,7 @@
 #include <WiFiUdp.h>
 #include <time.h>
 #include "compat.h"
+#include "utils.h"
 
 #ifndef TIME_ZONE_OFFSET
 #define TIME_ZONE_OFFSET (8)

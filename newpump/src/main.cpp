@@ -868,6 +868,8 @@ void setup(void) {
   fsCheck();
   setupDisplay();
   delay(1000);
+  LOGN();
+  Serial.println("Booting...");
   setupWiFi();
   setupDate();
   setupServer();

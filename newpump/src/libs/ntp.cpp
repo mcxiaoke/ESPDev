@@ -65,12 +65,11 @@ time_t getNtpTime(unsigned int timeOut) {
       time_t ts = secsSince1900 - SECS_DELTA_1900_1970 +
                   getNtpTimeZone() * SECS_PER_HOUR;
       if (ts > TIME_START_2019) {
-        Serial.print("[System] NTP Time: ");
-        Serial.println(ts);
+        LOGF("[System] NTP Time: %lu\n", ts);
         return ts;
       }
     }
   }
-  Serial.println("[System] NTP No Response");
+  LOGN("[System] NTP No Response");
   return 0;  // return 0 if unable to get the time
 }

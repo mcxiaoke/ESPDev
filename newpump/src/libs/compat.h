@@ -3,7 +3,7 @@
 
 //#define DEBUG_MODE
 #define USING_MQTT
-#define EANBLE_LOGGING
+// #define EANBLE_LOGGING
 
 #include <Arduino.h>
 #include <FS.h>
