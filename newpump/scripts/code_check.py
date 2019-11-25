@@ -6,7 +6,7 @@ import sys
 
 in_pio_build = False
 
-print('Current Dir:{}'.format(os.getcwd()))
+print("------ Code Check Script ------")
 
 try:
     Import("env")
@@ -36,9 +36,8 @@ def code_check(source, target, env):
     print("** Finished cpplint...")
 
 
-#my_flags = env.ParseFlags(env['BUILD_FLAGS'])
-#defines = {k: v for (k, v) in my_flags.get("CPPDEFINES")}
-# print defines
+# my_flags = env.ParseFlags(env['BUILD_FLAGS'])
+# defines = {k: v for (k, v) in my_flags.get("CPPDEFINES")}
 # print(env)
 # print(env.Dump())
 

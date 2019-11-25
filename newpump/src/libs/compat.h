@@ -1,10 +1,6 @@
 #ifndef __ESP__COMPAT__
 #define __ESP__COMPAT__
 
-//#define DEBUG_MODE
-#define USING_MQTT
-// #define EANBLE_LOGGING
-
 #include <Arduino.h>
 #include <FS.h>
 #include <WiFiClient.h>

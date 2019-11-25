@@ -36,10 +36,10 @@ using std::string;
 #define STR1(x) #x
 #define STR(x) STR1(x)
 
-#ifdef PIO_SRC_REV
-#define BUILD_VERSION STR(PIO_SRC_REV)
+#ifdef BUILD_VERSION
+#define APP_VERSION STR(BUILD_VERSION)
 #else
-#define BUILD_VERSION "-"
+#define APP_VERSION "-"
 #endif
 
 #ifdef DEBUG_MODE
@@ -52,7 +52,7 @@ using std::string;
 #define STATUS_INTERVAL_DEFAULT 2 * 60 * 60 * 1000UL
 #endif
 
-const char* buildVersion = BUILD_VERSION;
+const char* buildVersion = APP_VERSION;
 const char* ssid = STASSID;
 const char* password = STAPSK;
 const int led = LED_BUILTIN;
