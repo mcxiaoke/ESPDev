@@ -24,7 +24,7 @@
 
 const time_t TIME_START_2019 = 1500000000L;  // in seconds
 
-void sendNTPpacket(IPAddress& address);
+void sendNTPpacket(const IPAddress& address);
 time_t getNtpTime(unsigned int timeOut);
 int getNtpTimeZone();
 

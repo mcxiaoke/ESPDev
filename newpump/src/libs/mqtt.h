@@ -3,9 +3,10 @@
 
 #include <Arduino.h>
 #include <PubSubClient.h>
+#include "../ext/format.hpp"
+#include "../ext/string.hpp"
 #include "cmd.h"
 #include "config.h"
-#include "ext/string.hpp"
 #include "utils.h"
 
 using std::string;
@@ -15,13 +16,15 @@ using MQTT_CALLBACK_FUNC = std::function<void(char*, uint8_t*, unsigned int)>;
 class MqttManager {
  public:
   static const unsigned int COMMAND_MAX_LENGTH;
-  static const string TOPIC_DEVICE_CHECK;
-  static const string TOPIC_DEVICE_ONLINE;
-  static const string CMD_DEVICE_CHECK;
+  static const char* TOPIC_DEVICE_CHECK;
+  static const char* TOPIC_DEVICE_ONLINE;
+  static const char* CMD_DEVICE_CHECK;
   MqttManager(const char* server,
               const int port,
               const char* username,
               const char* password);
+  MqttManager(const MqttManager& m) = delete;
+  MqttManager& operator=(const MqttManager& dp) = delete;
   bool isConnected();
   String getUser();
   String getPass();

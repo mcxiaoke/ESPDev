@@ -66,15 +66,8 @@ void CommandManager::addCommand(Command* cmd) {
   _addHandler(cmd);
 }
 
-void CommandManager::addCommand(const char* name,
-                                const char* desc,
-                                CMD_HANDLER_FUNC handler) {
-  Command cmd{name, desc, handler};
-  _addHandler(&cmd);
-}
-
-void CommandManager::addCommand(string& name,
-                                string& desc,
+void CommandManager::addCommand(const string& name,
+                                const string& desc,
                                 CMD_HANDLER_FUNC handler) {
   Command cmd{name, desc, handler};
   _addHandler(&cmd);
@@ -84,7 +77,7 @@ void CommandManager::removeCommand(Command* cmd) {
   _handlers.erase(cmd->name);
 }
 
-void CommandManager::removeCommand(string& name) {
+void CommandManager::removeCommand(const string& name) {
   _handlers.erase(name);
 }
 
@@ -94,6 +87,11 @@ vector<Command*> CommandManager::getCommands() {
   for (auto& kvp : _handlers) {
     vs.push_back(&(kvp.second));
   }
+  //   std::transform(_handlers.begin(), _handlers.end(), vs.begin(),
+  //                  [](std::pair<const std::string, Command>& p) {
+  //                    Serial.println(p.second.toString().c_str());
+  //                    return &(p.second);
+  //                  });
   return vs;
 }
 

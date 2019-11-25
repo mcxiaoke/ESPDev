@@ -119,9 +119,8 @@ inline string replace_all(const string& s,
   string ret;
   const size_t target_len = target.length();
   size_t l = 0;
-  size_t r = 0;
   for (;;) {
-    r = s.find(target, l);
+    size_t r = s.find(target, l);
     if (r == string::npos) {
       break;
     }
@@ -181,9 +180,8 @@ inline vector<string> split_any(const string& s,
 
   const size_t s_len = s.length();
   size_t l = 0;
-  size_t r = 0;
   for (;;) {
-    r = s.find_first_of(charlist, l);
+    size_t r = s.find_first_of(charlist, l);
     if (r != string::npos) {
       if (l != r || keep_empty_strings) {
         ret.push_back(s.substr(l, r - l));
@@ -240,9 +238,8 @@ inline vector<string> split(const string& s,
   const size_t s_len = s.length();
   const size_t sep_len = sep.length();
   size_t l = 0;
-  size_t r = 0;
   for (;;) {
-    r = s.find(sep, l);
+    size_t r = s.find(sep, l);
     if (r != string::npos) {
       if (l != r || keep_empty_strings) {
         ret.push_back(s.substr(l, r - l));

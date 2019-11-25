@@ -3,23 +3,22 @@
 
 #include <memory>
 #include <string>
-#include "ext/utility.hpp"
-#include "libs/ArduinoTimer.h"
-#include "libs/compat.h"
-#include "libs/utils.h"
-
-using namespace std;
+#include "../ext/format.hpp"
+#include "../ext/utility.hpp"
+#include "ArduinoTimer.h"
+#include "compat.h"
+#include "utils.h"
 
 struct RelayConfig;
 struct RelayStatus;
 
 struct RelayConfig {
-  const String name;
+  const char* name;
   uint8_t pin;
   unsigned long interval;
   unsigned long duration;
 
-  String toString() const;
+  std::string toString() const;
 };
 
 struct RelayStatus {
@@ -30,7 +29,7 @@ struct RelayStatus {
   unsigned long lastStop;
   unsigned long lastElapsed;
   unsigned long totalElapsed;
-  String toString() const;
+  std::string toString() const;
 };
 // enum value can conflict with #define variable
 enum class RelayEvent { Started, Stopped, Enabled, Disabled, ConfigChanged };
@@ -39,7 +38,7 @@ class RelayUnit {
  public:
   using CALLBACK_FUNC = std::function<void(const RelayEvent, int reason)>;
   RelayUnit();
-  RelayUnit(const RelayConfig& cfg);
+  explicit RelayUnit(const RelayConfig& cfg);
   void begin(const RelayConfig& cfg);
   void run();
   bool start();

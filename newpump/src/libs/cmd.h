@@ -57,17 +57,18 @@ class CommandManager {
  public:
   bool handle(const CommandParam& param);
   void addCommand(Command* cmd);
-  void addCommand(const char* name, const char* desc, CMD_HANDLER_FUNC handler);
-  void addCommand(string& name, string& desc, CMD_HANDLER_FUNC handler);
+  void addCommand(const string& name,
+                  const string& desc,
+                  CMD_HANDLER_FUNC handler);
   void removeCommand(Command* cmd);
-  void removeCommand(string& name);
+  void removeCommand(const string& name);
   vector<Command*> getCommands();
   String getHelpDoc();
   void setDefaultHandler(CMD_HANDLER_FUNC handler);
 
  private:
   CMD_HANDLER_FUNC _defaultHandler = nullptr;
-  std::map<std::string, Command> _handlers;
+  std::map<const std::string, Command> _handlers;
   void _addHandler(Command* cmd);
   CMD_HANDLER_FUNC _getHandler(const string& name);
 };

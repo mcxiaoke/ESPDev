@@ -25,6 +25,9 @@ class Display {
  public:
   U8G2_SSD1306_128X64_NONAME_F_HW_I2C* u8g2;
   Display();
+  Display(const Display& dp) = delete;
+  Display& operator=(const Display& dp) = delete;
+  ~Display();
   void begin();
   void clear();
   void setText(const String& a = "",

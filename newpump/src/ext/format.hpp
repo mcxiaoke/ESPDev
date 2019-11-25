@@ -1,7 +1,9 @@
 #ifndef _EXT_UTILS_FORMAT_H_
 #define _EXT_UTILS_FORMAT_H_
 
+#include <Arduino.h>
 #include <algorithm>
+#include <cstdio>
 #include <memory>
 #include <vector>
 
@@ -10,24 +12,22 @@ namespace ext {
 namespace format {
 
 template <typename T>
-T Argument(T value) noexcept {
+T ArgConvert(T value) noexcept {
   return value;
 }
 template <typename T>
-T const* Argument(std::basic_string<T> const& value) noexcept {
+T const* ArgConvert(std::basic_string<T> const& value) noexcept {
   return value.c_str();
 }
 
-const char* Argument(const String& value) noexcept {
-  return value.c_str();
-}
+const char* ArgConvert(String const& value) noexcept;
 
 template <typename... Args>
 int strPrintf(char* const buffer,
               size_t const bufferCount,
               char const* const format,
               Args const&... args) noexcept {
-  int const result = snprintf(buffer, bufferCount, format, Argument(args)...);
+  int const result = snprintf(buffer, bufferCount, format, ArgConvert(args)...);
   return result;
 }
 
@@ -36,31 +36,36 @@ std::string strFormat(char const* const format, Args const&... args) {
   std::string buffer;
   size_t const size = strPrintf(nullptr, 0, format, args...);
   buffer.resize(size);
-  snprintf(&buffer[0], buffer.size() + 1, format, Argument(args)...);
+  snprintf(&buffer[0], buffer.size() + 1, format, ArgConvert(args)...);
   return buffer;
 }
 
 // https://stackoverflow.com/questions/2342162
-std::string strFormat2(const std::string fmt_str, ...) {
-  int final_n;
-  /* Reserve two times as much as the length of the fmt_str */
-  int n = ((int)fmt_str.size()) * 2;
-  std::unique_ptr<char[]> formatted;
-  va_list ap;
-  while (1) {
-    /* Wrap the plain char array into the unique_ptr */
-    formatted.reset(new char[n]);
-    strcpy(&formatted[0], fmt_str.c_str());
-    va_start(ap, fmt_str);
-    final_n = vsnprintf(&formatted[0], n, fmt_str.c_str(), ap);
-    va_end(ap);
-    if (final_n < 0 || final_n >= n)
-      n += abs(final_n - n + 1);
-    else
-      break;
+std::string strFormat2(const std::string fmt_str, ...);
+
+// https://lonkamikaze.github.io/2016/12/16/cxx-printf-style-formatting
+template <size_t BufSize>
+class Formatter {
+ private:
+  char const* const fmt;
+
+ public:
+  constexpr Formatter(char const* const fmt) : fmt{fmt} {}
+
+  template <typename... ArgTs>
+  std::string operator()(ArgTs const&... args) const {
+    char buf[BufSize];
+    auto size = snprintf(buf, BufSize, this->fmt, args...);
+    if (size < 0) {
+      /* encoding error */
+      return {};
+    } else if (static_cast<size_t>(size) >= BufSize) {
+      /* does not fit into buffer */
+      return {buf, BufSize - 1};
+    }
+    return {buf, static_cast<size_t>(size)};
   }
-  return std::string(formatted.get());
-}
+};
 
 }  // namespace format
 }  // namespace ext

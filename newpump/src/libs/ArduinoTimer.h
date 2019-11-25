@@ -41,22 +41,14 @@
 #else
 #include <WProgram.h>
 #endif
-#include "ext/utility.hpp"
-#include "libs/utils.h"
-
-using namespace std;
+#include "../ext/utility.hpp"
+#include "utils.h"
 
 #ifndef __AVR__
 typedef std::function<void(void)> timer_callback_func;
 #else
 typedef void (*timer_callback_func)();
 #endif  // __AVR__
-
-struct Task {
-  int mId;
-  Task(int id) : mId(id) { Serial.println("Task::Constructor"); }
-  ~Task() { Serial.println("Task::Destructor"); }
-};
 
 struct TimerTask {
   unsigned long interval;
@@ -78,7 +70,6 @@ struct TimerTask {
             int maxNumRuns,
             String name = "task",
             bool debug = false);
-  TimerTask();
   ~TimerTask();
 };
 
@@ -89,13 +80,10 @@ class ArduinoTimer {
   constexpr static int RUN_ONCE = 1;
 
   // constructor
-  ArduinoTimer(const char* _name = "default");
+  explicit ArduinoTimer(const char* _name = "default", bool debugMode = false);
 
   // debug mode
   void setDebug(bool debug);
-
-  // set boot timestamp
-  void setBootTime(time_t timestamp);
 
   // clear timers
   void reset();
@@ -160,15 +148,12 @@ class ArduinoTimer {
   String getDescription(int taskId);
 
  private:
-  // debug mode flag
-  bool debugMode;
-  // boot time
-  time_t bootTime;
   // timer name
   const char* name;
+  // debug mode flag
+  bool debugMode;
   // task array
   std::vector<std::unique_ptr<TimerTask> > tasks;
-  std::vector<std::unique_ptr<Task> > infos;
 };
 
 #endif

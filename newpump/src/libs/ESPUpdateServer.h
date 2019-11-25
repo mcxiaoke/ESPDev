@@ -1,6 +1,7 @@
 #ifndef __ESP_HTTP_UPDATE_SERVER_H__
 #define __ESP_HTTP_UPDATE_SERVER_H__
 
+#include "../ext/utility.hpp"
 #include "compat.h"
 
 #if defined(ESP32)
@@ -13,7 +14,9 @@
 
 class ESPUpdateServer {
  public:
-  ESPUpdateServer(bool serial_debug = false);
+  ESPUpdateServer(bool serial_debug = false,
+                  const String& username = emptyString,
+                  const String& password = emptyString);
 
   void setup(AsyncWebServer* server) {
     setup(server, emptyString, emptyString);

@@ -85,7 +85,6 @@ void setupTimers(bool);
 void checkDate();
 void checkBlynk();
 void checkWiFi();
-String getCommands();
 String getStatus();
 void statusReport();
 void handleCommand(const CommandParam& param);
@@ -241,41 +240,41 @@ bool mqttConnected() {
 
 ////////// Command Handlers Begin //////////
 
-void cmdReboot(const CommandParam param = CommandParam::INVALID) {
+void cmdReboot(const CommandParam& param = CommandParam::INVALID) {
   debugLog(F("Reboot now"));
   sendMqttLog("System will reboot now");
   aTimer.setTimeout(1000, []() { ESP.restart(); }, "cmdReboot");
 }
 
-void cmdEnable(const CommandParam param = CommandParam::INVALID) {
+void cmdEnable(const CommandParam& param = CommandParam::INVALID) {
   pump.setEnabled(true);
 }
 
-void cmdDisable(const CommandParam param = CommandParam::INVALID) {
+void cmdDisable(const CommandParam& param = CommandParam::INVALID) {
   pump.setEnabled(false);
 }
 
-void cmdStart(const CommandParam param = CommandParam::INVALID) {
+void cmdStart(const CommandParam& param = CommandParam::INVALID) {
   LOGN("cmdStart");
   pump.start();
 }
 
-void cmdStop(const CommandParam param = CommandParam::INVALID) {
+void cmdStop(const CommandParam& param = CommandParam::INVALID) {
   LOGN("cmdStop");
   pump.stop();
 }
 
-void cmdClear(const CommandParam param = CommandParam::INVALID) {
+void cmdClear(const CommandParam& param = CommandParam::INVALID) {
   SPIFFS.remove(logFileName());
   debugLog(F("Logs cleared"));
 }
 
-void cmdFiles(const CommandParam param = CommandParam::INVALID) {
+void cmdFiles(const CommandParam& param = CommandParam::INVALID) {
   LOGN("cmdFiles");
   sendMqttStatus(getFilesText());
 }
 
-void cmdLogs(const CommandParam param = CommandParam::INVALID) {
+void cmdLogs(const CommandParam& param = CommandParam::INVALID) {
   LOGN("cmdLogs");
   String logText = F("Go to http://");
   logText += WiFi.localIP().toString();
@@ -283,12 +282,12 @@ void cmdLogs(const CommandParam param = CommandParam::INVALID) {
   sendMqttStatus(logText);
 }
 
-void cmdStatus(const CommandParam param = CommandParam::INVALID) {
+void cmdStatus(const CommandParam& param = CommandParam::INVALID) {
   LOGN("cmdStatus");
   statusReport();
 }
 
-void cmdWiFi(const CommandParam param = CommandParam::INVALID) {
+void cmdWiFi(const CommandParam& param = CommandParam::INVALID) {
   LOGN("cmdWiFi");
   String data = "";
   data += "Device: ";
@@ -305,29 +304,27 @@ void cmdWiFi(const CommandParam param = CommandParam::INVALID) {
 }
 
 unsigned long parseLong(const string& extra) {
-  if (&extra == nullptr || extra.empty() || !ext::string::is_digits(extra)) {
+  if (extra.empty() || !ext::string::is_digits(extra)) {
     return 0;
   }
   return strtoul(extra.c_str(), nullptr, 0);
 }
 
 uint8_t parsePin(const string& extra) {
-  if (&extra == nullptr || extra.empty() || extra.length() > 2 ||
-      !ext::string::is_digits(extra)) {
+  if (extra.empty() || extra.length() > 2 || !ext::string::is_digits(extra)) {
     return 0xff;
   }
   return atoi(extra.c_str());
 }
 
 uint8_t parseValue(const string& extra) {
-  if (&extra == nullptr || extra.empty() || extra.length() > 1 ||
-      !ext::string::is_digits(extra)) {
+  if (extra.empty() || extra.length() > 1 || !ext::string::is_digits(extra)) {
     return 0xff;
   }
   return atoi(extra.c_str());
 }
 
-void cmdSettings(const CommandParam param = CommandParam::INVALID) {
+void cmdSettings(const CommandParam& param = CommandParam::INVALID) {
   auto args = param.args;
   LOGN("cmdSettings");
   if (args.size() < 1) {
@@ -374,7 +371,7 @@ void cmdSettings(const CommandParam param = CommandParam::INVALID) {
   }
 }
 
-void cmdIOSet(const CommandParam param = CommandParam::INVALID) {
+void cmdIOSet(const CommandParam& param = CommandParam::INVALID) {
   auto args = param.args;
   LOGN("cmdIOSet");
   if (args.size() < 2) {
@@ -392,7 +389,7 @@ void cmdIOSet(const CommandParam param = CommandParam::INVALID) {
   }
 }
 
-void cmdIOSetHigh(const CommandParam param = CommandParam::INVALID) {
+void cmdIOSetHigh(const CommandParam& param = CommandParam::INVALID) {
   auto args = param.args;
   LOGN("cmdIOSetHigh");
   if (args.size() < 1) {
@@ -410,7 +407,7 @@ void cmdIOSetHigh(const CommandParam param = CommandParam::INVALID) {
   debugLog(msg);
 }
 
-void cmdIOSetLow(const CommandParam param = CommandParam::INVALID) {
+void cmdIOSetLow(const CommandParam& param = CommandParam::INVALID) {
   auto args = param.args;
   LOGN("cmdIOSetLow");
   if (args.size() < 1) {
@@ -428,12 +425,12 @@ void cmdIOSetLow(const CommandParam param = CommandParam::INVALID) {
   debugLog(msg);
 }
 
-void cmdHelp(const CommandParam param = CommandParam::INVALID) {
+void cmdHelp(const CommandParam& param = CommandParam::INVALID) {
   LOGN("cmdHelp");
   sendMqttStatus(cmdMgr.getHelpDoc());
 }
 
-void cmdNotFound(const CommandParam param = CommandParam::INVALID) {
+void cmdNotFound(const CommandParam& param = CommandParam::INVALID) {
   LOGN("cmdNotFound");
   sendMqttLog(F("Send /help to see available commands"));
 }
@@ -445,9 +442,6 @@ void checkDate() {
     if (WiFi.isConnected()) {
       LOGN("[System] checkDate");
       setTimestamp();
-      if (hasValidTime()) {
-        aTimer.setBootTime(getBootTime());
-      }
     }
   }
 }
@@ -673,6 +667,7 @@ WiFiEventHandler h1, h2;
 #elif defined(ESP32)
 wifi_event_id_t h1, h2;
 #endif
+
 void setupWiFi() {
   LOGN("setupWiFi");
   digitalWrite(led, LOW);
@@ -712,7 +707,6 @@ void setupWiFi() {
       LOG("=");
     }
   }
-  LOGN();
   if (!WiFi.isConnected()) {
     LOGN("[WiFi] Connect failed, will retry");
     WiFi.reconnect();

@@ -13,7 +13,7 @@ String formatDateTime(time_t ts);
 String formatTime(time_t ts);
 void getDateTimeStr(time_t, char*);
 void getTimeStr(time_t, char*);
-void htmlEscape(String& html);
+void htmlEscape(String* html);
 String URLEncode(const char* msg);
 String urldecode(String str);
 String urlencode(String str);

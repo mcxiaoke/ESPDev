@@ -3,18 +3,9 @@
 
 #include <MD5Builder.h>
 #include "compat.h"
+#include "log.h"
 #include "ntp.h"
 #include "tools.h"
-
-#if defined(EANBLE_LOGGING) || defined(DEBUG_MODE)
-#define LOG(...) Serial.print(__VA_ARGS__)
-#define LOGN(...) Serial.println(__VA_ARGS__)
-#define LOGF(...) Serial.printf(__VA_ARGS__)
-#else
-#define LOG(...)
-#define LOGN(...)
-#define LOGF(...)
-#endif
 
 std::vector<std::tuple<String, size_t>> listFiles();
 void fsCheck();

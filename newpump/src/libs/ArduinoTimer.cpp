@@ -1,37 +1,12 @@
-/*
- * SimpleTimer.cpp
- *
- * SimpleTimer - A timer library for Arduino.
- * Author: mromani@ottotecnica.com
- * Copyright (c) 2010 OTTOTECNICA Italy
- *
- * This library is free software; you can redistribute it
- * and/or modify it under the terms of the GNU Lesser
- * General Public License as published by the Free Software
- * Foundation; either version 2.1 of the License, or (at
- * your option) any later version.
- *
- * This library is distributed in the hope that it will
- * be useful, but WITHOUT ANY WARRANTY; without even the
- * implied warranty of MERCHANTABILITY or FITNESS FOR A
- * PARTICULAR PURPOSE.  See the GNU Lesser General Public
- * License for more details.
- *
- * You should have received a copy of the GNU Lesser
- * General Public License along with this library; if not,
- * write to the Free Software Foundation, Inc.,
- * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
- */
-
 #include "ArduinoTimer.h"
 
 // deferred call constants
-const static int DEFCALL_DONTRUN = 0;  // don't call the callback function
-const static int DEFCALL_RUNONLY =
+static const int DEFCALL_DONTRUN = 0;  // don't call the callback function
+static const int DEFCALL_RUNONLY =
     1;  // call the callback function but don't delete the timer
-const static int DEFCALL_RUNANDDEL =
+static const int DEFCALL_RUNANDDEL =
     2;  // call the callback function and delete the timer
-const static int DEFCALL_DELETEONLY = 3;
+static const int DEFCALL_DELETEONLY = 3;
 
 static int _taskId = 0;
 static int generateId() {
@@ -59,8 +34,6 @@ TimerTask::TimerTask(unsigned long interval,
   }
 }
 
-TimerTask::TimerTask() : id(0) {}
-
 TimerTask::~TimerTask() {
   if (debug) {
     Serial.printf("~TimerTask(%s,%d,%lu,%d)\n", name.c_str(), id, interval,
@@ -74,18 +47,14 @@ static inline unsigned long elapsed() {
   return millis();
 }
 
-ArduinoTimer::ArduinoTimer(const char* _name) {
-  name = _name;
+ArduinoTimer::ArduinoTimer(const char* name, bool debugMode)
+    : name(name), debugMode(debugMode) {
   tasks.reserve(5);
   reset();
 }
 
 void ArduinoTimer::setDebug(bool debug) {
   debugMode = debug;
-}
-
-void ArduinoTimer::setBootTime(time_t timestamp) {
-  bootTime = timestamp;
 }
 
 void ArduinoTimer::reset() {
@@ -97,7 +66,7 @@ void ArduinoTimer::reset() {
 
 void ArduinoTimer::run() {
   auto current_millis = elapsed();
-  vector<int> toDelete;
+  std::vector<int> toDelete;
   for (auto& task : tasks) {
     yield();
     if (current_millis - task->offset - task->prevMillis < task->interval) {
@@ -202,13 +171,13 @@ TimerTask* ArduinoTimer::getTask(int taskId) {
   return nullptr;
 }
 
-void ArduinoTimer::deleteTimer(int timerId) {
+void ArduinoTimer::deleteTimer(int taskId) {
   if (tasks.empty()) {
     return;
   }
   tasks.erase(std::remove_if(tasks.begin(), tasks.end(),
-                             [timerId](unique_ptr<TimerTask>& t) {
-                               return t->id == timerId;
+                             [taskId](const std::unique_ptr<TimerTask>& t) {
+                               return t->id == taskId;
                              }),
               tasks.end());
 }
@@ -228,6 +197,14 @@ bool ArduinoTimer::isEnabled(int taskId) {
     }
   }
   return false;
+  // or using std::find_if
+  //   auto it = std::find_if(tasks.begin(), tasks.end(),
+  //                          [taskId](const unique_ptr<TimerTask>& t) {
+  //                            if (t->id == taskId)
+  //                              return true;
+  //                            return false;
+  //                          });
+  //   return it != tasks.end() && (*it)->enabled;
 }
 
 void ArduinoTimer::enable(int taskId) {

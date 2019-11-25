@@ -16,7 +16,7 @@ int getNtpTimeZone() {
 }
 
 // send an NTP request to the time server at the given address
-void sendNTPpacket(IPAddress& address) {
+void sendNTPpacket(const IPAddress& address) {
   // set all bytes in the buffer to 0
   memset(packetBuffer, 0, NTP_PACKET_SIZE);
   // Initialize values needed to form NTP request

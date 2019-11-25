@@ -1,11 +1,10 @@
 #include "RelayUnit.h"
-#include "../ext/format.hpp"
 
-static void updateStatusOnStart(std::shared_ptr<RelayStatus>& st) {
+static void updateStatusOnStart(const std::shared_ptr<RelayStatus>& st) {
   st->lastStart = millis();
 }
 
-static void updateStatusOnSop(std::shared_ptr<RelayStatus>& st) {
+static void updateStatusOnSop(const std::shared_ptr<RelayStatus>& st) {
   st->lastStop = millis();
   if (st->lastStart > 0) {
     st->lastElapsed = st->lastStop - st->lastStart;
@@ -13,23 +12,22 @@ static void updateStatusOnSop(std::shared_ptr<RelayStatus>& st) {
   }
 }
 
-String RelayConfig::toString() const {
-  std::string str = ext::format::strFormat(
+std::string RelayConfig::toString() const {
+  return ext::format::strFormat(
       "RelayConfig(name=%s,pin=%d,interval=%lu,duration=%lu)", name, pin,
       interval, duration);
-  return String(str.c_str());
 }
 
-String RelayStatus::toString() const {
-  std::string str = ext::format::strFormat(
+std::string RelayStatus::toString() const {
+  return ext::format::strFormat2(
       "RelayStatus(enabled=%d,setup=%lu,reset=%lu,start=%lu,stop=%lu,"
       "elapsed=%lu/%lu)",
       enabled, setupAt, timerResetAt, lastStart, lastStop, lastElapsed,
       totalElapsed);
-  return String(str.c_str());
 }
 
-RelayUnit::RelayUnit() : pStatus(std::make_shared<RelayStatus>()) {
+RelayUnit::RelayUnit()
+    : pConfig(nullptr), pStatus(std::make_shared<RelayStatus>()) {
   LOGN("RelayUnit::RelayUnit()");
 }
 
@@ -45,8 +43,8 @@ void RelayUnit::begin(const RelayConfig& cfg) {
   pStatus->setupAt = millis();
   resetTimer();
   pinMode(pConfig->pin, OUTPUT);
-  LOGN(pConfig->toString());
-  LOGN(pStatus->toString());
+  LOGN(pConfig->toString().c_str());
+  LOGN(pStatus->toString().c_str());
 }
 
 void RelayUnit::run() {

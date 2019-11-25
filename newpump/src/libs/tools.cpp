@@ -54,7 +54,7 @@ String monoTime(unsigned long sec) {
   uint8_t m = (sec % 3600) / 60;
   uint8_t s = sec % 60;
   char buf[16];
-  snprintf(buf, 16, "%02u:%02u:%02u", h, m, s);
+  snprintf(buf, sizeof(buf), "%02u:%02u:%02u", h, m, s);
   return String(buf);
 }
 
@@ -82,13 +82,13 @@ void getTimeStr(time_t ts, char* buffer) {
   strftime(buffer, 12, "%H:%M:%S", tm_info);
 }
 
-void htmlEscape(String& html) {
-  html.replace("&", F("&amp;"));
-  html.replace("\"", F("&quot;"));
-  html.replace("'", F("&#039;"));
-  html.replace("<", F("&lt;"));
-  html.replace(">", F("&gt;"));
-  html.replace("/", F("&#047;"));
+void htmlEscape(String* html) {
+  html->replace("&", F("&amp;"));
+  html->replace("\"", F("&quot;"));
+  html->replace("'", F("&#039;"));
+  html->replace("<", F("&lt;"));
+  html->replace(">", F("&gt;"));
+  html->replace("/", F("&#047;"));
 }
 
 String URLEncode(const char* msg) {
@@ -113,11 +113,10 @@ String URLEncode(const char* msg) {
 // https://circuits4you.com/2019/03/21/esp8266-url-encode-decode-example/
 String urldecode(String str) {
   String encodedString = "";
-  char c;
   char code0;
   char code1;
   for (unsigned int i = 0; i < str.length(); i++) {
-    c = str.charAt(i);
+    char c = str.charAt(i);
     if (c == '+') {
       encodedString += ' ';
     } else if (c == '%') {
@@ -139,11 +138,10 @@ String urldecode(String str) {
 
 String urlencode(String str) {
   String encodedString = "";
-  char c;
   char code0;
   char code1;
   for (unsigned int i = 0; i < str.length(); i++) {
-    c = str.charAt(i);
+    char c = str.charAt(i);
     if (c == ' ') {
       encodedString += '+';
     } else if (isalnum(c)) {

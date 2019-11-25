@@ -14,9 +14,9 @@ static void mqttFileLog(const String& text) {
 // fix c++ linker undefined reference
 // see https://stackoverflow.com/questions/16957458
 const unsigned int MqttManager::COMMAND_MAX_LENGTH = 128;
-const string MqttManager::TOPIC_DEVICE_CHECK = "device/check";
-const string MqttManager::TOPIC_DEVICE_ONLINE = "device/online";
-const string MqttManager::CMD_DEVICE_CHECK = "check";
+const char* MqttManager::TOPIC_DEVICE_CHECK = "device/check";
+const char* MqttManager::TOPIC_DEVICE_ONLINE = "device/online";
+const char* MqttManager::CMD_DEVICE_CHECK = "check";
 
 MqttManager::MqttManager(const char* server,
                          const int port,
@@ -208,11 +208,9 @@ void MqttManager::handleMessage(const char* _topic,
   string topic(_topic);
   string message(_payload,
                  _payload + std::min(_length, MqttManager::COMMAND_MAX_LENGTH));
-
-  char logBuf[message.size() + topic.size() + 24];
-  snprintf(logBuf, MqttManager::COMMAND_MAX_LENGTH + 24, "[MQTT][%s] %s (%d)",
-           topic.c_str(), message.c_str(), _length);
-  mqttFileLog(logBuf);
+  mqttFileLog(ext::format::strFormat("[MQTT][%s] %s (%u)", topic.c_str(),
+                                     message, _length)
+                  .c_str());
   if (strcmp("test", _topic) == 0) {
     LOGF("[MQTT] Test message: %s\n", message.c_str());
     _mqtt->publish("test/resp", message.c_str());
@@ -226,7 +224,7 @@ void MqttManager::handleMessage(const char* _topic,
     msg += getDevice();
     msg += "/";
     msg += WiFi.localIP().toString();
-    sendMessage(TOPIC_DEVICE_ONLINE.c_str(), msg.c_str());
+    sendMessage(TOPIC_DEVICE_ONLINE, msg.c_str());
     if (MqttManager::CMD_DEVICE_CHECK == message) {
       // hook for online command
       topic = getCmdTopic();
@@ -277,6 +275,6 @@ void MqttManager::sendOnline() {
 
 void MqttManager::initSubscribe() {
   _mqtt->subscribe("test");
-  _mqtt->subscribe(TOPIC_DEVICE_CHECK.c_str());
+  _mqtt->subscribe(TOPIC_DEVICE_CHECK);
   _mqtt->subscribe(getCmdTopic().c_str());
 }

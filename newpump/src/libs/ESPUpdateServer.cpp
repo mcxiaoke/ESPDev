@@ -1,6 +1,5 @@
 #include "ESPUpdateServer.h"
 #include "StreamString.h"
-#include "compat.h"
 
 static const char serverIndex[] PROGMEM =
     R"(<html><body><form method='POST' action='' enctype='multipart/form-data'>
@@ -12,13 +11,14 @@ static const char successResponse[] PROGMEM =
     "<META http-equiv=\"refresh\" content=\"20;URL=/\">Update Success! "
     "Rebooting...\n";
 
-ESPUpdateServer::ESPUpdateServer(bool serial_debug) {
-  _serial_output = serial_debug;
-  _server = NULL;
-  _username = emptyString;
-  _password = emptyString;
-  _authenticated = false;
-}
+ESPUpdateServer::ESPUpdateServer(bool serial_debug,
+                                 const String& username,
+                                 const String& password)
+    : _serial_output(serial_debug),
+      _server(nullptr),
+      _username(username),
+      _password(password),
+      _authenticated(false) {}
 
 void ESPUpdateServer::setup(AsyncWebServer* server,
                             const String& path,

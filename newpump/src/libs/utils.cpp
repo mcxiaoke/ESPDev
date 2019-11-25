@@ -2,17 +2,6 @@
 
 static time_t upTimestamp = 0;  // in seconds
 
-// void _log(const char* format, ...) {
-// #if defined(EANBLE_LOGGING) || defined(DEBUG_MODE)
-//   char buffer[256];
-//   va_list args;
-//   va_start(args, format);
-//   vsprintf(buffer, format, args);
-//   va_end(args);
-//   Serial.print(buffer);
-// #endif
-// }
-
 std::vector<std::tuple<String, size_t>> listFiles() {
   std::vector<std::tuple<String, size_t>> output;
 //   Serial.println(F("[System] SPIFFS Files:"));
@@ -23,7 +12,7 @@ std::vector<std::tuple<String, size_t>> listFiles() {
     // Serial.printf("[File] %s (%d bytes)\n", f.fileName().c_str(),
     // f.fileSize());
     output.push_back(std::make_tuple(f.fileName(), f.fileSize()));
-  };
+  }
 
 #elif defined(ESP32)
   File root = SPIFFS.open("/");
@@ -33,7 +22,7 @@ std::vector<std::tuple<String, size_t>> listFiles() {
       //   Serial.printf("[File] %s (%d bytes)\n", f.name(), f.size());
       output.push_back(std::make_tuple(f.name(), f.size()));
       f = root.openNextFile();
-    };
+    }
   }
 
 #endif
@@ -45,6 +34,8 @@ void fsCheck() {
   if (!SPIFFS.begin()) {
 #elif defined(ESP32)
   if (!SPIFFS.begin(true)) {
+#else
+  if (false) {
 #endif
     Serial.println(F("[System] Failed to mount file system"));
   } else {
