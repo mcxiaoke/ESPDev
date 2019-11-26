@@ -1,6 +1,8 @@
 #ifndef NEW_PUMP_BUILD_H
 #define NEW_PUMP_BUILD_H
 
+#include "config.h"
+
 #define STR1(x) #x
 #define STR(x) STR1(x)
 

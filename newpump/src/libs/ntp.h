@@ -23,7 +23,7 @@
 #define SECS_DELTA_1900_1970 (2208988800UL)
 #endif
 
-const time_t TIME_START_2019 = 1500000000L;  // in seconds
+constexpr time_t TIME_START_2019 = 1500000000L;  // in seconds
 
 void sendNTPpacket(const IPAddress& address);
 time_t getNtpTime(unsigned int timeOut);

@@ -11,7 +11,7 @@
 #include "libs/RelayUnit.h"
 #include "libs/cmd.h"
 #include "libs/compat.h"
-#include "libs/config.h"
+// #include "libs/config.h"
 #include "libs/display.h"
 #include "libs/net.h"
 #include "libs/rest.h"
@@ -34,6 +34,22 @@
 #endif
 
 using std::string;
+// https://stackoverflow.com/questions/5287566/constexpr-and-deprecated-conversion-warning
+
+constexpr const char* ssid = WIFI_SSID;
+constexpr const char* password = WIFI_PASS;
+
+constexpr const char* mqttServer = MQTT_SERVER;
+constexpr const char* mqttUser = MQTT_USER;
+constexpr const char* mqttPass = MQTT_PASS;
+constexpr int mqttPort = MQTT_PORT;
+
+constexpr const char* blynkAuth = BLYNK_AUTH;
+constexpr const char* blynkHost = BLYNK_HOST;
+constexpr int blynkPort = BLYNK_PORT;
+
+constexpr const char* appVersion = APP_VERSION;
+constexpr int led = LED_BUILTIN;
 
 #ifdef DEBUG_MODE
 #define RUN_INTERVAL_DEFAULT 5 * 60 * 1000UL
@@ -45,11 +61,6 @@ using std::string;
 #define STATUS_INTERVAL_DEFAULT 2 * 60 * 60 * 1000UL
 #endif
 
-const char* buildVersion = APP_VERSION;
-const char* ssid = STASSID;
-const char* password = STAPSK;
-const int led = LED_BUILTIN;
-
 unsigned long statusInterval = STATUS_INTERVAL_DEFAULT;
 unsigned long timerReset = 0;
 
@@ -57,10 +68,10 @@ bool wifiInitialized;
 int wifiInitTimerId = -1;
 int mqttTimerId = -1, statusTimerId = -1;
 int displayTimerId = -1;
-const char REBOOT_RESPONSE[] PROGMEM =
+constexpr const char REBOOT_RESPONSE[] PROGMEM =
     "<META http-equiv=\"refresh\" content=\"15;URL=/\">Rebooting...\n";
-const char MIME_TEXT_PLAIN[] PROGMEM = "text/plain";
-const char MIME_TEXT_HTML[] PROGMEM = "text/html";
+constexpr const char MIME_TEXT_PLAIN[] PROGMEM = "text/plain";
+constexpr const char MIME_TEXT_HTML[] PROGMEM = "text/html";
 
 #ifdef USING_BLYNK
 WidgetTerminal terminal(V20);
@@ -74,7 +85,7 @@ Display display;
 ESPUpdateServer otaUpdate(true);
 CommandManager cmdMgr;
 #ifdef USING_MQTT
-MqttManager mqttMgr(MQTT_SERVER, MQTT_PORT, MQTT_USER, MQTT_PASS);
+MqttManager mqttMgr(mqttServer, mqttPort, mqttUser, mqttPass);
 #endif
 
 void setupTimers(bool);
@@ -477,7 +488,7 @@ String getStatus() {
   data += "Device: ";
   data += getDevice();
   data += "\nVersion: ";
-  data += buildVersion;
+  data += appVersion;
   data += "\nPump Pin: ";
   data += pump.pin();
   data += "\nPump Status: ";
@@ -882,7 +893,7 @@ void setupDisplay() {
 
 void setupBlynk() {
 #ifdef USING_BLYNK
-  Blynk.config(BLYNK_AUTH, BLYNK_HOST, BLYNK_PORT);
+  Blynk.config(blynkAuth, blynkHost, blynkPort);
 #endif
 }
 
@@ -901,7 +912,7 @@ void checkModules() {
 #endif
 #ifdef APP_VERSION
   Serial.print("Version ");
-  Serial.println(APP_VERSION);
+  Serial.println(appVersion);
 #endif
 }
 

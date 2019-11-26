@@ -13,10 +13,10 @@ static void mqttFileLog(const String& text) {
 // static const unsigned int COMMAND_MAX_LENGTH = 128;
 // fix c++ linker undefined reference
 // see https://stackoverflow.com/questions/16957458
-const unsigned int MqttManager::COMMAND_MAX_LENGTH = 128;
-const char* MqttManager::TOPIC_DEVICE_CHECK = "device/check";
-const char* MqttManager::TOPIC_DEVICE_ONLINE = "device/online";
-const char* MqttManager::CMD_DEVICE_CHECK = "check";
+// constexpr unsigned int MqttManager::COMMAND_MAX_LENGTH = 128;
+// constexpr const char* MqttManager::TOPIC_DEVICE_CHECK = "device/check";
+// constexpr const char* MqttManager::TOPIC_DEVICE_ONLINE = "device/online";
+// constexpr const char* MqttManager::CMD_DEVICE_CHECK = "check";
 
 MqttManager::MqttManager(const char* server,
                          const int port,

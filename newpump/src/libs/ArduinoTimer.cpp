@@ -1,12 +1,12 @@
 #include "ArduinoTimer.h"
 
 // deferred call constants
-static const int DEFCALL_DONTRUN = 0;  // don't call the callback function
-static const int DEFCALL_RUNONLY =
+static constexpr int DEFCALL_DONTRUN = 0;  // don't call the callback function
+static constexpr int DEFCALL_RUNONLY =
     1;  // call the callback function but don't delete the timer
-static const int DEFCALL_RUNANDDEL =
+static constexpr int DEFCALL_RUNANDDEL =
     2;  // call the callback function and delete the timer
-static const int DEFCALL_DELETEONLY = 3;
+static constexpr int DEFCALL_DELETEONLY = 3;
 
 static int _taskId = 0;
 static int generateId() {

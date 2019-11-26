@@ -2,9 +2,9 @@
 
 namespace {
 // const char ntpServer[] = "time.windows.com";
-const char ntpServer[] = "ntp.ntsc.ac.cn";
+constexpr const char ntpServer[] = "ntp.ntsc.ac.cn";
 // NTP time is in the first 48 bytes of message
-const int NTP_PACKET_SIZE = 48;
+constexpr int NTP_PACKET_SIZE = 48;
 byte packetBuffer[NTP_PACKET_SIZE];
 
 WiFiUDP udp;

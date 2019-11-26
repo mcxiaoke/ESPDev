@@ -15,10 +15,11 @@ using MQTT_CALLBACK_FUNC = std::function<void(char*, uint8_t*, unsigned int)>;
 
 class MqttManager {
  public:
-  static const unsigned int COMMAND_MAX_LENGTH;
-  static const char* TOPIC_DEVICE_CHECK;
-  static const char* TOPIC_DEVICE_ONLINE;
-  static const char* CMD_DEVICE_CHECK;
+  // https://stackoverflow.com/questions/11522399
+  constexpr static const unsigned int COMMAND_MAX_LENGTH = 128;
+  constexpr static const char* TOPIC_DEVICE_CHECK = "device/check";
+  constexpr static const char* TOPIC_DEVICE_ONLINE = "device/online";
+  constexpr static const char* CMD_DEVICE_CHECK = "check";
   MqttManager(const char* server,
               const int port,
               const char* username,
