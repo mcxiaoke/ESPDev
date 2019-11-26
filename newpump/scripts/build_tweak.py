@@ -25,3 +25,7 @@ env.Replace(CXXFLAGS=[
     "-fno-rtti",
     "-std=c++1y"
 ])
+
+build_flags = env.ParseFlags(env['BUILD_FLAGS'])
+print(build_flags.get("CPPDEFINES"))
+print(build_flags.get("CXXFLAGS"))

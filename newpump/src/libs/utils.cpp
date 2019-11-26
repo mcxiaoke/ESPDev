@@ -71,10 +71,10 @@ String getMD5(const String& data) {
 
 void showESP() {
 #if defined(ESP8266)
-  Serial.printf("[System] Free Stack: %d, Free Heap: %d\n",
-                ESP.getFreeContStack(), ESP.getFreeHeap());
+  Serial.printf("[Core] Heap: %d/%d\n", ESP.getFreeContStack(),
+                ESP.getFreeHeap());
 #elif defined(ESP32)
-  Serial.printf("[System] Free Heap: %d\n", ESP.getFreeHeap());
+  Serial.printf("[Core] Heap: %d\n", ESP.getFreeHeap());
 #endif
 }
 
@@ -136,10 +136,9 @@ time_t setTimestamp() {
   }
   if (time > TIME_START_2019) {
     upTimestamp = time - millis() / 1000;
-    Serial.print("[System] NTP Success: ");
-    Serial.println(dateTimeString());
+    LOGN("[System] NTP Success:", dateTimeString());
   } else {
-    Serial.println("[System] NTP Failure\n");
+    LOGN("[System] NTP Failure");
   }
   return upTimestamp;
 }

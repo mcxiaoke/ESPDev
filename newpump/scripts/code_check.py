@@ -23,7 +23,7 @@ def code_check(source, target, env):
         f.write('\n---{}---\n'.format(datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
         f.flush()
         call(["cppcheck", os.getcwd()+"/src", "--force",
-              "--enable=warning,style,missingInclude"], stderr=f)
+              "--enable=warning,style,missingInclude"], stderr=f, stdout=f)
         f.write('\n---{}---\n'.format(datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
     print("** Finished cppcheck...")
     print("** Starting cpplint...")
@@ -31,7 +31,7 @@ def code_check(source, target, env):
         f.write('\n---{}---\n'.format(datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
         f.flush()
         call(["cpplint", "--extensions=ino,cpp,h", "--filter=-legal/copyright,-runtime/int,-runtime/threadsafe_fn,-build/include,-build/header_guard,-whitespace",
-              "--linelength=120", "--recursive", "src"], stderr=f)
+              "--linelength=120", "--recursive", "src"], stderr=f, stdout=f)
         f.write('\n---{}---\n'.format(datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
     print("** Finished cpplint...")
 

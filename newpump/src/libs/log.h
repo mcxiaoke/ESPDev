@@ -6,7 +6,7 @@
 
 //#define LOG_PRINT_TEST
 
-#if defined(EANBLE_LOGGING) || defined(DEBUG_MODE)
+#if defined(EANBLE_LOGGING)
 #define LOG(...) _log(__VA_ARGS__)
 #define LOGN(...) _logn(__VA_ARGS__)
 #define LOGF(...) _logf(__VA_ARGS__)

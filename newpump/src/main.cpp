@@ -2,6 +2,7 @@
 #define BLYNK_NO_BUILTIN
 #define BLYNK_NO_FLOAT
 
+#include "libs/build.h"
 #include <Arduino.h>
 #include "ext/string.hpp"
 #include "libs/ArduinoTimer.h"
@@ -18,7 +19,7 @@
 #ifdef USING_MQTT
 #include "libs/mqtt.h"
 #endif
-
+#ifdef USING_BLYNK
 #if defined(ESP8266)
 #include <BlynkSimpleEsp8266.h>
 #include <ESP8266WiFi.h>
@@ -30,17 +31,9 @@
 // #include <WiFiClientSecure.h>
 // #include <BlynkSimpleEsp32_SSL.h>
 #endif
+#endif
 
 using std::string;
-
-#define STR1(x) #x
-#define STR(x) STR1(x)
-
-#ifdef BUILD_VERSION
-#define APP_VERSION STR(BUILD_VERSION)
-#else
-#define APP_VERSION "-"
-#endif
 
 #ifdef DEBUG_MODE
 #define RUN_INTERVAL_DEFAULT 5 * 60 * 1000UL
@@ -69,7 +62,10 @@ const char REBOOT_RESPONSE[] PROGMEM =
 const char MIME_TEXT_PLAIN[] PROGMEM = "text/plain";
 const char MIME_TEXT_HTML[] PROGMEM = "text/html";
 
+#ifdef USING_BLYNK
 WidgetTerminal terminal(V20);
+#endif
+
 ArduinoTimer aTimer{"main"};
 AsyncWebServer server(80);
 RelayUnit pump;
@@ -91,6 +87,11 @@ void handleCommand(const CommandParam& param);
 void sendMqttStatus(const String& msg);
 void sendMqttLog(const String& msg);
 bool mqttConnected();
+
+#ifdef USING_BLYNK
+void blynkSyncPinValue();
+void blynkSyncPinEnable();
+#endif
 
 String getFilesHtml() {
   auto items = listFiles();
@@ -158,9 +159,13 @@ void updateDisplay() {
       s3 += "NO WIFI";
     } else if (!hasValidTime()) {
       s3 += "NO TIME";
-    } else if (!mqttConnected()) {
+    }
+#ifdef USING_MQTT
+    else if (!mqttConnected()) {
       s3 += "NO MQTT";
-    } else {
+    }
+#endif
+    else {
       auto remains =
           pump.getStatus()->lastStart + pump.getConfig()->interval - millis();
       s3 += monoTimeMs(remains);
@@ -218,8 +223,10 @@ void mqttTimer() {
 void sendMqttStatus(const String& msg) {
 #ifdef USING_MQTT
   mqttMgr.sendStatus(msg);
+#ifdef USING_BLYNK
   terminal.println(msg);
   terminal.flush();
+#endif
 #endif
 }
 
@@ -447,9 +454,11 @@ void checkDate() {
 }
 
 void checkBlynk() {
+#ifdef USING_BLYNK
   if (!Blynk.connected()) {
     Blynk.connect();
   }
+#endif
 }
 
 void checkWiFi() {
@@ -794,26 +803,36 @@ void setupPump() {
         String msg = F("Pump Started");
         debugLog(msg);
         sendMqttStatus(msg);
-        Blynk.virtualWrite(V1, pump.pinValue());
+#ifdef USING_BLYNK
+        blynkSyncPinValue();
+#endif
       } break;
       case RelayEvent::Stopped: {
         digitalWrite(led, HIGH);
         String msg = F("Pump Stopped");
         debugLog(msg);
         sendMqttStatus(msg);
-        Blynk.virtualWrite(V1, pump.pinValue());
+#ifdef USING_BLYNK
+        blynkSyncPinValue();
+#endif
       } break;
       case RelayEvent::Enabled: {
         debugLog(F("Pump enabled"));
-        Blynk.virtualWrite(V0, pump.isEnabled() ? HIGH : LOW);
+#ifdef USING_BLYNK
+        blynkSyncPinEnable();
+#endif
       } break;
       case RelayEvent::Disabled: {
         debugLog(F("Pump disabled"));
-        Blynk.virtualWrite(V0, pump.isEnabled() ? HIGH : LOW);
+#ifdef USING_BLYNK
+        blynkSyncPinEnable();
+#endif
       } break;
       case RelayEvent::ConfigChanged: {
         debugLog(F("Pump config changed"));
-        Blynk.virtualWrite(V0, pump.isEnabled() ? HIGH : LOW);
+#ifdef USING_BLYNK
+        blynkSyncPinEnable();
+#endif
       } break;
       default:
         break;
@@ -861,6 +880,31 @@ void setupDisplay() {
   displayBooting();
 }
 
+void setupBlynk() {
+#ifdef USING_BLYNK
+  Blynk.config(BLYNK_AUTH, BLYNK_HOST, BLYNK_PORT);
+#endif
+}
+
+void checkModules() {
+#ifndef USING_MQTT
+  Serial.println("MQTT Disabled");
+#endif
+#ifndef EANBLE_LOGGING
+  Serial.println("Logging Disabled");
+#endif
+#ifndef USING_BLYNK
+  Serial.println("Blynk Disabled");
+#endif
+#ifndef DEBUG
+  Serial.println("Release Mode");
+#endif
+#ifdef APP_VERSION
+  Serial.print("Version ");
+  Serial.println(APP_VERSION);
+#endif
+}
+
 void setup(void) {
   pinMode(led, OUTPUT);
   Serial.begin(115200);
@@ -869,7 +913,7 @@ void setup(void) {
   setupDisplay();
   delay(1000);
   LOGN();
-  Serial.println("Booting...");
+  Serial.println("Booting Begin...");
   setupWiFi();
   setupDate();
   setupServer();
@@ -877,8 +921,10 @@ void setup(void) {
   setupCommands();
   setupTimers(false);
   setupPump();
-  Blynk.config(BLYNK_AUTH, BLYNK_HOST, BLYNK_PORT);
+  setupBlynk();
   showESP();
+  Serial.println("Booting Finished.");
+  checkModules();
   debugLog(F("System is running"));
 }
 
@@ -889,19 +935,30 @@ void loop(void) {
 #if defined(ESP8266)
   MDNS.update();
 #endif
+#ifdef USING_BLYNK
   Blynk.run();
+#endif
 }
 
 void handleCommand(const CommandParam& param) {
   auto processFunc = [param] {
     yield();
     LOG("[CMD] handleCommand ");
-    LOGN(param.toString().c_str());
+    // LOGN(param.toString().c_str());
     if (!cmdMgr.handle(param)) {
       LOGN("[CMD] Unknown command");
     }
   };
   aTimer.setTimeout(5, processFunc, "handleCommand");
+}
+
+#ifdef USING_BLYNK
+
+void blynkSyncPinValue() {
+  Blynk.virtualWrite(V1, pump.pinValue());
+}
+void blynkSyncPinEnable() {
+  Blynk.virtualWrite(V0, pump.isEnabled() ? HIGH : LOW);
 }
 
 void blynkSync() {
@@ -963,3 +1020,5 @@ BLYNK_WRITE(V20) {
   handleCommand(cmd);
   terminal.flush();
 }
+
+#endif
