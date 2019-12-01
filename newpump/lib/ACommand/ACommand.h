@@ -6,7 +6,7 @@
 #include <functional>
 #include <map>
 #include <vector>
-#include "../ext/string.hpp"
+#include <ext/string.hpp>
 
 using std::string;
 using std::vector;

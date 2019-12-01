@@ -41,8 +41,6 @@
 #else
 #include <WProgram.h>
 #endif
-#include "../ext/utility.hpp"
-#include "utils.h"
 
 #ifndef __AVR__
 typedef std::function<void(void)> timer_callback_func;
@@ -76,7 +74,7 @@ struct TimerTask {
 class ArduinoTimer {
  public:
   // setTimer() constants
-  constexpr static int RUN_FOREVER = INT_MAX / 10;  // 6 years
+  constexpr static int RUN_FOREVER = 900000000;  // 6 years
   constexpr static int RUN_ONCE = 1;
 
   // constructor

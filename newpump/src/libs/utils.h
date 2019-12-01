@@ -3,8 +3,11 @@
 
 #include <MD5Builder.h>
 #include <DateTime.h>
+#include <ext/format.hpp>
+#include <ext/string.hpp>
+#include <ext/utility.hpp>
+#include <ALogger.h>
 #include "compat.h"
-#include "log.h"
 #include "tools.h"
 
 // https://forum.arduino.cc/index.php/topic,46643.0.html

@@ -7,7 +7,7 @@ bool FileServer::handle(AsyncWebServerRequest* request) {
   if (path.endsWith(delSuffix)) {
     path = path.substring(0, path.length() - delSuffix.length());
     if (SPIFFS.exists(path)) {
-      LOGN("[FileServer] Delete " + path);
+      Serial.printf("[FileServer] Delete %s\n", path.c_str());
       SPIFFS.remove(path);
       request->redirect("/files");
       return true;
@@ -64,7 +64,7 @@ bool FileServer::handle(AsyncWebServerRequest* request) {
     path = prefix + ".min" + ext + ".gz";
   // if SPIFFS.exists
   if (SPIFFS.exists(path)) {
-    LOGN("[FileServer] Sending " + path);
+    Serial.printf("[FileServer] Sending %s\n", path.c_str());
 
     AsyncWebServerResponse* response =
         request->beginResponse(SPIFFS, path, contentType);

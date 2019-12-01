@@ -1,14 +1,22 @@
 #ifndef __ESP_HTTP_UPDATE_SERVER_H__
 #define __ESP_HTTP_UPDATE_SERVER_H__
 
-#include "../ext/utility.hpp"
-#include "compat.h"
-
-#if defined(ESP32)
-#include <AsyncTCP.h>
+#include <ext/utility.hpp>
+#include <Arduino.h>
+#include <FS.h>
+#include <WiFiClient.h>
+#include <WiFiUdp.h>
+#if defined(ESP8266)
+#include <ESP8266HTTPClient.h>
+#include <ESP8266WiFi.h>
+#include <ESP8266httpUpdate.h>
+#include <ESP8266mDNS.h>
+#elif defined(ESP32)
+#include <ESPmDNS.h>
+#include <HTTPClient.h>
+#include <SPIFFS.h>
+#include <WiFi.h>
 #include <Update.h>
-#elif defined(ESP8266)
-#include <ESPAsyncTCP.h>
 #endif
 #include <ESPAsyncWebServer.h>
 

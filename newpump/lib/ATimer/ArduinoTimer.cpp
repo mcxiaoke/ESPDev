@@ -237,7 +237,7 @@ unsigned long ArduinoTimer::getInterval(int taskId) {
       return task->interval;
     }
   }
-  return ULONG_MAX;
+  return 2147483647L;
 }
 
 unsigned long ArduinoTimer::getElapsed(int taskId) {
@@ -250,7 +250,7 @@ unsigned long ArduinoTimer::getPrevMs(int taskId) {
       return task->prevMillis;
     }
   }
-  return ULONG_MAX;
+  return 2147483647L;
 }
 
 unsigned long ArduinoTimer::getRemain(int taskId) {

@@ -3,9 +3,7 @@
 
 #include <Arduino.h>
 #include <PubSubClient.h>
-#include "../ext/format.hpp"
-#include "../ext/string.hpp"
-#include "cmd.h"
+#include <ACommand.h>
 #include "config.h"
 #include "utils.h"
 

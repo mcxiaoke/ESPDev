@@ -1,4 +1,4 @@
-#include "log.h"
+#include "ALogger.h"
 
 #ifdef LOG_PRINT_TEST
 
@@ -11,7 +11,7 @@ static void p(const char* str) {
 }
 
 static void _print_test_1() {
-  int r = INT_MAX / 100;
+  int r = 90000000;
   LOGF("Strings:\n");
 
   const char* s = "Hello";
@@ -44,7 +44,7 @@ static void _print_test_1() {
 
 static void _print_test_2() {
   char c = '@';
-  int i = INT_MAX / 2;
+  int i = 900000000;
   unsigned int i2 = 12345678;
   double d = 3.14159265;
   unsigned long u = ULONG_MAX / 2;

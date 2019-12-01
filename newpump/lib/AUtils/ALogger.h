@@ -1,8 +1,7 @@
-#ifndef __SIMPLE_LOG_H_
-#define __SIMPLE_LOG_H_
+#ifndef ARDUINO_A_LOGGER_H
+#define ARDUINO_A_LOGGER_H
 
-#include "../ext/format.hpp"
-#include "compat.h"
+#include "ext/format.hpp"
 
 //#define LOG_PRINT_TEST
 

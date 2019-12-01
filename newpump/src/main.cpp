@@ -7,13 +7,12 @@
 // fixed after uninstall clang adapter extension and clang format
 // https://github.com/platformio/platformio-atom-ide/issues/885
 #include <Arduino.h>
-#include "ext/string.hpp"
-#include "libs/ArduinoTimer.h"
-#include "libs/ESPUpdateServer.h"
-#include "libs/FileServer.h"
-#include "libs/RelayUnit.h"
-#include "libs/cmd.h"
+#include <ArduinoTimer.h>
+#include <ESPUpdateServer.h>
+#include <FileServer.h>
+#include <ACommand.h>
 #include "libs/compat.h"
+#include "libs/RelayUnit.h"
 // #include "libs/config.h"
 #include "libs/display.h"
 #include "libs/net.h"
