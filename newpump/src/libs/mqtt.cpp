@@ -10,10 +10,9 @@ static void mqttFileLog(const String& text) {
   fileLog(text, logFileName("mqtt"), true);
 }
 
-// static const unsigned int COMMAND_MAX_LENGTH = 128;
 // fix c++ linker undefined reference
 // see https://stackoverflow.com/questions/16957458
-// constexpr unsigned int MqttManager::COMMAND_MAX_LENGTH = 128;
+constexpr unsigned int MqttManager::COMMAND_MAX_LENGTH;
 // constexpr const char* MqttManager::TOPIC_DEVICE_CHECK = "device/check";
 // constexpr const char* MqttManager::TOPIC_DEVICE_ONLINE = "device/online";
 // constexpr const char* MqttManager::CMD_DEVICE_CHECK = "check";
@@ -32,9 +31,6 @@ MqttManager::MqttManager(const char* server,
       std::bind(&MqttManager::handleMessage, this, std::placeholders::_1,
                 std::placeholders::_2, std::placeholders::_3);
   _mqtt->setCallback(callback);
-  auto callback2 =
-      std::bind(&MqttManager::handleStateChange, this, std::placeholders::_1);
-  _mqtt->setCallback2(callback2);
   _lastOnlineMs = 0;
   _lastOfflineMs = 0;
   _silentMode = false;

@@ -97,7 +97,12 @@ void ESPUpdateServer::handleUpload(AsyncWebServerRequest* request,
     _updaterError = String();
     if (_serial_output)
       Serial.setDebugOutput(true);
-    int cmd = (filename.indexOf("spiffs") > -1) ? U_SPIFFS : U_FLASH;
+#ifdef U_SPIFFS
+    int fsCmd = U_SPIFFS;
+#elif U_FS
+    int fsCmd = U_FS;
+#endif
+    int cmd = (filename.indexOf("spiffs") > -1) ? fsCmd : U_FLASH;
     if (_serial_output) {
       Serial.printf("[OTA] Update Start: %s\n", filename.c_str());
       Serial.printf("[OTA] Update Type: %s\n",

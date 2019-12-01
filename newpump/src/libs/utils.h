@@ -2,9 +2,9 @@
 #define __UTILS_H__
 
 #include <MD5Builder.h>
+#include <DateTime.h>
 #include "compat.h"
 #include "log.h"
-#include "ntp.h"
 #include "tools.h"
 
 // https://forum.arduino.cc/index.php/topic,46643.0.html

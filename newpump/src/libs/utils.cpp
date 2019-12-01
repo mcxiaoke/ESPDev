@@ -123,28 +123,8 @@ String readLog(const String& path) {
   return s;
 }
 
-bool hasValidTime() {
-  return upTimestamp > TIME_START_2019;
-}
-
-time_t setTimestamp() {
-  auto timeOut = 3000U;
-  auto time = getNtpTime(timeOut);
-  auto startMs = millis();
-  while (time < TIME_START_2019 && (millis() - startMs) < 15 * 1000L) {
-    time = getNtpTime(timeOut);
-  }
-  if (time > TIME_START_2019) {
-    upTimestamp = time - millis() / 1000;
-    LOGN("[System] NTP Success:", dateTimeString());
-  } else {
-    LOGN("[System] NTP Failure");
-  }
-  return upTimestamp;
-}
-
 time_t getTimestamp() {
-  return upTimestamp + millis() / 1000;
+  return DateTime.getTime();
 }
 
 time_t getBootTime() {
@@ -157,13 +137,13 @@ String dateString() {
   struct tm* tm_info;
   tm_info = localtime(&ts);
   strftime(buf, 12, "%Y-%m-%d", tm_info);
-  return String(buf);
+  return DateTime.format(DateFormatter::DATE_ONLY);
 }
 
 String dateTimeString() {
-  return formatDateTime(getTimestamp());
+  return DateTime.toString();
 }
 
 String timeString() {
-  return formatTime(getTimestamp());
+  return DateTime.format(DateFormatter::TIME_ONLY);
 }

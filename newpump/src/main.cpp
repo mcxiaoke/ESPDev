@@ -3,6 +3,9 @@
 #define BLYNK_NO_FLOAT
 
 #include "libs/build.h"
+
+// fixed after uninstall clang adapter extension and clang format
+// https://github.com/platformio/platformio-atom-ide/issues/885
 #include <Arduino.h>
 #include "ext/string.hpp"
 #include "libs/ArduinoTimer.h"
@@ -168,7 +171,7 @@ void updateDisplay() {
   } else {
     if (!WiFi.isConnected()) {
       s3 += "NO WIFI";
-    } else if (!hasValidTime()) {
+    } else if (!DateTime.isTimeValid()) {
       s3 += "NO TIME";
     }
 #ifdef USING_MQTT
@@ -456,10 +459,11 @@ void cmdNotFound(const CommandParam& param = CommandParam::INVALID) {
 /////////// Command Handlers End ///////////
 
 void checkDate() {
-  if (!hasValidTime()) {
+  if (!DateTime.isTimeValid()) {
     if (WiFi.isConnected()) {
       LOGN("[System] checkDate");
-      setTimestamp();
+      DateTime.setTimeZone(8);
+      DateTime.begin();
     }
   }
 }
@@ -739,7 +743,8 @@ void setupWiFi() {
 void setupDate() {
   LOGN("setupDate");
   if (WiFi.isConnected()) {
-    setTimestamp();
+    DateTime.setTimeZone(8);
+    DateTime.begin();
   }
 }
 
@@ -935,6 +940,7 @@ void setup(void) {
   setupBlynk();
   showESP();
   Serial.println("Booting Finished.");
+  LOGN(DateTime.toISOString());
   checkModules();
   debugLog(F("System is running"));
 }
