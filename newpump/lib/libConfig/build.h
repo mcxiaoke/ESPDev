@@ -22,4 +22,25 @@
 #define APP_VERSION "-"
 #endif
 
+// fix for travis ci build begin
+#ifndef WIFI_SSID
+#define WIFI_SSID "x"
+#define WIFI_PASS "x"
+#endif
+#ifndef MQTT_SERVER
+#define MQTT_SERVER "x.x.x"
+#define MQTT_PORT 10000
+#define MQTT_USER "x"
+#define MQTT_PASS "x"
+#endif
+#ifndef BLYNK_AUTH
+#define BLYNK_AUTH "x"
+#define BLYNK_HOST "x.x.x"
+#define BLYNK_PORT 10000
+#endif
+#ifndef WX_REPORT_URL
+#define WX_REPORT_URL "x.x.x"
+#endif
+// fix for travis ci build end
+
 #endif

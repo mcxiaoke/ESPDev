@@ -15,6 +15,7 @@ cache:
     - "~/.platformio"
 before_install:
   - cd newpump
+  - mkdir build
 install:
   - pip install -U platformio
   - platformio update

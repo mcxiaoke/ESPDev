@@ -5,6 +5,7 @@ import os
 import sys
 
 in_pio_build = False
+in_ci_build = False
 
 print("------ Code Check Script ------")
 
@@ -14,6 +15,14 @@ try:
     print("Pio build mode")
 except:
     print('Standalone mode')
+
+try:
+    print('CI:', env['CI'])
+    print('TRAVIS:', env['TRAVIS'])
+    in_ci_build = True
+    print('CI build')
+except:
+    print('Not CI build')
 
 
 def code_check(source, target, env):
@@ -42,7 +51,7 @@ def code_check(source, target, env):
 # print(env.Dump())
 
 #  built in targets: (buildprog, size, upload, program, buildfs, uploadfs, uploadfsota)
-if in_pio_build:
+if in_pio_build and in_ci_build:
     env.AddPostAction("buildprog", code_check)
     # env.Replace(PROGNAME="firmware_%s" % env["BUILD_TYPE"])
 # env.AddPostAction(.....)
