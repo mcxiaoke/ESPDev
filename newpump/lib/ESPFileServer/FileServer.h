@@ -4,6 +4,9 @@
 #include <Arduino.h>
 #include <ESPAsyncWebServer.h>
 #include <FS.h>
+#ifdef ESP32
+#include <SPIFFS.h>
+#endif
 
 struct FileServer {
   static bool handle(AsyncWebServerRequest* request);

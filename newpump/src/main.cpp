@@ -2,24 +2,17 @@
 #define BLYNK_NO_BUILTIN
 #define BLYNK_NO_FLOAT
 
-#include "libs/build.h"
-
-// fixed after uninstall clang adapter extension and clang format
-// https://github.com/platformio/platformio-atom-ide/issues/885
+#include <build.h>
 #include <Arduino.h>
 #include <ArduinoTimer.h>
 #include <ESPUpdateServer.h>
 #include <FileServer.h>
 #include <ACommand.h>
-#include "libs/compat.h"
-#include "libs/RelayUnit.h"
-// #include "libs/config.h"
-#include "libs/display.h"
-#include "libs/net.h"
-#include "libs/rest.h"
-#include "libs/utils.h"
+#include <compat.h>
+#include <RelayUnit.h>
+#include <rest.h>
 #ifdef USING_MQTT
-#include "libs/mqtt.h"
+#include <mqtt.h>
 #endif
 #ifdef USING_BLYNK
 #if defined(ESP8266)
@@ -34,6 +27,9 @@
 // #include <BlynkSimpleEsp32_SSL.h>
 #endif
 #endif
+#include <display.h>
+#include <net.h>
+#include <utils.h>
 
 using std::string;
 // https://stackoverflow.com/questions/5287566/constexpr-and-deprecated-conversion-warning
@@ -735,6 +731,7 @@ void setupWiFi() {
     WiFi.reconnect();
     wifiInitTimerId = aTimer.setTimer(10 * 1000L, checkWiFi, 15, "wifiInit");
   } else {
+    wifiInitialized = true;
     LOGF("[WiFi] Setup connection using %lus.\n", millis() / 1000);
   }
 }

@@ -1,5 +1,5 @@
-#ifndef __COMMON_TOOLS_H__
-#define __COMMON_TOOLS_H__
+#ifndef ESP_DEV_TOOLS_H
+#define ESP_DEV_TOOLS_H
 
 #include <Arduino.h>
 #include <time.h>

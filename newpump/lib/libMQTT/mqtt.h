@@ -1,11 +1,11 @@
-#ifndef __MQTT_H__
-#define __MQTT_H__
+#ifndef ESP_DEV_MQTT_H
+#define ESP_DEV_MQTT_H
 
 #include <Arduino.h>
 #include <PubSubClient.h>
 #include <ACommand.h>
-#include "config.h"
-#include "utils.h"
+#include <config.h>
+#include <utils.h>
 
 using std::string;
 

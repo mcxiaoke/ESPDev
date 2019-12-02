@@ -1,13 +1,7 @@
-#ifndef _REST_API_HANDLE__
-#define _REST_API_HANDLE__
+#ifndef ESP_DEV_REST_API_H
+#define ESP_DEV_REST_API_H
 
 #include <string>
-#include "compat.h"
-#ifdef ESP32
-#include <AsyncTCP.h>
-#elif defined(ESP8266)
-#include <ESPAsyncTCP.h>
-#endif
 #include <ESPAsyncWebServer.h>
 
 struct Response {

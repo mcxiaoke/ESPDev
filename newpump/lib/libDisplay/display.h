@@ -1,5 +1,5 @@
-#ifndef __OLED_DISPLAY_H__
-#define __OLED_DISPLAY_H__
+#ifndef ESP_DEV_DISPLAY_H
+#define ESP_DEV_DISPLAY_H
 
 #include <U8g2lib.h>
 

@@ -1,5 +1,5 @@
-#ifndef __UTILS_H__
-#define __UTILS_H__
+#ifndef ESP_DEV_UTILS_H
+#define ESP_DEV_UTILS_H
 
 #include <MD5Builder.h>
 #include <DateTime.h>
@@ -7,7 +7,7 @@
 #include <ext/string.hpp>
 #include <ext/utility.hpp>
 #include <ALogger.h>
-#include "compat.h"
+#include <compat.h>
 #include "tools.h"
 
 // https://forum.arduino.cc/index.php/topic,46643.0.html
