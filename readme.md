@@ -2,6 +2,10 @@
 
 IoT Projects on ESP8266 and ESP32 Chip, using Arduino platform, include a complete running version automatic garden water pump station, support remote control with mqtt and http reset api.
 
+## Status 
+
+[![Build Status](https://travis-ci.org/mcxiaoke/ESPDev.svg?branch=master)](https://travis-ci.org/mcxiaoke/ESPDev)
+
 ## License
 
     Copyright 2019 github@mcxiaoke.com

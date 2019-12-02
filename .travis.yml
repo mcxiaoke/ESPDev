@@ -1,0 +1,24 @@
+# * Travis CI Embedded Builds with PlatformIO
+#   < https://docs.travis-ci.com/user/integration/platformio/ >
+# * PlatformIO integration with Travis CI
+#   < https://docs.platformio.org/page/ci/travis.html >
+# * User Guide for `platformio ci` command
+#   < https://docs.platformio.org/page/userguide/cmd_ci.html >
+
+language: python
+python:
+  - "3.7"
+
+sudo: false
+cache:
+  directories:
+    - "~/.platformio"
+before_install:
+  - cd newpump
+install:
+  - pip install -U platformio
+  - platformio update
+  # - export PLATFORMIO_BUILD_FLAGS="-D GLOBAL_MACROS_FOR_ALL_TEST_ENV"
+
+script:
+  - platformio run

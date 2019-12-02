@@ -31,6 +31,11 @@
 #include <net.h>
 #include <utils.h>
 
+#ifndef WIFI_SSID
+#define WIFI_SSID ""
+#define WIFI_PASS ""
+#endif
+
 using std::string;
 // https://stackoverflow.com/questions/5287566/constexpr-and-deprecated-conversion-warning
 
