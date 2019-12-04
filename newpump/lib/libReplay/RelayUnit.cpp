@@ -100,11 +100,11 @@ void RelayUnit::resetTimer() {
       timer.setInterval(pConfig->duration / 2 + 2000, checkFunc, "check");
 }
 
-bool RelayUnit::isOn() {
+bool RelayUnit::isOn() const {
   return pinValue() == HIGH;
 }
 
-bool RelayUnit::isEnabled() {
+bool RelayUnit::isEnabled() const {
   return timer.isEnabled(runTimerId);
 }
 
@@ -131,11 +131,11 @@ void RelayUnit::setCallback(CALLBACK_FUNC cb) {
   callback = cb;
 }
 
-uint8_t RelayUnit::pin() {
+uint8_t RelayUnit::pin() const {
   return pConfig->pin;
 }
 
-uint8_t RelayUnit::pinValue() {
+uint8_t RelayUnit::pinValue() const {
   return digitalRead(pConfig->pin);
 }
 
@@ -167,10 +167,18 @@ int RelayUnit::updateConfig(const RelayConfig& config) {
   return changed;
 }
 
-std::shared_ptr<RelayConfig> RelayUnit::getConfig() {
+void RelayUnit::reset() {
+  resetTimer();
+}
+
+std::shared_ptr<RelayConfig> RelayUnit::getConfig() const {
   return pConfig;
 }
 
-std::shared_ptr<RelayStatus> RelayUnit::getStatus() {
+std::shared_ptr<RelayStatus> RelayUnit::getStatus() const {
   return pStatus;
+}
+
+TimerTask* RelayUnit::getRunTask() const {
+  return timer.getTask(runTimerId);
 }

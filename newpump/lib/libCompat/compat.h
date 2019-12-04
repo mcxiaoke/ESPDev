@@ -1,5 +1,5 @@
-#ifndef __ESP__COMPAT__
-#define __ESP__COMPAT__
+#ifndef ESP_DEV_COMPAT_H
+#define ESP_DEV_COMPAT_H
 
 #include <Arduino.h>
 #include <FS.h>
@@ -20,5 +20,26 @@
 #include <WiFi.h>
 #include <WiFiClientSecure.h>
 #endif
+
+namespace compat {
+
+inline bool isWiFiConnected() {
+#ifdef ESP8266
+  return WiFi.isConnected();
+#elif ESP32
+  return WiFi.isConnected();
+#endif
+}
+
+inline void setHostname(const char* hostname) {
+#if defined(ESP8266)
+  WiFi.setSleepMode(WIFI_NONE_SLEEP);
+  WiFi.hostname(hostname);
+#elif defined(ESP32)
+  WiFi.setHostname(hostname);
+#endif
+}
+
+}  // namespace compat
 
 #endif

@@ -109,7 +109,7 @@ class ArduinoTimer {
                bool debug = false);
 
   // return timer task struct
-  TimerTask* getTask(int taskId);
+  TimerTask* getTask(int taskId) const;
 
   // destroy the specified timer
   void deleteTimer(int taskId);
@@ -118,7 +118,7 @@ class ArduinoTimer {
   void restartTimer(int taskId);
 
   // returns true if the specified timer is enabled
-  bool isEnabled(int taskId);
+  bool isEnabled(int taskId) const;
 
   // enables the specified timer
   void enable(int taskId);
@@ -131,19 +131,19 @@ class ArduinoTimer {
   void toggle(int taskId);
 
   // return millis timer interval
-  unsigned long getInterval(int taskId);
+  unsigned long getInterval(int taskId) const;
 
   // return elapsed after timer last run
-  unsigned long getElapsed(int taskId);
+  unsigned long getElapsed(int taskId) const;
 
   // return millis timer last run at
-  unsigned long getPrevMs(int taskId);
+  unsigned long getPrevMs(int taskId) const;
 
   // return duration before timer next run
-  unsigned long getRemain(int taskId);
+  unsigned long getRemain(int taskId) const;
 
   // return description of timer
-  String getDescription(int taskId);
+  String getDescription(int taskId) const;
 
  private:
   // timer name

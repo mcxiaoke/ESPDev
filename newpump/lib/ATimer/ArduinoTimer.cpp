@@ -162,7 +162,7 @@ int ArduinoTimer::setTimeout(unsigned long interval,
   return setTimer(interval, action, RUN_ONCE, name, debug);
 }
 
-TimerTask* ArduinoTimer::getTask(int taskId) {
+TimerTask* ArduinoTimer::getTask(int taskId) const {
   for (auto& task : tasks) {
     if (task->id == taskId) {
       return task.get();
@@ -190,7 +190,7 @@ void ArduinoTimer::restartTimer(int taskId) {
   }
 }
 
-bool ArduinoTimer::isEnabled(int taskId) {
+bool ArduinoTimer::isEnabled(int taskId) const {
   for (auto& task : tasks) {
     if (task->id == taskId) {
       return task->enabled;
@@ -231,7 +231,7 @@ void ArduinoTimer::toggle(int taskId) {
   }
 }
 
-unsigned long ArduinoTimer::getInterval(int taskId) {
+unsigned long ArduinoTimer::getInterval(int taskId) const {
   for (auto& task : tasks) {
     if (task->id == taskId) {
       return task->interval;
@@ -240,11 +240,11 @@ unsigned long ArduinoTimer::getInterval(int taskId) {
   return 2147483647L;
 }
 
-unsigned long ArduinoTimer::getElapsed(int taskId) {
+unsigned long ArduinoTimer::getElapsed(int taskId) const {
   return millis() - getPrevMs(taskId);
 }
 
-unsigned long ArduinoTimer::getPrevMs(int taskId) {
+unsigned long ArduinoTimer::getPrevMs(int taskId) const {
   for (auto& task : tasks) {
     if (task->id == taskId) {
       return task->prevMillis;
@@ -253,11 +253,11 @@ unsigned long ArduinoTimer::getPrevMs(int taskId) {
   return 2147483647L;
 }
 
-unsigned long ArduinoTimer::getRemain(int taskId) {
+unsigned long ArduinoTimer::getRemain(int taskId) const {
   return getPrevMs(taskId) + getInterval(taskId) - millis();
 }
 
-String ArduinoTimer::getDescription(int taskId) {
+String ArduinoTimer::getDescription(int taskId) const {
   for (auto& task : tasks) {
     if (task->id == taskId) {
       return task->name;

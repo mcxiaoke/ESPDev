@@ -45,7 +45,7 @@ String MqttManager::getPass() {
 }
 
 String MqttManager::getClientId() {
-  return getDevice();
+  return getUDID();
 }
 
 bool MqttManager::isConnected() {
@@ -217,7 +217,7 @@ void MqttManager::handleMessage(const char* _topic,
     LOGF("[MQTT] Device check message: %s\n", message.c_str());
     // send response
     String msg = "";
-    msg += getDevice();
+    msg += getUDID();
     msg += "/";
     msg += WiFi.localIP().toString();
     sendMessage(TOPIC_DEVICE_ONLINE, msg.c_str());
@@ -242,7 +242,7 @@ void MqttManager::handleMessage(const char* _topic,
     return;
   }
   if (_handler != nullptr) {
-    _handler(CommandParam::parseArgs(message));
+    _handler(CommandParam::from(message));
   }
 }
 

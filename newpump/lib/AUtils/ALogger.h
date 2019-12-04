@@ -3,9 +3,7 @@
 
 #include "ext/format.hpp"
 
-//#define LOG_PRINT_TEST
-
-#if defined(EANBLE_LOGGING)
+#if defined(DEBUG) || defined(EANBLE_LOGGING)
 #define LOG(...) _log(__VA_ARGS__)
 #define LOGN(...) _logn(__VA_ARGS__)
 #define LOGF(...) _logf(__VA_ARGS__)
@@ -68,8 +66,6 @@ template <typename... Args>
 void _lognf(char const* const format, Args const&... args) {
   _logn(ext::format::strFormat(format, args...));
 }
-
-void _log_test_all();
 
 /**
  *  http://www.cplusplus.com/reference/cstdio/printf/

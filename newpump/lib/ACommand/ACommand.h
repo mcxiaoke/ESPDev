@@ -23,6 +23,7 @@ struct CommandResult {
 using CMD_CALLBACK_FUNC = std::function<void(const CommandResult&)>;
 
 struct CommandParam {
+  static unsigned long _id;
   const string name;
   const vector<string> args;
   const unsigned long id;
@@ -31,7 +32,7 @@ struct CommandParam {
 
   CommandParam(const string& name = "",
                const vector<string> args = {},
-               const unsigned int id = 0,
+               const unsigned int id = ++_id,
                const CommandSource source = ::NONE,
                const CMD_CALLBACK_FUNC callback = nullptr);
   string toString() const;
@@ -40,7 +41,7 @@ struct CommandParam {
   static const char* CMD_ARG_SEP;
   static const CommandParam INVALID;
   static bool hasValidPrefix(const string& cmdStr);
-  static CommandParam parseArgs(const string& s);
+  static CommandParam from(const string& s);
 };
 
 using CMD_HANDLER_FUNC = std::function<void(const CommandParam&)>;
@@ -53,7 +54,7 @@ struct Command {
   string toString() const;
 };
 
-class CommandManager {
+class CommandManagerClass {
  public:
   bool handle(const CommandParam& param);
   void addCommand(Command* cmd);
@@ -72,5 +73,7 @@ class CommandManager {
   void _addHandler(Command* cmd);
   CMD_HANDLER_FUNC _getHandler(const string& name);
 };
+
+extern CommandManagerClass CommandManager;  // define in cpp
 
 #endif

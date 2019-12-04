@@ -2,12 +2,12 @@
 
 static time_t upTimestamp = 0;  // in seconds
 
-std::vector<std::tuple<String, size_t>> listFiles() {
+std::vector<std::tuple<String, size_t>> listFiles(const char* dest) {
   std::vector<std::tuple<String, size_t>> output;
 //   Serial.println(F("[System] SPIFFS Files:"));
 #if defined(ESP8266)
 
-  Dir f = SPIFFS.openDir("/");
+  Dir f = SPIFFS.openDir(dest);
   while (f.next()) {
     // Serial.printf("[File] %s (%d bytes)\n", f.fileName().c_str(),
     // f.fileSize());
@@ -15,7 +15,7 @@ std::vector<std::tuple<String, size_t>> listFiles() {
   }
 
 #elif defined(ESP32)
-  File root = SPIFFS.open("/");
+  File root = SPIFFS.open(dest);
   if (root.isDirectory()) {
     File f = root.openNextFile();
     while (f) {
@@ -27,6 +27,10 @@ std::vector<std::tuple<String, size_t>> listFiles() {
 
 #endif
   return output;
+}
+
+std::vector<std::tuple<String, size_t>> listLogs() {
+  return listFiles("/logs/");
 }
 
 void fsCheck() {
@@ -43,7 +47,7 @@ void fsCheck() {
   }
 }
 
-String getDevice() {
+String getUDID() {
   String mac = WiFi.macAddress();
   mac.replace(":", "");
   return mac.substring(mac.length() / 2);
@@ -69,17 +73,17 @@ String getMD5(const String& data) {
   return getMD5(data.c_str());
 }
 
-void showESP() {
+void showESP(const char* extra) {
 #if defined(ESP8266)
-  Serial.printf("[Core] Heap: %d/%d\n", ESP.getFreeContStack(),
-                ESP.getFreeHeap());
+  Serial.printf("[Core] Heap: %d/%d %s\n", ESP.getFreeContStack(),
+                ESP.getFreeHeap(), extra);
 #elif defined(ESP32)
-  Serial.printf("[Core] Heap: %d\n", ESP.getFreeHeap());
+  Serial.printf("[Core] Heap: %d %s\n", ESP.getFreeHeap(), extra);
 #endif
 }
 
 String logFileName(const String& suffix) {
-  String fileName = "/file/log-";
+  String fileName = "/logs/log-";
   fileName += dateString();
   if (suffix.length() > 0) {
     fileName += "-";

@@ -3,6 +3,7 @@
 #define BLYNK_NO_FLOAT
 
 #include <build.h>
+#include <ALogger.h>
 #include <Arduino.h>
 #include <ArduinoTimer.h>
 #include <ESPUpdateServer.h>
@@ -78,10 +79,10 @@ WidgetTerminal terminal(V20);
 ArduinoTimer aTimer{"main"};
 AsyncWebServer server(80);
 RelayUnit pump;
+RestApi api(pump);
 
 Display display;
 ESPUpdateServer otaUpdate(true);
-CommandManager cmdMgr;
 #ifdef USING_MQTT
 MqttManager mqttMgr(mqttServer, mqttPort, mqttUser, mqttPass);
 #endif
@@ -137,7 +138,7 @@ void displayBooting() {
   display.u8g2->print("Booting...");
   display.u8g2->setCursor(16, 50);
   display.u8g2->setFont(u8g2_font_profont29_tf);
-  display.u8g2->print(getDevice());
+  display.u8g2->print(getUDID());
   display.u8g2->sendBuffer();
   display.u8g2->setFont(u8g2_font_profont12_tf);
 }
@@ -262,6 +263,10 @@ void cmdReboot(const CommandParam& param = CommandParam::INVALID) {
   aTimer.setTimeout(1000, []() { ESP.restart(); }, "cmdReboot");
 }
 
+void cmdReset(const CommandParam& param = CommandParam::INVALID) {
+  pump.reset();
+}
+
 void cmdEnable(const CommandParam& param = CommandParam::INVALID) {
   pump.setEnabled(true);
 }
@@ -307,7 +312,7 @@ void cmdWiFi(const CommandParam& param = CommandParam::INVALID) {
   LOGN("cmdWiFi");
   String data = "";
   data += "Device: ";
-  data += getDevice();
+  data += getUDID();
   data += "\nMac: ";
   data += WiFi.macAddress();
   data += "\nIP: ";
@@ -443,7 +448,7 @@ void cmdIOSetLow(const CommandParam& param = CommandParam::INVALID) {
 
 void cmdHelp(const CommandParam& param = CommandParam::INVALID) {
   LOGN("cmdHelp");
-  sendMqttStatus(cmdMgr.getHelpDoc());
+  sendMqttStatus(CommandManager.getHelpDoc());
 }
 
 void cmdNotFound(const CommandParam& param = CommandParam::INVALID) {
@@ -485,7 +490,7 @@ String getStatus() {
   auto st = pump.getStatus();
   String data = "";
   data += "Device: ";
-  data += getDevice();
+  data += getUDID();
   data += "\nVersion: ";
   data += appVersion;
   data += "\nPump Pin: ";
@@ -616,9 +621,20 @@ void handleEnable(AsyncWebServerRequest* request) {
   }
 }
 
+void handleReset(AsyncWebServerRequest* request) {
+  LOGN("handleReset");
+  if (request->hasParam("do", false)) {
+    request->send(200, MIME_TEXT_PLAIN, "ok");
+    cmdReset();
+  } else {
+    request->send(200, MIME_TEXT_PLAIN, "ignore");
+  }
+}
+
 void handleRoot(AsyncWebServerRequest* request) {
   LOGN("handleRoot");
   request->send(200, MIME_TEXT_PLAIN, getStatus().c_str());
+  showESP();
   showESP();
 }
 
@@ -655,16 +671,18 @@ void handleIOSet(AsyncWebServerRequest* request) {
 }
 
 void handleWiFiGotIP() {
-  LOG("[WiFi] Connected to ");
-  LOG(ssid);
-  LOG(", IP: ");
-  LOGN(WiFi.localIP());
+  if (!WiFi.isConnected()) {
+    LOG("+++");
+    return;
+  }
+  LOGN("[WiFi] Connected to", ssid, ",IP:", WiFi.localIP().toString());
   if (!wifiInitialized) {
     // on on setup stage
     wifiInitialized = true;
     LOGN("[WiFi] Initialized");
     aTimer.setTimeout(100,
                       []() {
+                        LOGN("[WiFi] Check services");
                         checkDate();
                         checkMqtt();
                         checkBlynk();
@@ -682,9 +700,9 @@ void handleWiFiLost() {
 }
 
 #if defined(ESP8266)
-WiFiEventHandler h1, h2;
+WiFiEventHandler h0, h1, h2;
 #elif defined(ESP32)
-wifi_event_id_t h1, h2;
+wifi_event_id_t h0, h1, h2;
 #endif
 
 void setupWiFi() {
@@ -693,14 +711,11 @@ void setupWiFi() {
   WiFi.mode(WIFI_STA);
   WiFi.setAutoConnect(true);
   WiFi.setAutoReconnect(true);
-#if defined(ESP8266)
-  WiFi.setSleepMode(WIFI_NONE_SLEEP);
-  WiFi.hostname(getDevice().c_str());
-#elif defined(ESP32)
-  WiFi.setHostname(getDevice().c_str());
-#endif
+  compat::setHostname(getUDID().c_str());
 
 #if defined(ESP8266)
+  h0 = WiFi.onStationModeConnected(
+      [](const WiFiEventStationModeConnected& event) { LOG("///"); });
   h1 = WiFi.onStationModeGotIP(
       [](const WiFiEventStationModeGotIP& event) { handleWiFiGotIP(); });
   h2 = WiFi.onStationModeDisconnected(
@@ -723,7 +738,7 @@ void setupWiFi() {
     delay(1000);
     if (millis() / 1000 % 8 == 0) {
       WiFi.reconnect();
-      LOG("=");
+      LOG("===");
     }
   }
   if (!WiFi.isConnected()) {
@@ -744,6 +759,10 @@ void setupDate() {
   }
 }
 
+void setupApi() {
+  api.setup(&server);
+}
+
 void setupUpdate() {
   LOGN("setupUpdate");
   otaUpdate.setup(&server);
@@ -762,12 +781,22 @@ void handleControl(AsyncWebServerRequest* request) {
   LOGN("handleControl " + text);
   if (text.length() > 2) {
     string s(text.c_str());
-    handleCommand(CommandParam::parseArgs(s));
+    handleCommand(CommandParam::from(s));
   }
   request->send(200, MIME_TEXT_PLAIN, "ok");
 }
 
 void handleNotFound(AsyncWebServerRequest* request) {
+  if (request->url().startsWith("/api/")) {
+    DynamicJsonDocument doc(128);
+    doc["code"] = 404;
+    doc["msg"] = "resource not found";
+    doc["uri"] = request->url();
+    String s = "";
+    serializeJson(doc, s);
+    request->send(404, JSON_MIMETYPE, s);
+    return;
+  }
   if (!FileServer::handle(request)) {
     LOGN("handleNotFound " + request->url());
     String data = F("ERROR: NOT FOUND\nURI: ");
@@ -779,13 +808,12 @@ void handleNotFound(AsyncWebServerRequest* request) {
 
 void setupServer() {
   LOGN("setupServer");
-  if (MDNS.begin(getDevice().c_str())) {
+  if (MDNS.begin(getUDID().c_str())) {
     LOGN(F("[Server] MDNS responder started"));
   }
   server.on("/", handleRoot);
   server.on("/cmd", handleControl);
   server.on("/settings", handleSettings);
-  server.on("/api/status", handleRoot);
   server.on("/reboot", handleReboot);
   server.on("/start", handleStart);
   server.on("/stop", handleStop);
@@ -794,12 +822,14 @@ void setupServer() {
   server.on("/enable", handleEnable);
   server.on("/on", handleEnable);
   server.on("/off", handleDisable);
+  server.on("/reset", handleReset);
   server.on("/ioset", handleIOSet);
   server.on("/files", handleFiles);
   server.on("/logs", handleLogs);
   //   server.serveStatic("/www/", SPIFFS,
   //   "/www/").setCacheControl("max-age=600");
   server.onNotFound(handleNotFound);
+  setupApi();
   setupUpdate();
   server.begin();
   MDNS.addService("http", "tcp", 80);
@@ -866,25 +896,26 @@ void setupTimers(bool reset) {
 
 void setupCommands() {
   LOGN("setupCommands");
-  cmdMgr.setDefaultHandler(cmdNotFound);
-  cmdMgr.addCommand("reboot", "device reboot", cmdReboot);
-  cmdMgr.addCommand("on", "enable timers", cmdEnable);
-  cmdMgr.addCommand("enable", "enable timers", cmdEnable);
-  cmdMgr.addCommand("off", "disable timers", cmdDisable);
-  cmdMgr.addCommand("disable", "disable timers", cmdDisable);
-  cmdMgr.addCommand("start", "start device at pin", cmdStart);
-  cmdMgr.addCommand("stop", "stop device at pin", cmdStop);
-  cmdMgr.addCommand("status", "get device pin status", cmdStatus);
-  cmdMgr.addCommand("wifi", "get wifi status", cmdWiFi);
-  cmdMgr.addCommand("online", "check device online", cmdWiFi);
-  cmdMgr.addCommand("logs", "show device logs", cmdLogs);
-  cmdMgr.addCommand("files", "show device files", cmdFiles);
-  cmdMgr.addCommand("settings", "settings k1=v1 k2=v2", cmdSettings);
-  cmdMgr.addCommand("ioset", "gpio set [pin] [value]", cmdIOSet);
-  cmdMgr.addCommand("ioset1", "gpio set 1 for [pin]", cmdIOSetHigh);
-  cmdMgr.addCommand("ioset0", "gpio set 0 for [pin]", cmdIOSetLow);
-  cmdMgr.addCommand("list", "show commands", cmdHelp);
-  cmdMgr.addCommand("help", "show help", cmdHelp);
+  //   CommandManager.setDefaultHandler(cmdNotFound);
+  CommandManager.addCommand("reboot", "device reboot", cmdReboot);
+  CommandManager.addCommand("on", "enable timers", cmdEnable);
+  CommandManager.addCommand("enable", "enable timers", cmdEnable);
+  CommandManager.addCommand("off", "disable timers", cmdDisable);
+  CommandManager.addCommand("disable", "disable timers", cmdDisable);
+  CommandManager.addCommand("reset", "reset timers", cmdReset);
+  CommandManager.addCommand("start", "start device at pin", cmdStart);
+  CommandManager.addCommand("stop", "stop device at pin", cmdStop);
+  CommandManager.addCommand("status", "get device pin status", cmdStatus);
+  CommandManager.addCommand("wifi", "get wifi status", cmdWiFi);
+  CommandManager.addCommand("online", "check device online", cmdWiFi);
+  CommandManager.addCommand("logs", "show device logs", cmdLogs);
+  CommandManager.addCommand("files", "show device files", cmdFiles);
+  CommandManager.addCommand("settings", "settings k1=v1 k2=v2", cmdSettings);
+  CommandManager.addCommand("ioset", "gpio set [pin] [value]", cmdIOSet);
+  CommandManager.addCommand("ioset1", "gpio set 1 for [pin]", cmdIOSetHigh);
+  CommandManager.addCommand("ioset0", "gpio set 0 for [pin]", cmdIOSetLow);
+  CommandManager.addCommand("list", "show commands", cmdHelp);
+  CommandManager.addCommand("help", "show help", cmdHelp);
 }
 
 void setupDisplay() {
@@ -958,7 +989,7 @@ void handleCommand(const CommandParam& param) {
     yield();
     LOG("[CMD] handleCommand ");
     // LOGN(param.toString().c_str());
-    if (!cmdMgr.handle(param)) {
+    if (!CommandManager.handle(param)) {
       LOGN("[CMD] Unknown command");
     }
   };
@@ -1029,7 +1060,7 @@ BLYNK_WRITE(V1) {
 
 BLYNK_WRITE(V20) {
   const char* value = param.asStr();
-  const auto cmd = CommandParam::parseArgs(value);
+  const auto cmd = CommandParam::from(value);
   handleCommand(cmd);
   terminal.flush();
 }

@@ -43,15 +43,17 @@ class RelayUnit {
   void run();
   bool start();
   bool stop();
-  bool isOn();  // running
-  bool isEnabled();
+  bool isOn() const;  // running
+  bool isEnabled() const;
   void setEnabled(bool ena);
+  void reset();
   void setCallback(CALLBACK_FUNC cb);
-  uint8_t pin();
-  uint8_t pinValue();
+  uint8_t pin() const;
+  uint8_t pinValue() const;
   int updateConfig(const RelayConfig& config);
-  std::shared_ptr<RelayConfig> getConfig();
-  std::shared_ptr<RelayStatus> getStatus();
+  std::shared_ptr<RelayConfig> getConfig() const;
+  std::shared_ptr<RelayStatus> getStatus() const;
+  TimerTask* getRunTask() const;
 
  private:
   std::shared_ptr<RelayConfig> pConfig;

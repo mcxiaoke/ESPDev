@@ -1,5 +1,7 @@
 #include "ACommand.h"
 
+unsigned long CommandParam::_id = 0;
+
 CommandParam::CommandParam(const string& name,
                            const vector<string> args,
                            const unsigned int id,
@@ -33,7 +35,7 @@ bool CommandParam::hasValidPrefix(const string& cmdStr) {
   return cmdStr.length() > 2 && strchr(CMD_PREFIX, cmdStr.at(0)) != nullptr;
 }
 
-CommandParam CommandParam::parseArgs(const string& s) {
+CommandParam CommandParam::from(const string& s) {
   vector<string> args = ext::string::split_any(s, CommandParam::CMD_ARG_SEP);
   for (auto arg : args) {
     ext::string::trim(arg);
@@ -48,7 +50,7 @@ CommandParam CommandParam::parseArgs(const string& s) {
   return param;
 }
 
-bool CommandManager::handle(const CommandParam& param) {
+bool CommandManagerClass::handle(const CommandParam& param) {
   auto handler = _getHandler(param.name);
   if (handler != nullptr) {
     handler(param);
@@ -62,26 +64,26 @@ bool CommandManager::handle(const CommandParam& param) {
   return false;
 }
 
-void CommandManager::addCommand(Command* cmd) {
+void CommandManagerClass::addCommand(Command* cmd) {
   _addHandler(cmd);
 }
 
-void CommandManager::addCommand(const string& name,
-                                const string& desc,
-                                CMD_HANDLER_FUNC handler) {
+void CommandManagerClass::addCommand(const string& name,
+                                     const string& desc,
+                                     CMD_HANDLER_FUNC handler) {
   Command cmd{name, desc, handler};
   _addHandler(&cmd);
 }
 
-void CommandManager::removeCommand(Command* cmd) {
+void CommandManagerClass::removeCommand(Command* cmd) {
   _handlers.erase(cmd->name);
 }
 
-void CommandManager::removeCommand(const string& name) {
+void CommandManagerClass::removeCommand(const string& name) {
   _handlers.erase(name);
 }
 
-vector<Command*> CommandManager::getCommands() {
+vector<Command*> CommandManagerClass::getCommands() {
   vector<Command*> vs;
   vs.reserve(_handlers.size());
   for (auto& kvp : _handlers) {
@@ -95,7 +97,7 @@ vector<Command*> CommandManager::getCommands() {
   return vs;
 }
 
-String CommandManager::getHelpDoc() {
+String CommandManagerClass::getHelpDoc() {
   String s("Commands: \n");
   for (auto const& kvp : _handlers) {
     auto const cmd = kvp.second;
@@ -105,15 +107,17 @@ String CommandManager::getHelpDoc() {
   return s;
 }
 
-void CommandManager::setDefaultHandler(CMD_HANDLER_FUNC handler) {
+void CommandManagerClass::setDefaultHandler(CMD_HANDLER_FUNC handler) {
   _defaultHandler = handler;
 }
 
-void CommandManager::_addHandler(Command* cmd) {
+void CommandManagerClass::_addHandler(Command* cmd) {
   _handlers.insert({cmd->name, *cmd});
 }
 
-CMD_HANDLER_FUNC CommandManager::_getHandler(const string& name) {
+CMD_HANDLER_FUNC CommandManagerClass::_getHandler(const string& name) {
   auto it = _handlers.find(name);
   return it != _handlers.end() ? it->second.handler : nullptr;
 }
+
+CommandManagerClass CommandManager;

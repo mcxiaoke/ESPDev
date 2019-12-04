@@ -20,6 +20,20 @@ T const* ArgConvert(std::basic_string<T> const& value) noexcept {
   return value.c_str();
 }
 
+template <typename T>
+const char* ArgConvert(std::vector<T> const& vec) noexcept {
+  std::string value("[");
+  size_t i = 0;
+  size_t size = vec.size();
+  for (; i < size - 1; i++) {
+    value += ArgConvert(vec[i]);
+    value += ",";
+  }
+  value += vec[i];
+  value += "]";
+  return value.c_str();
+}
+
 const char* ArgConvert(String const& value) noexcept;
 
 template <typename... Args>

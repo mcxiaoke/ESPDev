@@ -293,7 +293,7 @@ inline vector<string> splitlines(const string& s, bool keep_ends = false) {
   return ret;
 }
 
-inline string join(const vector<string>& ss, const string& sep) {
+inline string join(const vector<string>& ss, const string& sep = " ") {
   if (ss.empty()) {
     return string();
   }
