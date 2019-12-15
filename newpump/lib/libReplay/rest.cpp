@@ -1,32 +1,31 @@
 #include "rest.h"
 
-static JsonDocument filesToJson(
-    const std::vector<std::tuple<String, size_t>>& vec) {
-  DynamicJsonDocument doc(2048);
+static constexpr const char* REST_TOKEN = "pump";
+
+static void filesToJson(const std::vector<std::tuple<String, size_t>>& vec,
+                        const JsonVariant& doc) {
   JsonArray arr = doc.to<JsonArray>();
-  //   JsonArray data = doc.createNestedArray("data");
   for (auto& v : vec) {
-    LOGN("File:", std::get<0>(v), " ", std::get<1>(v));
+    LOGN("File:", std::get<0>(v), std::get<1>(v));
     JsonObject o = arr.createNestedObject();
-    o["name"] = std::get<0>(v);
-    o["size"] = std::get<1>(v);
+    o["n"] = std::get<0>(v);
+    o["z"] = std::get<1>(v);
   }
-  return doc;
 }
 
 static String getCompleteUrl(AsyncWebServerRequest* r) {
   String s = "";
   s += r->url();
-  int params = r->params();
-  if (params > 0) {
+  int pc = r->params();
+  if (pc > 0) {
     s += "?";
   }
-  for (int i = 0; i < params; i++) {
+  for (int i = 0; i < pc; i++) {
     auto p = r->getParam(i);
     s += p->name();
     s += "=";
     s += p->value();
-    if (i != params) {
+    if (i != pc - 1) {
       s += "&";
     }
   }
@@ -42,70 +41,135 @@ static void showHeaders(AsyncWebServerRequest* r) {
   int headers = r->headers();
   for (int i = 0; i < headers; i++) {
     auto h = r->getHeader(i);
-    LOGNF("[HEADER] %s: %s", h->name(), h->value());
+    LOGNF("[RestApi][HEADER] %s: %s", h->name(), h->value());
   }
 }
 
-static String errorResponse(int code, const String& msg, const String& uri) {
-  DynamicJsonDocument doc(128);
-  doc["code"] = code;
-  doc["msg"] = msg;
-  doc["uri"] = uri;
-  String s;
-  serializeJson(doc, s);
-  return s;
+static AsyncJsonResponse* buildResponse(
+    std::function<void(const JsonVariant&)> prepareFunc) {
+  auto res = new AsyncJsonResponse();
+  auto root = res->getRoot();
+  prepareFunc(root);
+  res->setLength();
+  return res;
+}
+
+static AsyncJsonResponse* errorResponse(int code,
+                                        const String& msg,
+                                        const String& uri) {
+  auto func = [&](const JsonVariant& doc) {
+    doc["code"] = code;
+    doc["msg"] = msg;
+    doc["uri"] = uri;
+  };
+  return buildResponse(func);
 }
 
 RestApi::RestApi(const RelayUnit& p) : pump(p) {}
 
 void RestApi::setup(AsyncWebServer* server) {
-  server->on("/api/status", HTTP_GET, [&](AsyncWebServerRequest* r) {
-    showUrlWithArgs(r);
-    auto res = getStatus();
-    r->send(200, JSON_MIMETYPE, std::get<2>(res));
-  });
-  server->on("/api/network", HTTP_GET, [&](AsyncWebServerRequest* r) {
-    showUrlWithArgs(r);
-    auto res = getNetwork();
-    r->send(200, JSON_MIMETYPE, std::get<2>(res));
-  });
-  server->on("/api/task", HTTP_GET, [&](AsyncWebServerRequest* r) {
-    showUrlWithArgs(r);
-    auto res = getTask();
-    r->send(200, JSON_MIMETYPE, std::get<2>(res));
-  });
-  server->on("/api/logs", HTTP_GET, [&](AsyncWebServerRequest* r) {
-    showUrlWithArgs(r);
-    auto res = getLogs();
-    r->send(200, JSON_MIMETYPE, std::get<2>(res));
-  });
-  server->on("/api/files", HTTP_GET, [&](AsyncWebServerRequest* r) {
-    showUrlWithArgs(r);
-    auto res = getFiles();
-    r->send(200, JSON_MIMETYPE, std::get<2>(res));
-  });
   server->on(
-      "/api/control", HTTP_POST | HTTP_GET, [&](AsyncWebServerRequest* r) {
+      "/api/status", HTTP_GET | HTTP_POST, [&](AsyncWebServerRequest* r) {
         showUrlWithArgs(r);
-        AsyncWebParameter* pa;
-        (pa = r->getParam("args", true)) || (pa = r->getParam("args"));
-        if (pa == nullptr) {
-          r->send(400, JSON_MIMETYPE,
-                  errorResponse(-1, "Parameter Required: [args]", r->url()));
-          return;
-        }
-        showESP("1111");
-        auto res = control(pa->value());
-        showESP("2222");
-        r->send(200, JSON_MIMETYPE, std::get<2>(res));
-        showESP("3333");
+        r->send(buildResponse(
+            std::bind(&RestApi::jsonStatus, this, std::placeholders::_1)));
       });
+  server->on(
+      "/api/network", HTTP_GET | HTTP_POST, [&](AsyncWebServerRequest* r) {
+        showUrlWithArgs(r);
+        r->send(buildResponse(
+            std::bind(&RestApi::jsonNetwork, this, std::placeholders::_1)));
+      });
+  server->on("/api/task", HTTP_GET | HTTP_POST, [&](AsyncWebServerRequest* r) {
+    showUrlWithArgs(r);
+    r->send(buildResponse(
+        std::bind(&RestApi::jsonTask, this, std::placeholders::_1)));
+  });
+  server->on("/api/logs", HTTP_GET | HTTP_POST, [&](AsyncWebServerRequest* r) {
+    showUrlWithArgs(r);
+    r->send(buildResponse(
+        std::bind(&RestApi::jsonLogs, this, std::placeholders::_1)));
+  });
+  server->on("/api/files", HTTP_GET | HTTP_POST, [&](AsyncWebServerRequest* r) {
+    showUrlWithArgs(r);
+    showHeaders(r);
+    r->send(buildResponse(
+        std::bind(&RestApi::jsonFiles, this, std::placeholders::_1)));
+  });
+  server->on("/api/control", HTTP_POST | HTTP_GET,
+             [&](AsyncWebServerRequest* r) {
+               showUrlWithArgs(r);
+               handleControl(r);
+             });
 }
 
-RestResponse RestApi::getStatus() {
+void RestApi::handleControl(AsyncWebServerRequest* r) {
+  AsyncWebParameter* pa = nullptr;
+  (pa = r->getParam("args", true)) || (pa = r->getParam("args")) ||
+      (pa = r->getParam("cmd", true)) || (pa = r->getParam("cmd"));
+  String cmd = emptyString;
+  if (pa == nullptr || pa->value() == emptyString) {
+    cmd = r->header("Command");
+  } else {
+    cmd = pa->value();
+  }
+  LOGNF("RestApi::handleControl: cmd=[%s]", cmd);
+  if (cmd == emptyString) {
+    auto res = errorResponse(
+        -4, "Missing Parameter: [cmd] or Header: [Command]", getCompleteUrl(r));
+    res->setCode(400);
+    r->send(res);
+    return;
+  }
+  AsyncWebParameter* pt = nullptr;
+  (pt = r->getParam("token", true)) || (pt = r->getParam("token"));
+  if (pt == nullptr || pt->value() == emptyString) {
+    auto res = errorResponse(-9, "Missing Authorization Parameter: [token]",
+                             getCompleteUrl(r));
+    res->setCode(401);
+    r->send(res);
+    return;
+  }
+  LOGNF("RestApi::handleControl: token=[%s]", pt->value());
+  if (pt->value() != REST_TOKEN) {
+    auto res = errorResponse(-9, "Invalid Authorization Parameter: [token]",
+                             getCompleteUrl(r));
+    res->setCode(403);
+    r->send(res);
+    return;
+  }
+  r->send(buildResponse([&](const JsonVariant& json) {
+    json["uri"] = getCompleteUrl(r);
+    jsonControl(json, cmd);
+  }));
+}
+
+void RestApi::jsonControl(const JsonVariant& doc, const String& arguments) {
+  LOGN("RestApi::jsonControl", arguments);
+  // format: url?args=cmd,arg1,arg2,arg3
+  std::string args(arguments.c_str());
+  if (ext::string::trim(args).empty()) {
+    doc["code"] = -2;
+    doc["msg"] = "invalid command";
+  } else {
+    auto cmd = CommandParam::from(args);
+    auto ret = CommandManager.handle(cmd);
+    int code = ret ? 0 : -1;  // means not found
+    String msg = ret ? "ok" : "unknown command";
+    doc["code"] = code;
+    doc["msg"] = msg;
+    // String.c_str() may not valid const char* str
+    // and ArduinoJson not accept std::string
+    // so use String(stdstr::c_str())
+    // or #define ARDUINOJSON_ENABLE_STD_STRING 1
+    doc["cmd"] = cmd.name;
+    doc["args"] = ext::string::join(cmd.args);
+  }
+}
+
+void RestApi::jsonStatus(const JsonVariant& doc) {
   auto cfg = pump.getConfig();
   auto st = pump.getStatus();
-  DynamicJsonDocument doc(1024);
   doc["time"] = DateTime.now();
   doc["ip"] = WiFi.localIP().toString();
   doc["connected"] = compat::isWiFiConnected();
@@ -123,12 +187,8 @@ RestResponse RestApi::getStatus() {
   doc["last_reset"] = st->timerResetAt;
   doc["heap"] = ESP.getFreeHeap();
   doc["id"] = getUDID();
-  String s = "";
-  serializeJson(doc, s);
-  return std::make_tuple(0, "ok", s);
 }
-RestResponse RestApi::getNetwork() {
-  DynamicJsonDocument doc(128);
+void RestApi::jsonNetwork(const JsonVariant& doc) {
   doc["id"] = getUDID();
   doc["mac"] = WiFi.macAddress();
   doc["ip"] = WiFi.localIP().toString();
@@ -136,13 +196,9 @@ RestResponse RestApi::getNetwork() {
   doc["connected"] = compat::isWiFiConnected();
   doc["ms"] = millis() / 1000;
   doc["time"] = DateTime.now();
-  String s = "";
-  serializeJson(doc, s);
-  return std::make_tuple(0, "ok", s);
 }
-RestResponse RestApi::getTask() {
+void RestApi::jsonTask(const JsonVariant& doc) {
   auto t = pump.getRunTask();
-  DynamicJsonDocument doc(256);
   doc["id"] = t->id;
   doc["interval"] = t->interval;
   doc["name"] = t->name;
@@ -151,42 +207,11 @@ RestResponse RestApi::getTask() {
   doc["prev"] = t->prevMillis / 1000;
   doc["ms"] = millis() / 1000;
   doc["time"] = DateTime.now();
-  String s = "";
-  serializeJson(doc, s);
-  return std::make_tuple(0, "ok", s);
 }
 
-RestResponse RestApi::getLogs() {
-  auto doc = filesToJson(listLogs());
-  String s = "";
-  serializeJson(doc, s);
-  return std::make_tuple(0, "ok", s);
+void RestApi::jsonLogs(const JsonVariant& json) {
+  filesToJson(listLogs(), json);
 }
-RestResponse RestApi::getFiles() {
-  auto doc = filesToJson(listFiles());
-  String s = "";
-  serializeJson(doc, s);
-  return std::make_tuple(0, "ok", s);
-}
-RestResponse RestApi::control(const String& arguments) {
-  // format: url?args=cmd,arg1,arg2,arg3
-  std::string args(arguments.c_str());
-  auto cmd = CommandParam::from(args);
-  auto ret = CommandManager.handle(cmd);
-  showESP("aaaa");
-  DynamicJsonDocument doc(256);
-  showESP("bbbb");
-  int code = ret ? 0 : -1;
-  String msg = ret ? "ok" : "unknown command";
-  doc["code"] = code;
-  doc["msg"] = msg;
-  doc["cmd"] = cmd.name.c_str();
-  doc["args"] = ext::string::join(cmd.args).c_str();
-  String s = "";
-  showESP("cccc");
-  serializeJson(doc, s);
-  showESP("dddd");
-  LOGN("[RestApi] control:", cmd.toString());
-  showESP("eee");
-  return std::make_tuple(code, msg, s);
+void RestApi::jsonFiles(const JsonVariant& json) {
+  filesToJson(listFiles(), json);
 }

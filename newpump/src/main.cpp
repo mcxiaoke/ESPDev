@@ -787,6 +787,10 @@ void handleControl(AsyncWebServerRequest* request) {
 }
 
 void handleNotFound(AsyncWebServerRequest* request) {
+  if (request->method() == HTTP_OPTIONS) {
+    request->send(200);
+    return;
+  }
   if (request->url().startsWith("/api/")) {
     DynamicJsonDocument doc(128);
     doc["code"] = 404;
@@ -831,6 +835,8 @@ void setupServer() {
   server.onNotFound(handleNotFound);
   setupApi();
   setupUpdate();
+
+  DefaultHeaders::Instance().addHeader("Access-Control-Allow-Origin", "*");
   server.begin();
   MDNS.addService("http", "tcp", 80);
   LOGN(F("[Server] HTTP server started"));

@@ -1,6 +1,8 @@
 #ifndef ESP_DEV_REST_API_H
 #define ESP_DEV_REST_API_H
 
+#define ARDUINOJSON_ENABLE_STD_STRING 1
+
 #include <tuple>
 #include <ESPAsyncWebServer.h>
 #include <ArduinoJson.h>
@@ -10,7 +12,7 @@
 #include <DateTime.h>
 #include <AsyncJson.h>
 
-using RestResponse = std::tuple<int, String, String>;
+using RestResponse = std::tuple<int, String>;
 
 class ResetHandler : AsyncWebHandler {
   virtual bool canHandle(AsyncWebServerRequest* request) override final {
@@ -22,12 +24,13 @@ class RestApi {
  public:
   RestApi(const RelayUnit& p);
   void setup(AsyncWebServer* server);
-  RestResponse getStatus();
-  RestResponse getNetwork();
-  RestResponse getTask();
-  RestResponse getLogs();
-  RestResponse getFiles();
-  RestResponse control(const String& arguments);
+  void handleControl(AsyncWebServerRequest* r);
+  void jsonControl(const JsonVariant& json, const String& arguments);
+  void jsonStatus(const JsonVariant& json);
+  void jsonNetwork(const JsonVariant& json);
+  void jsonTask(const JsonVariant& json);
+  void jsonLogs(const JsonVariant& json);
+  void jsonFiles(const JsonVariant& json);
 
  private:
   const RelayUnit& pump;
