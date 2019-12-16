@@ -66,20 +66,27 @@ static AsyncJsonResponse* errorResponse(int code,
   return buildResponse(func);
 }
 
+static bool shouldSkipCmd(const char* cmd) {
+  for (auto i = 0; i < std::end(SKIP_CMD) - std::begin(SKIP_CMD); i++) {
+    if (strcmp(SKIP_CMD[i], cmd) == 0) {
+      return true;
+    }
+  }
+  return false;
+}
+
 RestApi::RestApi(const RelayUnit& p) : pump(p) {}
 
 void RestApi::setup(AsyncWebServer* server) {
+  LOGN("RestApi::setup()");
   auto names = CommandManager.getCommandNames();
   for (auto name : names) {
-    for (auto i = 0; i < std::end(SKIP_CMD) - std::begin(SKIP_CMD); i++) {
-      if (name == SKIP_CMD[i]) {
-        continue;
-      }
+    if (!shouldSkipCmd(name.c_str())) {
+      auto f = "/api/" + name;
+      auto t = "/api/control?cmd=" + name;
+      LOGN("RestApi::addRewrite", f, t);
+      server->addRewrite(new AsyncWebRewrite(f.c_str(), t.c_str()));
     }
-    auto f = "/api/" + name;
-    auto t = "/api/control?cmd=" + name;
-    // LOGN("addRewrite", f, t);
-    server->addRewrite(new AsyncWebRewrite(f.c_str(), t.c_str()));
   }
   server->on("/help", HTTP_GET | HTTP_POST, [&](AsyncWebServerRequest* r) {
     showUrlWithArgs(r);
