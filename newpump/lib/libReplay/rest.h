@@ -4,6 +4,7 @@
 #define ARDUINOJSON_ENABLE_STD_STRING 1
 
 #include <tuple>
+#include <algorithm>
 #include <ESPAsyncWebServer.h>
 #include <ArduinoJson.h>
 #include <ALogger.h>

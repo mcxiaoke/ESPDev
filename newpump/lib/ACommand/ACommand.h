@@ -28,7 +28,7 @@ struct CommandParam {
   const vector<string> args;
   const unsigned long id;
   const CommandSource source;
-  const CMD_CALLBACK_FUNC callback;
+  CMD_CALLBACK_FUNC callback;
 
   CommandParam(const string& name = "",
                const vector<string> args = {},
@@ -64,6 +64,7 @@ class CommandManagerClass {
   void removeCommand(Command* cmd);
   void removeCommand(const string& name);
   vector<Command*> getCommands();
+  vector<string> getCommandNames();
   String getHelpDoc();
   void setDefaultHandler(CMD_HANDLER_FUNC handler);
 

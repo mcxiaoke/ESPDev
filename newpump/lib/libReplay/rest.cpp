@@ -1,7 +1,8 @@
 #include "rest.h"
 
 static constexpr const char* REST_TOKEN = "pump";
-
+static constexpr const char* SKIP_CMD[] = {"help",   "files", "logs",
+                                           "status", "wifi",  "list"};
 static void filesToJson(const std::vector<std::tuple<String, size_t>>& vec,
                         const JsonVariant& doc) {
   JsonArray arr = doc.to<JsonArray>();
@@ -68,6 +69,23 @@ static AsyncJsonResponse* errorResponse(int code,
 RestApi::RestApi(const RelayUnit& p) : pump(p) {}
 
 void RestApi::setup(AsyncWebServer* server) {
+  auto names = CommandManager.getCommandNames();
+  for (auto name : names) {
+    for (auto i = 0; i < std::end(SKIP_CMD) - std::begin(SKIP_CMD); i++) {
+      if (name == SKIP_CMD[i]) {
+        continue;
+      }
+    }
+    auto f = "/api/" + name;
+    auto t = "/api/control?cmd=" + name;
+    // LOGN("addRewrite", f, t);
+    server->addRewrite(new AsyncWebRewrite(f.c_str(), t.c_str()));
+  }
+  server->on("/help", HTTP_GET | HTTP_POST, [&](AsyncWebServerRequest* r) {
+    showUrlWithArgs(r);
+    r->send(buildResponse(
+        std::bind(&RestApi::jsonStatus, this, std::placeholders::_1)));
+  });
   server->on(
       "/api/status", HTTP_GET | HTTP_POST, [&](AsyncWebServerRequest* r) {
         showUrlWithArgs(r);
@@ -124,16 +142,14 @@ void RestApi::handleControl(AsyncWebServerRequest* r) {
   AsyncWebParameter* pt = nullptr;
   (pt = r->getParam("token", true)) || (pt = r->getParam("token"));
   if (pt == nullptr || pt->value() == emptyString) {
-    auto res = errorResponse(-9, "Missing Authorization Parameter: [token]",
-                             getCompleteUrl(r));
+    auto res = errorResponse(-9, "Missing Token: [token]", getCompleteUrl(r));
     res->setCode(401);
     r->send(res);
     return;
   }
   LOGNF("RestApi::handleControl: token=[%s]", pt->value());
   if (pt->value() != REST_TOKEN) {
-    auto res = errorResponse(-9, "Invalid Authorization Parameter: [token]",
-                             getCompleteUrl(r));
+    auto res = errorResponse(-8, "Invalid Token: [token]", getCompleteUrl(r));
     res->setCode(403);
     r->send(res);
     return;
@@ -153,6 +169,7 @@ void RestApi::jsonControl(const JsonVariant& doc, const String& arguments) {
     doc["msg"] = "invalid command";
   } else {
     auto cmd = CommandParam::from(args);
+    // cmd.callback = [](const CommandResult& ret) {};
     auto ret = CommandManager.handle(cmd);
     int code = ret ? 0 : -1;  // means not found
     String msg = ret ? "ok" : "unknown command";

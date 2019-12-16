@@ -97,6 +97,15 @@ vector<Command*> CommandManagerClass::getCommands() {
   return vs;
 }
 
+vector<string> CommandManagerClass::getCommandNames() {
+  vector<string> vs;
+  vs.reserve(_handlers.size());
+  for (auto& kvp : _handlers) {
+    vs.push_back(kvp.second.name);
+  }
+  return vs;
+}
+
 String CommandManagerClass::getHelpDoc() {
   String s("Commands: \n");
   for (auto const& kvp : _handlers) {

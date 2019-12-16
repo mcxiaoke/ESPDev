@@ -816,20 +816,20 @@ void setupServer() {
     LOGN(F("[Server] MDNS responder started"));
   }
   server.on("/", handleRoot);
-  server.on("/cmd", handleControl);
-  server.on("/settings", handleSettings);
-  server.on("/reboot", handleReboot);
-  server.on("/start", handleStart);
-  server.on("/stop", handleStop);
-  server.on("/clear", handleClear);
-  server.on("/disable", handleDisable);
-  server.on("/enable", handleEnable);
-  server.on("/on", handleEnable);
-  server.on("/off", handleDisable);
-  server.on("/reset", handleReset);
-  server.on("/ioset", handleIOSet);
-  server.on("/files", handleFiles);
-  server.on("/logs", handleLogs);
+  //   server.on("/cmd", handleControl);
+  //   server.on("/settings", handleSettings);
+  //   server.on("/reboot", handleReboot);
+  //   server.on("/start", handleStart);
+  //   server.on("/stop", handleStop);
+  //   server.on("/clear", handleClear);
+  //   server.on("/disable", handleDisable);
+  //   server.on("/enable", handleEnable);
+  //   server.on("/on", handleEnable);
+  //   server.on("/off", handleDisable);
+  //   server.on("/reset", handleReset);
+  //   server.on("/ioset", handleIOSet);
+  //   server.on("/files", handleFiles);
+  //   server.on("/logs", handleLogs);
   //   server.serveStatic("/www/", SPIFFS,
   //   "/www/").setCacheControl("max-age=600");
   server.onNotFound(handleNotFound);
@@ -965,10 +965,10 @@ void setup(void) {
   Serial.println("Booting Begin...");
   setupWiFi();
   setupDate();
+  setupTimers(false);
+  setupCommands();
   setupServer();
   setupMqtt();
-  setupCommands();
-  setupTimers(false);
   setupPump();
   setupBlynk();
   showESP();
