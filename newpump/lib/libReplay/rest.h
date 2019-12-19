@@ -27,6 +27,7 @@ class RestApi {
   void setup(AsyncWebServer* server);
   void handleControl(AsyncWebServerRequest* r);
   void jsonControl(const JsonVariant& json, const String& arguments);
+  void jsonHelp(const JsonVariant& json);
   void jsonStatus(const JsonVariant& json);
   void jsonNetwork(const JsonVariant& json);
   void jsonTask(const JsonVariant& json);

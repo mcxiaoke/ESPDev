@@ -47,8 +47,9 @@ static void showHeaders(AsyncWebServerRequest* r) {
 }
 
 static AsyncJsonResponse* buildResponse(
-    std::function<void(const JsonVariant&)> prepareFunc) {
-  auto res = new AsyncJsonResponse();
+    std::function<void(const JsonVariant&)> prepareFunc,
+    bool isArray = false) {
+  auto res = new AsyncJsonResponse(isArray);
   auto root = res->getRoot();
   prepareFunc(root);
   res->setLength();
@@ -88,10 +89,10 @@ void RestApi::setup(AsyncWebServer* server) {
       server->addRewrite(new AsyncWebRewrite(f.c_str(), t.c_str()));
     }
   }
-  server->on("/help", HTTP_GET | HTTP_POST, [&](AsyncWebServerRequest* r) {
+  server->on("/api/help", HTTP_GET | HTTP_POST, [&](AsyncWebServerRequest* r) {
     showUrlWithArgs(r);
     r->send(buildResponse(
-        std::bind(&RestApi::jsonStatus, this, std::placeholders::_1)));
+        std::bind(&RestApi::jsonHelp, this, std::placeholders::_1), true));
   });
   server->on(
       "/api/status", HTTP_GET | HTTP_POST, [&](AsyncWebServerRequest* r) {
@@ -154,13 +155,11 @@ void RestApi::handleControl(AsyncWebServerRequest* r) {
     r->send(res);
     return;
   }
-  LOGNF("RestApi::handleControl: token=[%s]", pt->value());
-  if (pt->value() != REST_TOKEN) {
-    auto res = errorResponse(-8, "Invalid Token: [token]", getCompleteUrl(r));
-    res->setCode(403);
-    r->send(res);
-    return;
-  }
+  //   LOGNF("RestApi::handleControl: token=[%s]", pt->value());
+  //   if (pt->value() != REST_TOKEN) {
+  //     auto res = errorResponse(-8, "Invalid Token: [token]",
+  //     getCompleteUrl(r)); res->setCode(403); r->send(res); return;
+  //   }
   r->send(buildResponse([&](const JsonVariant& json) {
     json["uri"] = getCompleteUrl(r);
     jsonControl(json, cmd);
@@ -188,6 +187,14 @@ void RestApi::jsonControl(const JsonVariant& doc, const String& arguments) {
     // or #define ARDUINOJSON_ENABLE_STD_STRING 1
     doc["cmd"] = cmd.name;
     doc["args"] = ext::string::join(cmd.args);
+  }
+}
+
+void RestApi::jsonHelp(const JsonVariant& json) {
+  auto cmds = CommandManager.getCommands();
+  for (auto cp : cmds) {
+    LOGN(cp->name + " - " + cp->desc);
+    json.add(cp->name + " - " + cp->desc);
   }
 }
 

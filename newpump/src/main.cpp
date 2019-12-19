@@ -670,6 +670,10 @@ void handleIOSet(AsyncWebServerRequest* request) {
   }
 }
 
+void handleHelp(AsyncWebServerRequest* request) {
+  request->send(200, MIME_TEXT_PLAIN, CommandManager.getHelpDoc());
+}
+
 void handleWiFiGotIP() {
   if (!WiFi.isConnected()) {
     LOG("+++");
@@ -816,22 +820,9 @@ void setupServer() {
     LOGN(F("[Server] MDNS responder started"));
   }
   server.on("/", handleRoot);
-  //   server.on("/cmd", handleControl);
-  //   server.on("/settings", handleSettings);
-  //   server.on("/reboot", handleReboot);
-  //   server.on("/start", handleStart);
-  //   server.on("/stop", handleStop);
-  //   server.on("/clear", handleClear);
-  //   server.on("/disable", handleDisable);
-  //   server.on("/enable", handleEnable);
-  //   server.on("/on", handleEnable);
-  //   server.on("/off", handleDisable);
-  //   server.on("/reset", handleReset);
-  //   server.on("/ioset", handleIOSet);
-  //   server.on("/files", handleFiles);
-  //   server.on("/logs", handleLogs);
-  //   server.serveStatic("/www/", SPIFFS,
-  //   "/www/").setCacheControl("max-age=600");
+  server.on("/files", handleFiles);
+  server.on("/logs", handleLogs);
+  server.on("/help", handleHelp);
   server.onNotFound(handleNotFound);
   setupApi();
   setupUpdate();
@@ -903,6 +894,7 @@ void setupTimers(bool reset) {
 void setupCommands() {
   LOGN("setupCommands");
   //   CommandManager.setDefaultHandler(cmdNotFound);
+  CommandManager.addCommand("clear", "clear current log", cmdClear);
   CommandManager.addCommand("reboot", "device reboot", cmdReboot);
   CommandManager.addCommand("on", "enable timers", cmdEnable);
   CommandManager.addCommand("enable", "enable timers", cmdEnable);
