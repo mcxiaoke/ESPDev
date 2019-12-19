@@ -1,7 +1,3 @@
-// #define BLYNK_PRINT Serial
-#define BLYNK_NO_BUILTIN
-#define BLYNK_NO_FLOAT
-
 #include <build.h>
 #include <ALogger.h>
 #include <Arduino.h>
@@ -56,8 +52,8 @@ constexpr int led = LED_BUILTIN;
 #define STATUS_INTERVAL_DEFAULT 10 * 60 * 1000UL
 #else
 #define RUN_INTERVAL_DEFAULT 8 * 3600 * 1000UL
-#define RUN_DURATION_DEFAULT 15 * 1000UL
-#define STATUS_INTERVAL_DEFAULT 2 * 60 * 60 * 1000UL
+#define RUN_DURATION_DEFAULT 10 * 1000UL
+#define STATUS_INTERVAL_DEFAULT 4 * 60 * 60 * 1000UL
 #endif
 
 unsigned long statusInterval = STATUS_INTERVAL_DEFAULT;

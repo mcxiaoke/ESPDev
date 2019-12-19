@@ -84,7 +84,7 @@ void showESP(const char* extra) {
 
 String logFileName(const String& suffix) {
   String fileName = "/logs/log-";
-  fileName += dateString();
+  fileName += DateTime.format("%Y%d");
   if (suffix.length() > 0) {
     fileName += "-";
     fileName += suffix;
@@ -136,11 +136,6 @@ time_t getBootTime() {
 }
 
 String dateString() {
-  time_t ts = getTimestamp();
-  char buf[12];
-  struct tm* tm_info;
-  tm_info = localtime(&ts);
-  strftime(buf, 12, "%Y-%m-%d", tm_info);
   return DateTime.format(DateFormatter::DATE_ONLY);
 }
 

@@ -1,6 +1,10 @@
 #ifndef ESP_DEV_BUILD_H
 #define ESP_DEV_BUILD_H
 
+// #define BLYNK_PRINT Serial
+#define BLYNK_NO_BUILTIN
+#define BLYNK_NO_FLOAT
+
 #include "config.h"
 
 #define STR1(x) #x

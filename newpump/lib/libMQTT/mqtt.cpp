@@ -7,7 +7,7 @@ static string getDeviceId() {
 }
 
 static void mqttFileLog(const String& text) {
-  fileLog(text, logFileName("mqtt"), true);
+  fileLog(text, logFileName(), true);
 }
 
 // fix c++ linker undefined reference

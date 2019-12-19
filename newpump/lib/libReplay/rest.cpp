@@ -85,7 +85,7 @@ void RestApi::setup(AsyncWebServer* server) {
     if (!shouldSkipCmd(name.c_str())) {
       auto f = "/api/" + name;
       auto t = "/api/control?cmd=" + name;
-      LOGN("RestApi::addRewrite", f, t);
+      //   LOGN("RestApi::addRewrite", f, t);
       server->addRewrite(new AsyncWebRewrite(f.c_str(), t.c_str()));
     }
   }
@@ -193,7 +193,6 @@ void RestApi::jsonControl(const JsonVariant& doc, const String& arguments) {
 void RestApi::jsonHelp(const JsonVariant& json) {
   auto cmds = CommandManager.getCommands();
   for (auto cp : cmds) {
-    LOGN(cp->name + " - " + cp->desc);
     json.add(cp->name + " - " + cp->desc);
   }
 }
@@ -212,12 +211,12 @@ void RestApi::jsonStatus(const JsonVariant& doc) {
   doc["last_elapsed"] = st->lastElapsed / 1000;
   doc["total_elapsed"] = st->totalElapsed / 1000;
   doc["boot_time"] = DateTime.getBootTime();
-  doc["ms"] = millis() / 1000;
+  doc["up_time"] = millis() / 1000;
   doc["last_start"] = st->lastStart;
   doc["last_stop"] = st->lastStop;
   doc["last_reset"] = st->timerResetAt;
   doc["heap"] = ESP.getFreeHeap();
-  doc["id"] = getUDID();
+  doc["device"] = getUDID();
 }
 void RestApi::jsonNetwork(const JsonVariant& doc) {
   doc["id"] = getUDID();
@@ -225,7 +224,7 @@ void RestApi::jsonNetwork(const JsonVariant& doc) {
   doc["ip"] = WiFi.localIP().toString();
   doc["ssid"] = WiFi.SSID();
   doc["connected"] = compat::isWiFiConnected();
-  doc["ms"] = millis() / 1000;
+  doc["up_time"] = millis() / 1000;
   doc["time"] = DateTime.now();
 }
 void RestApi::jsonTask(const JsonVariant& doc) {
@@ -236,7 +235,7 @@ void RestApi::jsonTask(const JsonVariant& doc) {
   doc["enabled"] = t->enabled;
   doc["num_runs"] = t->numRuns;
   doc["prev"] = t->prevMillis / 1000;
-  doc["ms"] = millis() / 1000;
+  doc["up_time"] = millis() / 1000;
   doc["time"] = DateTime.now();
 }
 
