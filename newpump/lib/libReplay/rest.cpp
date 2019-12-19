@@ -212,14 +212,14 @@ void RestApi::jsonStatus(const JsonVariant& doc) {
   doc["total_elapsed"] = st->totalElapsed / 1000;
   doc["boot_time"] = DateTime.getBootTime();
   doc["up_time"] = millis() / 1000;
-  doc["last_start"] = st->lastStart;
-  doc["last_stop"] = st->lastStop;
-  doc["last_reset"] = st->timerResetAt;
+  doc["last_start"] = st->lastStart / 1000;
+  doc["last_stop"] = st->lastStop / 1000;
+  doc["last_reset"] = st->timerResetAt / 1000;
   doc["heap"] = ESP.getFreeHeap();
   doc["device"] = getUDID();
 }
 void RestApi::jsonNetwork(const JsonVariant& doc) {
-  doc["id"] = getUDID();
+  doc["device"] = getUDID();
   doc["mac"] = WiFi.macAddress();
   doc["ip"] = WiFi.localIP().toString();
   doc["ssid"] = WiFi.SSID();
