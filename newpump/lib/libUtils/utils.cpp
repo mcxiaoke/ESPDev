@@ -84,7 +84,7 @@ void showESP(const char* extra) {
 
 String logFileName(const String& suffix) {
   String fileName = "/logs/log-";
-  fileName += DateTime.format("%Y%d");
+  fileName += DateTime.format("%Y%m");
   if (suffix.length() > 0) {
     fileName += "-";
     fileName += suffix;
