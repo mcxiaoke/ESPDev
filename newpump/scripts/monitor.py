@@ -44,6 +44,18 @@ logging_config()
 logger = logging.getLogger("monitor")
 
 
+def send_ios_report(data):
+    try:
+        url = BARK_REPORT_URL.format(data['text'], data['desp'])
+        print(url)
+        r = requests.post(url, timeout=10)
+        print(r.text)
+        if r.ok:
+            logger.info("iOS Sent: %s", data["text"])
+    except Exception as e:
+        logger.warning("iOS Send report failed: %s", get_full_class_name(e))
+
+
 def send_report(sender, msg):
     global sendCounter
     global titleCounter
@@ -69,12 +81,13 @@ def send_report(sender, msg):
         suffix = first_line
     else:
         suffix = now.strftime("%H%M%S")
+    data = {
+        "text": "Pump_Status_{}_{}_{}".format(sender, suffix, titleCounter),
+        "desp": msg.replace("\n", "  \n"),
+    }
+    send_ios_report(data)
     try:
-        data = {
-            "text": "Pump_Status_{}_{}_{}".format(sender, suffix, titleCounter),
-            "desp": msg.replace("\n", "  \n"),
-        }
-        r = requests.post(WX_REPORT_URL, data=data, timeout=5)
+        r = requests.post(WX_REPORT_URL, data=data, timeout=10)
         print(r.text[0:64])
         if r.ok and 'success' in r.text:
             logger.info("Sent: %s", data["text"])
