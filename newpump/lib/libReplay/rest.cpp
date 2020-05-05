@@ -130,6 +130,8 @@ void RestApi::setup(AsyncWebServer* server) {
 }
 
 void RestApi::handleControl(AsyncWebServerRequest* r) {
+  showUrlWithArgs(r);
+  showHeaders(r);
   AsyncWebParameter* pa = nullptr;
   (pa = r->getParam("args", true)) || (pa = r->getParam("args")) ||
       (pa = r->getParam("cmd", true)) || (pa = r->getParam("cmd"));
@@ -160,10 +162,15 @@ void RestApi::handleControl(AsyncWebServerRequest* r) {
   //     auto res = errorResponse(-8, "Invalid Token: [token]",
   //     getCompleteUrl(r)); res->setCode(403); r->send(res); return;
   //   }
-  r->send(buildResponse([&](const JsonVariant& json) {
+  buildResponse([&](const JsonVariant& json) {
     json["uri"] = getCompleteUrl(r);
     jsonControl(json, cmd);
-  }));
+  });
+  r->redirect(r->header("Referer"));
+  //   r->send(buildResponse([&](const JsonVariant& json) {
+  //     json["uri"] = getCompleteUrl(r);
+  //     jsonControl(json, cmd);
+  //   }));
 }
 
 void RestApi::jsonControl(const JsonVariant& doc, const String& arguments) {

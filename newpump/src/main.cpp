@@ -533,7 +533,7 @@ String getStatus() {
     data += formatDateTime(getTimestamp() - (ts - st->lastStop) / 1000);
   }
   data += "\nNext Start: ";
-  auto remains = st->lastStart + cfg->interval - millis();
+  auto remains = st->lastStart + cfg->interval - ts;
   data += formatDateTime(getTimestamp() + remains / 1000);
   return data;
 }
@@ -837,6 +837,7 @@ void setupPump() {
   pump.setCallback([](const RelayEvent evt, int reason) {
     switch (evt) {
       case RelayEvent::Started: {
+        digitalWrite(led, HIGH);
         String msg = F("Pump Started");
         debugLog(msg);
         sendMqttStatus(msg);
@@ -845,7 +846,7 @@ void setupPump() {
 #endif
       } break;
       case RelayEvent::Stopped: {
-        digitalWrite(led, HIGH);
+        digitalWrite(led, LOW);
         String msg = F("Pump Stopped");
         debugLog(msg);
         sendMqttStatus(msg);
@@ -921,7 +922,8 @@ void setupDisplay() {
 
 void setupBlynk() {
 #ifdef USING_BLYNK
-  Blynk.config(blynkAuth, blynkHost, blynkPort);
+  //   Blynk.config(blynkAuth, blynkHost, blynkPort);
+  Blynk.config(blynkAuth);
 #endif
 }
 
@@ -1025,21 +1027,23 @@ BLYNK_DISCONNECTED() {
 }
 
 BLYNK_READ(V0) {
-  Blynk.virtualWrite(V0, pump.isEnabled() ? HIGH : LOW);
+  // builtin led
+  Blynk.virtualWrite(V0, digitalRead(led));
 }
 
 BLYNK_WRITE(V0) {
-  // global timer switch
+  // builtin led
   int value = param.asInt();
   LOGF("BLYNK_WRITE V0=%d\n", value);
   if (value == 0) {
-    cmdDisable();
+    digitalWrite(led, LOW);
   } else if (value == 1) {
-    cmdEnable();
+    digitalWrite(led, HIGH);
   }
 }
 
 BLYNK_READ(V1) {
+  // pump switch
   Blynk.virtualWrite(V1, pump.pinValue());
 }
 
@@ -1047,17 +1051,16 @@ BLYNK_WRITE(V1) {
   // pump switch
   int value = param.asInt();
   LOGF("BLYNK_WRITE V1=%d\n", value);
-  if (value == 0) {
+  if (value == LOW) {
     cmdStop();
-  } else if (value == 1) {
+  } else if (value == HIGH) {
     cmdStart();
   }
 }
 
-BLYNK_WRITE(V20) {
-  const char* value = param.asStr();
-  const auto cmd = CommandParam::from(value);
-  handleCommand(cmd);
+BLYNK_WRITE(V2) {
+  // check status
+  cmdStatus();
   terminal.flush();
 }
 

@@ -18,6 +18,16 @@ std::string RelayConfig::toString() const {
       interval, duration);
 }
 
+void RelayStatus::reset() {
+  enabled = true;
+  setupAt = 0;
+  timerResetAt = millis();
+  lastStart = 0;
+  lastStop = 0;
+  lastElapsed = 0;
+  totalElapsed = 0;
+}
+
 std::string RelayStatus::toString() const {
   return ext::format::strFormat2(
       "RelayStatus(enabled=%d,setup=%lu,reset=%lu,start=%lu,stop=%lu,"
@@ -91,8 +101,7 @@ void RelayUnit::check() {
 void RelayUnit::resetTimer() {
   LOGN("RelayUnit::resetTimer");
   timer.reset();
-  pStatus->timerResetAt = millis();
-  //   timer.setDebug(true);
+  pStatus->reset();
   auto startFunc = std::bind(&RelayUnit::start, this);
   runTimerId = timer.setInterval(pConfig->interval, startFunc, "start");
   auto checkFunc = std::bind(&RelayUnit::check, this);

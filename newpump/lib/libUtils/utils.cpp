@@ -19,7 +19,7 @@ std::vector<std::tuple<String, size_t>> listFiles(const char* dest) {
   if (root.isDirectory()) {
     File f = root.openNextFile();
     while (f) {
-      //   Serial.printf("[File] %s (%d bytes)\n", f.name(), f.size());
+      Serial.printf("[File] %s (%d bytes)\n", f.name(), f.size());
       output.push_back(std::make_tuple(f.name(), f.size()));
       f = root.openNextFile();
     }

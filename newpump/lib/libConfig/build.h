@@ -10,7 +10,7 @@
 #define STR1(x) #x
 #define STR(x) STR1(x)
 
-//#define USING_BLYNK
+#define USING_BLYNK
 
 #if !defined(DISABLE_MQTT)
 #define USING_MQTT

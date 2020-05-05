@@ -29,6 +29,7 @@ struct RelayStatus {
   unsigned long lastStop;
   unsigned long lastElapsed;
   unsigned long totalElapsed;
+  void reset();
   std::string toString() const;
 };
 // enum value can conflict with #define variable
