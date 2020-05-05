@@ -5,13 +5,16 @@ function loadData(e) {
       var files = JSON.parse(xhr.responseText);
       console.log(files);
       var lines = files.map(function (it) {
+        let name = it["n"];
+        let size = it["z"];
         var ca = $("<a>")
-          .attr("href", serverUrl + it["n"])
+          .attr("href", serverUrl + name)
           .attr("target", "_blank")
-          .text(it["n"]);
+          .text(name);
+        let caz = $("<span>").text(" (" + size + " bytes)");
         var aa = $("<button>").text("Delete");
         aa.on("click", function (e) {
-          var cf = confirm("Are you sure to delete file:[" + it + "] ?");
+          var cf = confirm("Are you sure to delete file:[" + name + "] ?");
           if (!cf) {
             return false;
           }
@@ -21,30 +24,30 @@ function loadData(e) {
             loadData();
           };
           var fd = new FormData();
-          fd.append("file_path", it);
+          fd.append("file_path", name);
           ar.open("POST", serverUrl + "/api/delete_file");
           ar.send(fd);
         });
         var da = $("<button>").text("Download");
         da.on("click", function (e) {
           var link = document.createElement("a");
-          link.download = it.substring(it.lastIndexOf("/") + 1);
-          link.href = serverUrl + it;
+          link.download = name.substring(it.lastIndexOf("/") + 1);
+          link.href = serverUrl + name;
           document.body.appendChild(link);
           link.click();
           link.remove();
           console.log(link.outerHTML);
         });
-        var ea = $("<button>").text("View");
+        var ea = $("<button>").text("Source");
         ea.on("click", function (e) {
           var url =
             "edit.html?" +
             encodeURIComponent("url") +
             "=" +
-            encodeURIComponent(it);
+            encodeURIComponent(name);
           window.open(url, "_blank");
         });
-        return $("<p>").append(ca, aa, da, ea);
+        return $("<p>").append(ca, caz, aa, ea);
       });
       $("#output").html("");
       lines.forEach((it) => $("#output").append(it));

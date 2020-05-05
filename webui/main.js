@@ -17,7 +17,7 @@ function buildOutputDiv(d) {
   } else {
     nextRunAt = moment(nextStart).format("MM-DD HH:mm:ss");
   }
-  var tb = $("<table>").append(
+  let tb = $("<table>").append(
     $("<tr>")
       .attr("id", "p-status")
       .append(
@@ -61,70 +61,67 @@ function buildOutputDiv(d) {
     $("<tr>")
       .attr("id", "p-global")
       .append(
-        $("<td>").text("Global Switch: "),
-        $("<td>").text(d["enabled"] ? "On" : "Off"),
-        $("<td>").text("Debug: "),
-        $("<td>").text(d["debug"] ? "True" : "False")
-      ),
-    $("<tr>")
-      .attr("id", "p-sys")
-      .append(
-        $("<td>").text("Free Stack: "),
-        $("<td>").text(d["stack"] || "N/A"),
+        $("<td>").text("Pump Enabled: "),
+        $("<td>").text(d["enabled"] ? "True" : "False"),
         $("<td>").text("Free Heap: "),
         $("<td>").text(d["heap"])
       )
   );
 
-  var o = $("<div>").attr("id", "output").attr("class", "output");
+  let o = $("<div>").attr("id", "output").attr("class", "output");
   return o.append(tb, $("<p>"));
 }
 
 function buildFormDiv(d) {
-  var pf = $("<form>")
-    .attr("id", "pump-form")
-    .attr("method", "POST")
-    .attr(
-      "action",
+  let btnPump = document.createElement("button");
+  btnPump.textContent = d["on"] ? "Stop Pump" : "Start Pump";
+  btnPump.setAttribute("id", "btn-pump");
+  btnPump.onclick = function (e) {
+    xhr = new XMLHttpRequest();
+    xhr.onload = function () {
+      console.log("pump button.");
+      loadData(false);
+    };
+    xhr.open(
+      "POST",
       serverUrl + "/api/control?token=pump&args=" + (d["on"] ? "stop" : "start")
-    )
-    .append(
-      $("<button>")
-        .attr("id", "pump_submit")
-        .attr("type", "submit")
-        .text(d["on"] ? "Stop Pump" : "Start Pump")
     );
+    xhr.send();
+    return true;
+  };
 
-  var sf = $("<form>")
-    .attr("id", "switch-form")
-    .attr("method", "POST")
-    .attr(
-      "action",
+  let btnSwitch = document.createElement("button");
+  btnSwitch.textContent = d["enabled"] ? "Disable Pump" : "Enable Pump";
+  btnSwitch.setAttribute("id", "btn-switch");
+  btnSwitch.onclick = function (e) {
+    xhr = new XMLHttpRequest();
+    xhr.onload = function () {
+      console.log("switch button.");
+      loadData(false);
+    };
+    xhr.open(
+      "POST",
       serverUrl +
         "/api/control?token=pump&args=" +
         (d["enabled"] ? "off" : "on")
-    )
-    .append(
-      $("<button>")
-        .attr("id", "switch_submit")
-        .attr("type", "submit")
-        .text(d["enabled"] ? "Switch Off" : "Switch On")
     );
+    xhr.send();
+    return true;
+  };
 
-  return $("<div>").attr("id", "form-div").append(pf, sf, $("<p>"));
+  var divider = document.createElement("p");
+  var buttonDiv = document.createElement("div");
+  buttonDiv.setAttribute("id", "form-div");
+  buttonDiv.append(btnPump, btnSwitch, divider);
+  return buttonDiv;
 }
 
 function buildButtonDiv() {
-  var buttonDiv = document.createElement("div");
+  let buttonDiv = document.createElement("div");
   buttonDiv.setAttribute("id", "button-div");
 
-  var btnLogs = document.createElement("button");
-  btnLogs.textContent = "View Logs";
-  btnLogs.setAttribute("id", "btn-logs");
-  btnLogs.onclick = (e) => (window.location.href = "logs.html");
-
-  var btnRaw = document.createElement("button");
-  btnRaw.textContent = "Full Logs";
+  let btnRaw = document.createElement("button");
+  btnRaw.textContent = "View Logs";
   btnRaw.setAttribute("id", "btn-raw");
   btnRaw.onclick = (e) => {
     window.open(
@@ -133,13 +130,13 @@ function buildButtonDiv() {
     );
   };
 
-  var btnClear = document.createElement("button");
+  let btnClear = document.createElement("button");
   btnClear.textContent = "Clear Logs";
   btnClear.setAttribute("id", "btn-clear");
   // btnClear.setAttribute("type", "submit");
   btnClear.onclick = function (e) {
     e.preventDefault();
-    var cf = confirm("Are you sure to delete all logs?");
+    let cf = confirm("Are you sure to delete all logs?");
     if (cf) {
       xhr = new XMLHttpRequest();
       xhr.onload = function () {
@@ -156,31 +153,28 @@ function buildButtonDiv() {
     return false;
   };
 
-  var btnFiles = document.createElement("button");
+  let btnFiles = document.createElement("button");
   btnFiles.textContent = "Files";
   btnFiles.setAttribute("id", "btn-files");
   btnFiles.onclick = (e) => (window.location.href = "files.html");
 
-  var btnOTA = document.createElement("button");
+  let btnOTA = document.createElement("button");
   btnOTA.textContent = "Update";
   btnOTA.setAttribute("id", "btn-ota");
   btnOTA.onclick = (e) => (window.location.href = "update.html");
 
-  var btnTimer = document.createElement("button");
-  btnTimer.textContent = "Reset Timer";
+  let btnTimer = document.createElement("button");
+  btnTimer.textContent = "Reset";
   btnTimer.setAttribute("id", "btn-timer");
   btnTimer.onclick = function (e) {
-    e.preventDefault();
-    var cf = confirm("Are you sure to reset timer?");
+    // e.preventDefault();
+    let cf = confirm("Are you sure to reset timer?");
     if (cf) {
       xhr = new XMLHttpRequest();
       xhr.onload = function () {
         console.log("timer reset.");
         // location.reload(true);
-        // loadData(false);
-      };
-      xhr.onloadend = function () {
-        console.log("timer reset end.");
+        loadData(false);
       };
       xhr.open("POST", serverUrl + "/api/control?token=pump&args=reset");
       xhr.send();
@@ -189,7 +183,7 @@ function buildButtonDiv() {
     return false;
   };
 
-  var btnReboot = document.createElement("button");
+  let btnReboot = document.createElement("button");
   btnReboot.textContent = "Reboot";
   btnReboot.setAttribute("id", "btn-reboot");
   btnReboot.onclick = function (e) {
@@ -212,31 +206,21 @@ function buildButtonDiv() {
     return false;
   };
 
-  var hr = document.createElement("p");
-
-  buttonDiv.append(
-    btnLogs,
-    btnRaw,
-    btnClear,
-    hr,
-    btnFiles,
-    btnOTA,
-    btnTimer,
-    btnReboot
-  );
+  let hr = document.createElement("p");
+  buttonDiv.append(btnRaw, btnClear, btnFiles, hr, btnOTA, btnTimer, btnReboot);
   return buttonDiv;
 }
 
 function handleError(firstTime) {
   if (firstTime) {
-    var outputDiv = $("<div>").attr("id", "output").attr("class", "output");
+    let outputDiv = $("<div>").attr("id", "output").attr("class", "output");
     outputDiv.append($("<p>").text("Failed to load data."));
     $("#content").append(outputDiv, buildButtonDiv());
   }
 }
 
 function loadData(firstTime) {
-  var xhr = new XMLHttpRequest();
+  let xhr = new XMLHttpRequest();
   xhr.timeout = 3000;
   xhr.ontimeout = function (e) {
     console.log("ontimeout");
@@ -247,19 +231,18 @@ function loadData(firstTime) {
     handleError(firstTime);
   };
   xhr.onloadend = function (e) {
-    var output = document.createElement("div");
+    let output = document.createElement("div");
     output.innerHTML = document.getElementById("content").outerHTML;
     console.log(output);
   };
   xhr.onload = function (e) {
     console.log("onload " + xhr.status);
     if (xhr.status < 400) {
-      var d = JSON.parse(xhr.responseText);
+      let d = JSON.parse(xhr.responseText);
       console.log(d);
-      var c = document.getElementById("content");
-      var t = document.createElement("h1");
-      t.textContent = "Pump Home";
-      // c.append(t, buildOutputDiv(d), buildFormDiv(d), buildButtonDiv(d));
+      let c = document.getElementById("content");
+      let t = document.createElement("h1");
+      t.textContent = "Pump Dashboard";
       $("#content").html("");
       $("#content").append(
         t,
