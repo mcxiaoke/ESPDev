@@ -78,7 +78,7 @@ function buildOutputDiv(d) {
 
 function buildFormDiv(d) {
   let btnPump = document.createElement("button");
-  btnPump.textContent = d["on"] ? "开始浇水" : "停止浇水";
+  btnPump.textContent = d["on"] ? "停止浇水" : "开始浇水";
   btnPump.setAttribute("id", "btn-pump");
   btnPump.onclick = function (e) {
     xhr = new XMLHttpRequest();
