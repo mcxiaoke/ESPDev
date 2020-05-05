@@ -527,10 +527,14 @@ String getStatus() {
   if (st->lastStart > 0) {
     data += "\nLast Start: ";
     data += formatDateTime(getTimestamp() - (ts - st->lastStart) / 1000);
+  } else {
+    data += "\nLast Start: N/A";
   }
   if (st->lastStop > 0) {
     data += "\nLast Stop: ";
     data += formatDateTime(getTimestamp() - (ts - st->lastStop) / 1000);
+  } else {
+    data += "\nLast Stop: N/A";
   }
   data += "\nNext Start: ";
   auto remains = st->lastStart + cfg->interval - ts;
@@ -826,6 +830,7 @@ void setupServer() {
   setupUpdate();
 
   DefaultHeaders::Instance().addHeader("Access-Control-Allow-Origin", "*");
+  DefaultHeaders::Instance().addHeader("Access-Control-Allow-Headers","*");
   server.begin();
   MDNS.addService("http", "tcp", 80);
   LOGN(F("[Server] HTTP server started"));

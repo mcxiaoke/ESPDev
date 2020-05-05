@@ -65,6 +65,11 @@ bool RelayUnit::start() {
   if (isOn()) {
     return false;
   }
+  // no water check
+  if (pStatus->totalElapsed > pConfig->duration * 20) {
+    // 15s * 20 = 300s
+    return false;
+  }
   LOGN("RelayUnit::start");
   updateStatusOnStart(pStatus);
   digitalWrite(pConfig->pin, HIGH);
@@ -177,6 +182,8 @@ int RelayUnit::updateConfig(const RelayConfig& config) {
 }
 
 void RelayUnit::reset() {
+  LOGN("RelayUnit::reset");
+  stop();
   resetTimer();
 }
 
