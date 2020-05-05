@@ -26,18 +26,23 @@ window.addEventListener("DOMContentLoaded", function (e) {
   console.log("DOMContentLoaded");
   disableEnterSubmit();
   var s = window.localStorage;
-  var os = s["server-url"] || serverUrl || window.location.origin;
+  var os = s["server-url"] || serverUrl || window.location.origin || "";
   document.getElementById("current-server").textContent = os;
   document
     .getElementById("server-submit")
     .addEventListener("click", function (e) {
-      let newUrl = document.getElementById("new-server").value;
+      let newUrl = document.getElementById("new-server").value || "";
       console.log(newUrl);
-      if (!isUrl(newUrl)) {
-        alert("不合法的服务器地址！");
-      } else {
+      if (!newUrl || isUrl(newUrl)) {
         s["server-url"] = newUrl;
-        window.location.reload(true);
+        location.reload(true);
+      } else {
+        alert("不合法的服务器地址！");
       }
     });
+
+  document.getElementById("back-home").addEventListener("click", function (e) {
+    // window.location.replace(location.replace(location.split("/").pop(), ""));
+    window.location.replace("/");
+  });
 });

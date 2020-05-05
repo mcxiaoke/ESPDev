@@ -242,7 +242,7 @@ function handleError(firstTime) {
 }
 
 function loadData(firstTime) {
-  serverUrl = serverUrl || window.localStorage["server-url"];
+  serverUrl = serverUrl || window.localStorage["server-url"] || "";
   let xhr = new XMLHttpRequest();
   xhr.timeout = 3000;
   xhr.ontimeout = function (e) {
