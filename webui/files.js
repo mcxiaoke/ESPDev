@@ -12,9 +12,9 @@ function loadData(e) {
           .attr("target", "_blank")
           .text(name);
         let caz = $("<span>").text(" (" + size + " bytes)");
-        var aa = $("<button>").text("Delete");
+        var aa = $("<button>").text("删除");
         aa.on("click", function (e) {
-          var cf = confirm("Are you sure to delete file:[" + name + "] ?");
+          var cf = confirm("确定删除这个文件：[" + name + "] ?");
           if (!cf) {
             return false;
           }
@@ -38,7 +38,7 @@ function loadData(e) {
           link.remove();
           console.log(link.outerHTML);
         });
-        var ea = $("<button>").text("Source");
+        var ea = $("<button>").text("查看");
         ea.on("click", function (e) {
           var url =
             "edit.html?" +

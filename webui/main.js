@@ -19,51 +19,55 @@ function buildOutputDiv(d) {
   }
   let tb = $("<table>").append(
     $("<tr>")
+      .attr("id", "p-info")
+      .append($("<td>").text("服务器地址: "), $("<td>").text(serverUrl))
+      .append($("<td>").text("  "), $("<td>").text(" ")),
+    $("<tr>")
       .attr("id", "p-status")
       .append(
-        $("<td>").text("Date: "),
+        $("<td>").text("当前时间: "),
         $("<td>").text(moment.unix(d["time"]).format("MM-DD HH:mm:ss")),
-        $("<td>").text("Status: "),
-        $("<td>").text(d["on"] ? "Running" : "Idle")
+        $("<td>").text("当前状态: "),
+        $("<td>").text(d["on"] ? "正在浇水" : "空闲")
       ),
     $("<tr>")
       .attr("id", "p-last")
       .append(
-        $("<td>").text("Last RunAt: "),
+        $("<td>").text("上次运行时刻: "),
         $("<td>").text(lastRunAt),
-        $("<td>").text("Elapsed: "),
+        $("<td>").text("上次浇水时长: "),
         $("<td>").text(d["last_elapsed"] + "s")
       ),
     $("<tr>")
       .attr("id", "p-next")
       .append(
-        $("<td>").text("Next RunAt: "),
+        $("<td>").text("下次运行时刻: "),
         $("<td>").text(nextRunAt),
-        $("<td>").text("Remains: "),
+        $("<td>").text("距离下次运行: "),
         $("<td>").text(humanElapsed(nextRemains))
       ),
     $("<tr>")
       .attr("id", "p-status")
       .append(
-        $("<td>").text("Total Elapsed: "),
+        $("<td>").text("总共浇水时长: "),
         $("<td>").text(d["total_elapsed"] + "s"),
-        $("<td>").text("Up Time: "),
+        $("<td>").text("开机时间: "),
         $("<td>").text(humanElapsed(d["up_time"]))
       ),
     $("<tr>")
       .attr("id", "p-task")
       .append(
-        $("<td>").text("Task Interval: "),
+        $("<td>").text("浇水间隔: "),
         $("<td>").text(humanElapsed(d["interval"])),
-        $("<td>").text("Task Duration: "),
+        $("<td>").text("浇水时长: "),
         $("<td>").text(humanElapsed(d["duration"]))
       ),
     $("<tr>")
       .attr("id", "p-global")
       .append(
-        $("<td>").text("Pump Enabled: "),
-        $("<td>").text(d["enabled"] ? "True" : "False"),
-        $("<td>").text("Free Heap: "),
+        $("<td>").text("浇水器状态: "),
+        $("<td>").text(d["enabled"] ? "已启用" : "已禁用"),
+        $("<td>").text("空闲内存: "),
         $("<td>").text(d["heap"])
       )
   );
@@ -74,7 +78,7 @@ function buildOutputDiv(d) {
 
 function buildFormDiv(d) {
   let btnPump = document.createElement("button");
-  btnPump.textContent = d["on"] ? "Stop Pump" : "Start Pump";
+  btnPump.textContent = d["on"] ? "开始浇水" : "停止浇水";
   btnPump.setAttribute("id", "btn-pump");
   btnPump.onclick = function (e) {
     xhr = new XMLHttpRequest();
@@ -91,7 +95,7 @@ function buildFormDiv(d) {
   };
 
   let btnSwitch = document.createElement("button");
-  btnSwitch.textContent = d["enabled"] ? "Disable Pump" : "Enable Pump";
+  btnSwitch.textContent = d["enabled"] ? "禁用机器" : "启用机器";
   btnSwitch.setAttribute("id", "btn-switch");
   btnSwitch.onclick = function (e) {
     xhr = new XMLHttpRequest();
@@ -121,7 +125,7 @@ function buildButtonDiv() {
   buttonDiv.setAttribute("id", "button-div");
 
   let btnRaw = document.createElement("button");
-  btnRaw.textContent = "View Logs";
+  btnRaw.textContent = "查看日志";
   btnRaw.setAttribute("id", "btn-raw");
   btnRaw.onclick = (e) => {
     window.open(
@@ -131,12 +135,12 @@ function buildButtonDiv() {
   };
 
   let btnClear = document.createElement("button");
-  btnClear.textContent = "Clear Logs";
+  btnClear.textContent = "清空日志";
   btnClear.setAttribute("id", "btn-clear");
   // btnClear.setAttribute("type", "submit");
   btnClear.onclick = function (e) {
     e.preventDefault();
-    let cf = confirm("Are you sure to delete all logs?");
+    let cf = confirm("确定清空所有日志文件吗?");
     if (cf) {
       xhr = new XMLHttpRequest();
       xhr.onload = function () {
@@ -154,21 +158,21 @@ function buildButtonDiv() {
   };
 
   let btnFiles = document.createElement("button");
-  btnFiles.textContent = "Files";
+  btnFiles.textContent = "查看文件";
   btnFiles.setAttribute("id", "btn-files");
   btnFiles.onclick = (e) => (window.location.href = "files.html");
 
   let btnOTA = document.createElement("button");
-  btnOTA.textContent = "Update";
+  btnOTA.textContent = "系统更新";
   btnOTA.setAttribute("id", "btn-ota");
   btnOTA.onclick = (e) => (window.location.href = "update.html");
 
   let btnTimer = document.createElement("button");
-  btnTimer.textContent = "Reset";
+  btnTimer.textContent = "重置定时";
   btnTimer.setAttribute("id", "btn-timer");
   btnTimer.onclick = function (e) {
     // e.preventDefault();
-    let cf = confirm("Are you sure to reset timer?");
+    let cf = confirm("确定重置定时器吗?");
     if (cf) {
       xhr = new XMLHttpRequest();
       xhr.onload = function () {
@@ -184,7 +188,7 @@ function buildButtonDiv() {
   };
 
   let btnReboot = document.createElement("button");
-  btnReboot.textContent = "Reboot";
+  btnReboot.textContent = "重启浇水器";
   btnReboot.setAttribute("id", "btn-reboot");
   btnReboot.onclick = function (e) {
     var cf = confirm("Are you sure to reboot board?");
@@ -242,7 +246,7 @@ function loadData(firstTime) {
       console.log(d);
       let c = document.getElementById("content");
       let t = document.createElement("h1");
-      t.textContent = "Pump Dashboard";
+      t.textContent = "智能浇水器";
       $("#content").html("");
       $("#content").append(
         t,
