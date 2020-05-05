@@ -1,5 +1,5 @@
-const serverUrl = "http://192.168.1.140";
-// const serverUrl = "";
+// const serverUrl = "http://192.168.1.140";
+const serverUrl = "";
 const baseUrl = "";
 
 var parseHTML = function (str) {

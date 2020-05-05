@@ -1,10 +1,18 @@
 #!/usr/bin/env python3
 from subprocess import call, check_output
 from datetime import datetime
+import shutil
 import os
 import sys
 
-Import("env")
+is_build_env = False
+
+try:
+    Import("env")
+    is_build_env = True
+except:
+    print("Not build environment")
+
 
 print("------ Pre Build Script ------")
 
@@ -73,7 +81,8 @@ def print_envs():
     print(build_flags.get("CXXFLAGS"))
 
 
-# process_os_envs()
-process_version()
-process_build()
-print_envs()
+if is_build_env:
+    # process_os_envs()
+    process_version()
+    process_build()
+    print_envs()
