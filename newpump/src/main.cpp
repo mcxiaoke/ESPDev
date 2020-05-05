@@ -47,13 +47,13 @@ constexpr const char* appVersion = APP_VERSION;
 constexpr int led = LED_BUILTIN;
 
 #ifdef DEBUG_MODE
-#define RUN_INTERVAL_DEFAULT 5 * 60 * 1000UL
-#define RUN_DURATION_DEFAULT 18 * 1000UL
+#define RUN_INTERVAL_DEFAULT 10 * 60 * 1000UL
+#define RUN_DURATION_DEFAULT 12 * 1000UL
 #define STATUS_INTERVAL_DEFAULT 10 * 60 * 1000UL
 #else
-#define RUN_INTERVAL_DEFAULT 8 * 3600 * 1000UL
-#define RUN_DURATION_DEFAULT 10 * 1000UL
-#define STATUS_INTERVAL_DEFAULT 4 * 60 * 60 * 1000UL
+#define RUN_INTERVAL_DEFAULT 24 * 3600 * 1000UL
+#define RUN_DURATION_DEFAULT 15 * 1000UL
+#define STATUS_INTERVAL_DEFAULT 8 * 60 * 60 * 1000UL
 #endif
 
 unsigned long statusInterval = STATUS_INTERVAL_DEFAULT;
@@ -256,7 +256,8 @@ bool mqttConnected() {
 void cmdReboot(const CommandParam& param = CommandParam::INVALID) {
   debugLog(F("Reboot now"));
   sendMqttLog("System will reboot now");
-  aTimer.setTimeout(1000, []() { ESP.restart(); }, "cmdReboot");
+  aTimer.setTimeout(
+      1000, []() { ESP.restart(); }, "cmdReboot");
 }
 
 void cmdReset(const CommandParam& param = CommandParam::INVALID) {
@@ -680,14 +681,15 @@ void handleWiFiGotIP() {
     // on on setup stage
     wifiInitialized = true;
     LOGN("[WiFi] Initialized");
-    aTimer.setTimeout(100,
-                      []() {
-                        LOGN("[WiFi] Check services");
-                        checkDate();
-                        checkMqtt();
-                        checkBlynk();
-                      },
-                      "wifiAfter");
+    aTimer.setTimeout(
+        100,
+        []() {
+          LOGN("[WiFi] Check services");
+          checkDate();
+          checkMqtt();
+          checkBlynk();
+        },
+        "wifiAfter");
   }
   if (wifiInitTimerId >= 0) {
     aTimer.deleteTimer(wifiInitTimerId);
@@ -830,8 +832,8 @@ void setupServer() {
 }
 
 void setupPump() {
-  // default pin nodemcu D5
-  pump.begin({"pump", 14, RUN_INTERVAL_DEFAULT, RUN_DURATION_DEFAULT});
+  // default pin nodemcu D5, nodemcu-32s 13
+  pump.begin({"pump", 13, RUN_INTERVAL_DEFAULT, RUN_DURATION_DEFAULT});
   pump.setCallback([](const RelayEvent evt, int reason) {
     switch (evt) {
       case RelayEvent::Started: {

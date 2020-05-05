@@ -10,19 +10,19 @@
 #include <compat.h>
 #include "tools.h"
 
-#include <umm_malloc/umm_malloc.h>
+// #include <umm_malloc/umm_malloc.h>
 
 constexpr const size_t block_size = 8;
 
-inline size_t getTotalAvailableMemory() {
-  umm_info(0, 0);
-  return ummHeapInfo.freeBlocks * block_size;
-}
+// inline size_t getTotalAvailableMemory() {
+//   umm_info(0, 0);
+//   return ummHeapInfo.freeBlocks * block_size;
+// }
 
-inline size_t getLargestAvailableBlock() {
-  umm_info(0, 0);
-  return ummHeapInfo.maxFreeContiguousBlocks * block_size;
-}
+// inline size_t getLargestAvailableBlock() {
+//   umm_info(0, 0);
+//   return ummHeapInfo.maxFreeContiguousBlocks * block_size;
+// }
 
 // https://forum.arduino.cc/index.php/topic,46643.0.html
 // Serial << "hello,World" << "End\n";

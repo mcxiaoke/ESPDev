@@ -90,7 +90,6 @@ string MqttManager::getSerialRxTopic() {
 }
 
 void MqttManager::sendStatus(const String& text) {
-  //   LOGF("[MQTT] send message: [%s]\n", text.c_str());
   bool ret = sendMessage(getStatusTopic().c_str(), text.c_str());
   if (ret) {
     LOGF("[MQTT] mqtt status: [%s] (%d)\n", text.c_str(), text.length());
@@ -100,7 +99,6 @@ void MqttManager::sendStatus(const String& text) {
 }
 
 void MqttManager::sendLog(const String& text) {
-  //   LOGF("[MQTT] send message: [%s]\n", text.c_str());
   bool ret = sendMessage(getLogTopic().c_str(), text.c_str());
   if (ret) {
     LOGF("[MQTT] mqtt log: [%s].\n", text.c_str());
@@ -253,6 +251,7 @@ bool MqttManager::sendMessage(const char* topic,
     LOGN("[MQTT] Silent Mode, ignore sendMessage.");
     return false;
   } else {
+    LOGF("[MQTT] send message to <%s>\n", topic);
     return _mqtt->publish(topic, payload, retained);
   }
 }
