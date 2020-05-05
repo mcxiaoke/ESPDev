@@ -1,6 +1,6 @@
 // const serverUrl = "http://192.168.1.140";
-const serverUrl = "";
-const baseUrl = "";
+var serverUrl = "";
+var baseUrl = "/";
 
 var parseHTML = function (str) {
   var tmp = document.implementation.createHTMLDocument();

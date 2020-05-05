@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>服务器设置</title>
+    <link rel="stylesheet" type="text/css" href="main.css" />
+    <script src="config.js"></script>
+    <!-- <script src="//cdn.staticfile.org/umbrella/3.1.0/umbrella.min.js"></script> -->
+  </head>
+
+  <body>
+    <div class="content" id="content">
+      <h2>服务器设置</h2>
+      <div>
+        <p><span>当前服务器：</span><span id="current-server"></span></p>
+      </div>
+      <form name="option-form" id="option-form" action="">
+        <span>修改服务器：</span
+        ><input type="text" name="new-server" id="new-server" /><button
+          type="button"
+          name="server-submit"
+          id="server-submit"
+        >
+          提交
+        </button>
+      </form>
+      <p>
+        <a href="/"><button>回到首页</button></a>
+      </p>
+    </div>
+    <script src="option.js"></script>
+  </body>
+</html>

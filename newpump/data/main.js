@@ -17,23 +17,44 @@ function buildOutputDiv(d) {
   } else {
     nextRunAt = moment(nextStart).format("MM-DD HH:mm:ss");
   }
+  let surl = serverUrl || window.location.origin;
   let tb = $("<table>").append(
     $("<tr>")
-      .attr("id", "p-info")
-      .append($("<td>").text("服务器地址: "), $("<td>").text(serverUrl))
-      .append($("<td>").text("  "), $("<td>").text(" ")),
+      .attr("id", "p-head")
+      .append($("<td>").text("服务器地址: "), $("<td>").text(surl)),
     $("<tr>")
       .attr("id", "p-status")
       .append(
-        $("<td>").text("当前时间: "),
-        $("<td>").text(moment.unix(d["time"]).format("MM-DD HH:mm:ss")),
-        $("<td>").text("当前状态: "),
-        $("<td>").text(d["on"] ? "正在浇水" : "空闲")
+        $("<td>").addClass("important").text("设备状态: "),
+        $("<td>")
+          .addClass("danger")
+          .text(d["enabled"] ? "已启用" : "已禁用"),
+        $("<td>").addClass("important").text("运行状态: "),
+        $("<td>")
+          .addClass("danger")
+          .text(d["on"] ? "正在浇水" : "空闲")
+      ),
+    $("<tr>")
+      .attr("id", "p-global")
+      .append(
+        $("<td>").text("开机时间: "),
+        $("<td>").text(humanElapsed(d["up_time"])),
+        $("<td>").text("空闲内存: "),
+        $("<td>").text(d["heap"])
+      ),
+
+    $("<tr>")
+      .attr("id", "p-task")
+      .append(
+        $("<td>").text("浇水间隔: "),
+        $("<td>").addClass("important").text(humanElapsed(d["interval"])),
+        $("<td>").text("浇水时长: "),
+        $("<td>").addClass("important").text(humanElapsed(d["duration"]))
       ),
     $("<tr>")
       .attr("id", "p-last")
       .append(
-        $("<td>").text("上次运行时刻: "),
+        $("<td>").text("上次浇水时刻: "),
         $("<td>").text(lastRunAt),
         $("<td>").text("上次浇水时长: "),
         $("<td>").text(d["last_elapsed"] + "s")
@@ -41,34 +62,18 @@ function buildOutputDiv(d) {
     $("<tr>")
       .attr("id", "p-next")
       .append(
-        $("<td>").text("下次运行时刻: "),
-        $("<td>").text(nextRunAt),
-        $("<td>").text("距离下次运行: "),
-        $("<td>").text(humanElapsed(nextRemains))
-      ),
-    $("<tr>")
-      .attr("id", "p-status")
-      .append(
+        $("<td>").text("下次浇水时刻: "),
+        $("<td>").addClass("important").text(nextRunAt),
         $("<td>").text("总共浇水时长: "),
-        $("<td>").text(d["total_elapsed"] + "s"),
-        $("<td>").text("开机时间: "),
-        $("<td>").text(humanElapsed(d["up_time"]))
+        $("<td>").text(d["total_elapsed"] + "s")
       ),
     $("<tr>")
-      .attr("id", "p-task")
+      .attr("id", "p-time")
       .append(
-        $("<td>").text("浇水间隔: "),
-        $("<td>").text(humanElapsed(d["interval"])),
-        $("<td>").text("浇水时长: "),
-        $("<td>").text(humanElapsed(d["duration"]))
-      ),
-    $("<tr>")
-      .attr("id", "p-global")
-      .append(
-        $("<td>").text("浇水器状态: "),
-        $("<td>").text(d["enabled"] ? "已启用" : "已禁用"),
-        $("<td>").text("空闲内存: "),
-        $("<td>").text(d["heap"])
+        $("<td>").text("当前时间: "),
+        $("<td>").text(moment.unix(d["time"]).format("MM-DD HH:mm:ss")),
+        $("<td>").text("距离下次运行: "),
+        $("<td>").addClass("important").text(humanElapsed(nextRemains))
       )
   );
 
@@ -80,6 +85,7 @@ function buildFormDiv(d) {
   let btnPump = document.createElement("button");
   btnPump.textContent = d["on"] ? "停止浇水" : "开始浇水";
   btnPump.setAttribute("id", "btn-pump");
+  btnPump.setAttribute("class", "important");
   btnPump.onclick = function (e) {
     xhr = new XMLHttpRequest();
     xhr.onload = function () {
@@ -95,8 +101,9 @@ function buildFormDiv(d) {
   };
 
   let btnSwitch = document.createElement("button");
-  btnSwitch.textContent = d["enabled"] ? "禁用机器" : "启用机器";
+  btnSwitch.textContent = d["enabled"] ? "禁用设备" : "启用设备";
   btnSwitch.setAttribute("id", "btn-switch");
+  btnSwitch.setAttribute("class", "important");
   btnSwitch.onclick = function (e) {
     xhr = new XMLHttpRequest();
     xhr.onload = function () {
@@ -113,10 +120,55 @@ function buildFormDiv(d) {
     return true;
   };
 
+  let btnTimer = document.createElement("button");
+  btnTimer.textContent = "重置定时";
+  btnTimer.setAttribute("id", "btn-timer");
+  btnTimer.setAttribute("class", "danger");
+  btnTimer.onclick = function (e) {
+    // e.preventDefault();
+    let cf = confirm("确定重置定时器吗?");
+    if (cf) {
+      xhr = new XMLHttpRequest();
+      xhr.onload = function () {
+        console.log("timer reset.");
+        // location.reload(true);
+        loadData(false);
+      };
+      xhr.open("POST", serverUrl + "/api/control?token=pump&args=reset");
+      xhr.send();
+      return true;
+    }
+    return false;
+  };
+
+  let btnReboot = document.createElement("button");
+  btnReboot.textContent = "重启机器";
+  btnReboot.setAttribute("id", "btn-reboot");
+  btnReboot.setAttribute("class", "danger");
+  btnReboot.onclick = function (e) {
+    var cf = confirm("确定要重启浇水器设备吗?");
+    if (cf) {
+      e.preventDefault();
+      xhr = new XMLHttpRequest();
+      xhr.onload = function () {
+        if (xhr.status < 400) {
+          alert("Board will reboot!");
+          setTimeout(() => {
+            location.reload(true);
+          }, 15000);
+        }
+      };
+      xhr.open("POST", serverUrl + "/api/control?token=pump&args=reboot");
+      xhr.send();
+      return true;
+    }
+    return false;
+  };
+
   var divider = document.createElement("p");
   var buttonDiv = document.createElement("div");
   buttonDiv.setAttribute("id", "form-div");
-  buttonDiv.append(btnPump, btnSwitch, divider);
+  buttonDiv.append(btnPump, btnSwitch, btnTimer, btnReboot, divider);
   return buttonDiv;
 }
 
@@ -162,68 +214,35 @@ function buildButtonDiv() {
   btnFiles.setAttribute("id", "btn-files");
   btnFiles.onclick = (e) => (window.location.href = "files.html");
 
+  let btnOption = document.createElement("button");
+  btnOption.textContent = "配置修改";
+  btnOption.setAttribute("id", "btn-option");
+  btnOption.onclick = (e) => (window.location.href = "option.html");
+
   let btnOTA = document.createElement("button");
   btnOTA.textContent = "系统更新";
   btnOTA.setAttribute("id", "btn-ota");
   btnOTA.onclick = (e) => (window.location.href = "update.html");
 
-  let btnTimer = document.createElement("button");
-  btnTimer.textContent = "重置定时";
-  btnTimer.setAttribute("id", "btn-timer");
-  btnTimer.onclick = function (e) {
-    // e.preventDefault();
-    let cf = confirm("确定重置定时器吗?");
-    if (cf) {
-      xhr = new XMLHttpRequest();
-      xhr.onload = function () {
-        console.log("timer reset.");
-        // location.reload(true);
-        loadData(false);
-      };
-      xhr.open("POST", serverUrl + "/api/control?token=pump&args=reset");
-      xhr.send();
-      return true;
-    }
-    return false;
-  };
-
-  let btnReboot = document.createElement("button");
-  btnReboot.textContent = "重启浇水器";
-  btnReboot.setAttribute("id", "btn-reboot");
-  btnReboot.onclick = function (e) {
-    var cf = confirm("Are you sure to reboot board?");
-    if (cf) {
-      e.preventDefault();
-      xhr = new XMLHttpRequest();
-      xhr.onload = function () {
-        if (xhr.status < 400) {
-          alert("Board will reboot!");
-          setTimeout(() => {
-            location.reload(true);
-          }, 15000);
-        }
-      };
-      xhr.open("POST", serverUrl + "/api/control?token=pump&args=reboot");
-      xhr.send();
-      return true;
-    }
-    return false;
-  };
-
   let hr = document.createElement("p");
-  buttonDiv.append(btnRaw, btnClear, btnFiles, hr, btnOTA, btnTimer, btnReboot);
+  buttonDiv.append(btnRaw, btnFiles, btnOption, btnOTA);
   return buttonDiv;
 }
 
 function handleError(firstTime) {
   if (firstTime) {
     let outputDiv = $("<div>").attr("id", "output").attr("class", "output");
-    outputDiv.append($("<p>").text("Failed to load data."));
+    outputDiv.append(
+      $("<p>")
+        .addClass("danger")
+        .text("请检查服务器配置: " + serverUrl)
+    );
     $("#content").append(outputDiv, buildButtonDiv());
   }
 }
 
 function loadData(firstTime) {
+  serverUrl = serverUrl || window.localStorage["server-url"];
   let xhr = new XMLHttpRequest();
   xhr.timeout = 3000;
   xhr.ontimeout = function (e) {
@@ -237,15 +256,16 @@ function loadData(firstTime) {
   xhr.onloadend = function (e) {
     let output = document.createElement("div");
     output.innerHTML = document.getElementById("content").outerHTML;
-    console.log(output);
+    // console.log(output);
   };
   xhr.onload = function (e) {
     console.log("onload " + xhr.status);
     if (xhr.status < 400) {
       let d = JSON.parse(xhr.responseText);
-      console.log(d);
+      console.log("Data:", d);
       let c = document.getElementById("content");
       let t = document.createElement("h1");
+      t.setAttribute("id", "pump-title");
       t.textContent = "智能浇水器";
       $("#content").html("");
       $("#content").append(

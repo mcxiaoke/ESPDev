@@ -96,7 +96,7 @@ void RestApi::setup(AsyncWebServer* server) {
   });
   server->on(
       "/api/status", HTTP_GET | HTTP_POST, [&](AsyncWebServerRequest* r) {
-        showUrlWithArgs(r);
+        // showUrlWithArgs(r);
         r->send(buildResponse(
             std::bind(&RestApi::jsonStatus, this, std::placeholders::_1)));
       });
@@ -125,13 +125,12 @@ void RestApi::setup(AsyncWebServer* server) {
   server->on("/api/control", HTTP_POST | HTTP_GET,
              [&](AsyncWebServerRequest* r) {
                showUrlWithArgs(r);
+               //  showHeaders(r);
                handleControl(r);
              });
 }
 
 void RestApi::handleControl(AsyncWebServerRequest* r) {
-  showUrlWithArgs(r);
-  showHeaders(r);
   AsyncWebParameter* pa = nullptr;
   (pa = r->getParam("args", true)) || (pa = r->getParam("args")) ||
       (pa = r->getParam("cmd", true)) || (pa = r->getParam("cmd"));

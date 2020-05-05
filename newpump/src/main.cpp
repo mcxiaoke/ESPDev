@@ -634,8 +634,7 @@ void handleReset(AsyncWebServerRequest* request) {
 
 void handleRoot(AsyncWebServerRequest* request) {
   LOGN("handleRoot");
-  request->send(200, MIME_TEXT_PLAIN, getStatus().c_str());
-  showESP();
+  request->redirect("/index.html");
   showESP();
 }
 
@@ -821,7 +820,13 @@ void setupServer() {
   if (MDNS.begin(getUDID().c_str())) {
     LOGN(F("[Server] MDNS responder started"));
   }
-  server.on("/", handleRoot);
+  time_t now = DateTime.getBootTime();
+  struct tm* timeinfo;
+  timeinfo = localtime(&now);
+  server.serveStatic("/", SPIFFS, "/")
+      .setDefaultFile("index.html")
+      .setLastModified(timeinfo);
+  //   server.on("/", handleRoot);
   server.on("/files", handleFiles);
   server.on("/logs", handleLogs);
   server.on("/help", handleHelp);
@@ -830,7 +835,7 @@ void setupServer() {
   setupUpdate();
 
   DefaultHeaders::Instance().addHeader("Access-Control-Allow-Origin", "*");
-  DefaultHeaders::Instance().addHeader("Access-Control-Allow-Headers","*");
+  DefaultHeaders::Instance().addHeader("Access-Control-Allow-Headers", "*");
   server.begin();
   MDNS.addService("http", "tcp", 80);
   LOGN(F("[Server] HTTP server started"));
