@@ -978,6 +978,7 @@ void setup(void) {
   LOGN(DateTime.toISOString());
   checkModules();
   debugLog(F("System is running"));
+  debugLog(appVersion);
 }
 
 void loop(void) {

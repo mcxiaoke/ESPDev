@@ -12,6 +12,7 @@
 #include <ACommand.h>
 #include <DateTime.h>
 #include <AsyncJson.h>
+#include <build.h>
 
 using RestResponse = std::tuple<int, String>;
 

@@ -223,6 +223,14 @@ void RestApi::jsonStatus(const JsonVariant& doc) {
   doc["last_reset"] = st->timerResetAt / 1000;
   doc["heap"] = ESP.getFreeHeap();
   doc["device"] = getUDID();
+#ifdef APP_VERSION
+  doc["version"] = APP_VERSION;
+#endif
+#ifdef DEBUG
+  doc["debug"] = 1;
+#else
+  doc["debug"] = 0;
+#endif
 }
 void RestApi::jsonNetwork(const JsonVariant& doc) {
   doc["device"] = getUDID();
