@@ -65,7 +65,9 @@ function loadData(e) {
 }
 
 window.addEventListener("DOMContentLoaded", function (e) {
+  serverUrl = serverUrl || window.localStorage["server-url"] || "";
   console.log("DOMContentLoaded");
+  console.log(serverUrl);
   loadData(e);
   $("#reload").on("click", function (e) {
     console.log("click");

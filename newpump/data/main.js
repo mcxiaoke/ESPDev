@@ -1,3 +1,7 @@
+function newLine() {
+  return document.createElement("p");
+}
+
 function buildOutputDiv(d) {
   let now = Date.now();
   var lastRunAt = "";
@@ -18,10 +22,15 @@ function buildOutputDiv(d) {
     nextRunAt = moment(nextStart).format("MM-DD HH:mm:ss");
   }
   let surl = serverUrl || window.location.origin;
+  let debugMode = d["debug"] == 1 ? "测试版" : "正式版";
   let tb = $("<table>").append(
     $("<tr>")
       .attr("id", "p-head")
-      .append($("<td>").text("服务器地址: "), $("<td>").text(surl)),
+      .append($("<td>").text("远程服务: "), $("<td>").text(surl)),
+    $("<tr>")
+      .attr("id", "p-head")
+      .append($("<td>").text("系统版本: "), $("<td>").text(d["version"]))
+      .append($("<td>").text("系统状态: "), $("<td>").text(debugMode)),
     $("<tr>")
       .attr("id", "p-status")
       .append(
@@ -54,17 +63,17 @@ function buildOutputDiv(d) {
     $("<tr>")
       .attr("id", "p-last")
       .append(
-        $("<td>").text("上次浇水时刻: "),
+        $("<td>").text("上次浇水: "),
         $("<td>").text(lastRunAt),
-        $("<td>").text("上次浇水时长: "),
+        $("<td>").text("上次时长: "),
         $("<td>").text(d["last_elapsed"] + "s")
       ),
     $("<tr>")
       .attr("id", "p-next")
       .append(
-        $("<td>").text("下次浇水时刻: "),
+        $("<td>").text("下次浇水: "),
         $("<td>").addClass("important").text(nextRunAt),
-        $("<td>").text("总共浇水时长: "),
+        $("<td>").text("总共时长: "),
         $("<td>").text(d["total_elapsed"] + "s")
       ),
     $("<tr>")
@@ -72,7 +81,7 @@ function buildOutputDiv(d) {
       .append(
         $("<td>").text("当前时间: "),
         $("<td>").text(moment.unix(d["time"]).format("MM-DD HH:mm:ss")),
-        $("<td>").text("距离下次运行: "),
+        $("<td>").text("剩余时间: "),
         $("<td>").addClass("important").text(humanElapsed(nextRemains))
       )
   );
@@ -85,8 +94,15 @@ function buildFormDiv(d) {
   let btnPump = document.createElement("button");
   btnPump.textContent = d["on"] ? "停止浇水" : "开始浇水";
   btnPump.setAttribute("id", "btn-pump");
-  btnPump.setAttribute("class", "important");
+  btnPump.setAttribute("class", "important button-large");
   btnPump.onclick = function (e) {
+    let checkStart = new Date().getTime();
+    let checkId = setInterval(function () {
+      loadData(false);
+      if (new Date().getTime() - checkStart > 15000) {
+        clearInterval(checkId);
+      }
+    }, 1000);
     xhr = new XMLHttpRequest();
     xhr.onload = function () {
       console.log("pump button.");
@@ -103,7 +119,7 @@ function buildFormDiv(d) {
   let btnSwitch = document.createElement("button");
   btnSwitch.textContent = d["enabled"] ? "禁用设备" : "启用设备";
   btnSwitch.setAttribute("id", "btn-switch");
-  btnSwitch.setAttribute("class", "important");
+  btnSwitch.setAttribute("class", "important button-large");
   btnSwitch.onclick = function (e) {
     xhr = new XMLHttpRequest();
     xhr.onload = function () {
@@ -123,7 +139,7 @@ function buildFormDiv(d) {
   let btnTimer = document.createElement("button");
   btnTimer.textContent = "重置定时";
   btnTimer.setAttribute("id", "btn-timer");
-  btnTimer.setAttribute("class", "danger");
+  btnTimer.setAttribute("class", "danger button-large");
   btnTimer.onclick = function (e) {
     // e.preventDefault();
     let cf = confirm("确定重置定时器吗?");
@@ -144,7 +160,7 @@ function buildFormDiv(d) {
   let btnReboot = document.createElement("button");
   btnReboot.textContent = "重启机器";
   btnReboot.setAttribute("id", "btn-reboot");
-  btnReboot.setAttribute("class", "danger");
+  btnReboot.setAttribute("class", "danger button-large");
   btnReboot.onclick = function (e) {
     var cf = confirm("确定要重启浇水器设备吗?");
     if (cf) {
@@ -165,10 +181,16 @@ function buildFormDiv(d) {
     return false;
   };
 
-  var divider = document.createElement("p");
   var buttonDiv = document.createElement("div");
   buttonDiv.setAttribute("id", "form-div");
-  buttonDiv.append(btnPump, btnSwitch, btnTimer, btnReboot, divider);
+  buttonDiv.append(
+    btnPump,
+    btnSwitch,
+    newLine(),
+    btnTimer,
+    btnReboot,
+    newLine()
+  );
   return buttonDiv;
 }
 
@@ -179,6 +201,7 @@ function buildButtonDiv() {
   let btnRaw = document.createElement("button");
   btnRaw.textContent = "查看日志";
   btnRaw.setAttribute("id", "btn-raw");
+  btnRaw.setAttribute("class", "button-large");
   btnRaw.onclick = (e) => {
     window.open(
       serverUrl + "/logs/log-" + moment().format("YYYY-MM") + ".txt",
@@ -189,7 +212,7 @@ function buildButtonDiv() {
   let btnClear = document.createElement("button");
   btnClear.textContent = "清空日志";
   btnClear.setAttribute("id", "btn-clear");
-  // btnClear.setAttribute("type", "submit");
+  btnClear.setAttribute("class", "danger button-large");
   btnClear.onclick = function (e) {
     e.preventDefault();
     let cf = confirm("确定清空所有日志文件吗?");
@@ -212,20 +235,22 @@ function buildButtonDiv() {
   let btnFiles = document.createElement("button");
   btnFiles.textContent = "查看文件";
   btnFiles.setAttribute("id", "btn-files");
+  btnFiles.setAttribute("class", "button-large");
   btnFiles.onclick = (e) => (window.location.href = "files.html");
 
   let btnOption = document.createElement("button");
   btnOption.textContent = "配置修改";
   btnOption.setAttribute("id", "btn-option");
+  btnOption.setAttribute("class", "button-large");
   btnOption.onclick = (e) => (window.location.href = "option.html");
 
   let btnOTA = document.createElement("button");
   btnOTA.textContent = "系统更新";
   btnOTA.setAttribute("id", "btn-ota");
+  btnOTA.setAttribute("class", "button-large");
   btnOTA.onclick = (e) => (window.location.href = "update.html");
 
-  let hr = document.createElement("p");
-  buttonDiv.append(btnRaw, btnFiles, btnOption, btnOTA);
+  buttonDiv.append(btnRaw, btnFiles, newLine(), btnOption, btnOTA, newLine());
   return buttonDiv;
 }
 
