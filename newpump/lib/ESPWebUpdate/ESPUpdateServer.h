@@ -2,6 +2,7 @@
 #define __ESP_HTTP_UPDATE_SERVER_H__
 
 #include <ext/utility.hpp>
+#include <utils.h>
 #include <Arduino.h>
 #include <FS.h>
 #include <WiFiClient.h>

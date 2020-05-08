@@ -32,12 +32,13 @@ void ESPUpdateServer::setup(AsyncWebServer* server,
               [&](AsyncWebServerRequest* request) { handleUpdate(request); });
 
   // handler for the /update form POST (once file upload finishes)
-  _server->on(path.c_str(), HTTP_POST,
-              [&](AsyncWebServerRequest* request) { handleUploadEnd(request); },
-              [&](AsyncWebServerRequest* request, String filename, size_t index,
-                  uint8_t* data, size_t len, bool final) {
-                handleUpload(request, filename, index, data, len, final);
-              });
+  _server->on(
+      path.c_str(), HTTP_POST,
+      [&](AsyncWebServerRequest* request) { handleUploadEnd(request); },
+      [&](AsyncWebServerRequest* request, String filename, size_t index,
+          uint8_t* data, size_t len, bool final) {
+        handleUpload(request, filename, index, data, len, final);
+      });
 
   Update.onProgress([&](size_t progress, size_t total) {
     handleUploadProgress(progress, total);
@@ -58,19 +59,20 @@ void ESPUpdateServer::handleUpdate(AsyncWebServerRequest* request) {
       !request->authenticate(_username.c_str(), _password.c_str()))
     return request->requestAuthentication();
   request->send_P(200, PSTR("text/html"), serverIndex);
+  bool shouldReboot = !Update.hasError();
+  if (shouldReboot) {
+    if (_serial_output) {
+      Serial.printf("\n[OTA] Rebooting... %d\n", shouldReboot);
+      Serial.flush();
+    }
+    sleep(2000);
+    ESP.restart();
+  }
 }
 
 void ESPUpdateServer::handleUploadEnd(AsyncWebServerRequest* request) {
   if (!_authenticated)
     return request->requestAuthentication();
-  bool shouldReboot = !Update.hasError();
-  if (_serial_output) {
-    Serial.printf("\n[OTA] Rebooting... %d\n", shouldReboot);
-    Serial.flush();
-  }
-  if (shouldReboot) {
-    ESP.restart();
-  }
 }
 
 void ESPUpdateServer::handleUploadProgress(size_t progress, size_t total) {
@@ -94,6 +96,7 @@ void ESPUpdateServer::handleUpload(AsyncWebServerRequest* request,
     return;
   }
   if (!index) {
+    fileLog("Firmware update begin.");
     _updaterError = String();
     if (_serial_output)
       Serial.setDebugOutput(true);
@@ -124,10 +127,13 @@ void ESPUpdateServer::handleUpload(AsyncWebServerRequest* request,
     }
   }
   if (final) {
+    fileLog("Firmware update end.");
     request->send(200, "text/html", successResponse);
     if (!Update.end(true)) {
       _setUpdaterError();
+      fileLog("Firmware update failed!");
     } else {
+      fileLog("Firmware update success!");
       if (_serial_output) {
         Serial.printf("\n[OTA] Update Success\n");
         Serial.flush();

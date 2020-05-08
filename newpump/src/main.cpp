@@ -46,15 +46,15 @@ constexpr int blynkPort = BLYNK_PORT;
 constexpr const char* appVersion = APP_VERSION;
 constexpr int led = LED_BUILTIN;
 
-#ifdef DEBUG_MODE
-#define RUN_INTERVAL_DEFAULT 10 * 60 * 1000UL
-#define RUN_DURATION_DEFAULT 12 * 1000UL
-#define STATUS_INTERVAL_DEFAULT 10 * 60 * 1000UL
-#else
+// #ifdef DEBUG_MODE
+// #define RUN_INTERVAL_DEFAULT 10 * 60 * 1000UL
+// #define RUN_DURATION_DEFAULT 12 * 1000UL
+// #define STATUS_INTERVAL_DEFAULT 10 * 60 * 1000UL
+// #else
 #define RUN_INTERVAL_DEFAULT 24 * 3600 * 1000UL
 #define RUN_DURATION_DEFAULT 15 * 1000UL
 #define STATUS_INTERVAL_DEFAULT 8 * 60 * 60 * 1000UL
-#endif
+// #endif
 
 unsigned long statusInterval = STATUS_INTERVAL_DEFAULT;
 unsigned long timerReset = 0;
@@ -222,7 +222,7 @@ void checkMqtt() {
 
 void mqttTimer() {
 #ifdef USING_MQTT
-  aTimer.setInterval((MQTT_KEEPALIVE * 2 - 5) * 1000L, checkMqtt, "checkMqtt");
+  aTimer.setInterval((MQTT_KEEPALIVE * 10 - 5) * 1000L, checkMqtt, "checkMqtt");
 #endif
 }
 

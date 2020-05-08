@@ -128,6 +128,7 @@ void RelayUnit::setEnabled(bool enable) {
     return;
   }
   LOGF("RelayUnit::setEnabled:%s\n", enable ? "true" : "false");
+  resetTimer();
   if (enable) {
     timer.enable(runTimerId);
     if (callback) {
