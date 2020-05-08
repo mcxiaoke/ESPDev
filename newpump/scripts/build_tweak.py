@@ -54,7 +54,7 @@ def process_os_envs():
 
 
 def process_version():
-    date = datetime.now().strftime("%m%d%H%M%S")
+    date = datetime.now().strftime("%m%d-%H%M%S")
     revision = check_output(
         ["git", "rev-parse", "--short", "HEAD"]).strip().decode('utf8')
     # build_version = "{}-{}".format(date, revision)

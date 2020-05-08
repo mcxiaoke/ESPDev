@@ -59,15 +59,6 @@ void ESPUpdateServer::handleUpdate(AsyncWebServerRequest* request) {
       !request->authenticate(_username.c_str(), _password.c_str()))
     return request->requestAuthentication();
   request->send_P(200, PSTR("text/html"), serverIndex);
-  bool shouldReboot = !Update.hasError();
-  if (shouldReboot) {
-    if (_serial_output) {
-      Serial.printf("\n[OTA] Rebooting... %d\n", shouldReboot);
-      Serial.flush();
-    }
-    sleep(2000);
-    ESP.restart();
-  }
 }
 
 void ESPUpdateServer::handleUploadEnd(AsyncWebServerRequest* request) {
@@ -137,6 +128,14 @@ void ESPUpdateServer::handleUpload(AsyncWebServerRequest* request,
       if (_serial_output) {
         Serial.printf("\n[OTA] Update Success\n");
         Serial.flush();
+      }
+      bool shouldReboot = !Update.hasError();
+      if (shouldReboot) {
+        if (_serial_output) {
+          Serial.printf("\n[OTA] Rebooting... %d\n", shouldReboot);
+          Serial.flush();
+        }
+        ESP.restart();
       }
     }
   }
