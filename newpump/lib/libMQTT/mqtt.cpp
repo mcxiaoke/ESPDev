@@ -92,27 +92,27 @@ string MqttManager::getSerialRxTopic() {
 void MqttManager::sendStatus(const String& text) {
   bool ret = sendMessage(getStatusTopic().c_str(), text.c_str());
   if (ret) {
-    LOGF("[MQTT] mqtt status: [%s] (%d)\n", text.c_str(), text.length());
+    LOGF("[MQTT] status: [%s] (%d)\n", text.c_str(), text.length());
   } else {
-    LOGN("[MQTT] mqtt status sent failed.");
+    LOGN("[MQTT] status sent failed.");
   }
 }
 
 void MqttManager::sendLog(const String& text) {
   bool ret = sendMessage(getLogTopic().c_str(), text.c_str());
   if (ret) {
-    LOGF("[MQTT] mqtt log: [%s].\n", text.c_str());
+    LOGF("[MQTT] log: [%s].\n", text.c_str());
   } else {
-    LOGN("[MQTT] mqtt log sent failed.");
+    LOGN("[MQTT] log sent failed.");
   }
 }
 
 void MqttManager::sendSerial(const String& text) {
   bool ret = sendMessage(getSerialTxTopic().c_str(), text.c_str());
   if (ret) {
-    LOGN("[MQTT] mqtt serial sent successful.");
+    LOGN("[MQTT] serial sent successful.");
   } else {
-    LOGN("[MQTT] mqtt serial sent failed.");
+    LOGN("[MQTT] serial sent failed.");
   }
 }
 
@@ -127,10 +127,7 @@ void MqttManager::connect() {
     if (_mqtt->connect(getClientId().c_str(), getUser().c_str(),
                        getPass().c_str(), getStatusTopic().c_str(), MQTTQOS0,
                        true, "Offline")) {
-      String msg = "[MQTT] Connected to ";
-      msg += _server;
-      mqttFileLog(msg);
-      fileLog("MQTT Connected");
+      mqttFileLog("[MQTT] Connected");
       sendOnline();
       initSubscribe();
     } else {
@@ -156,9 +153,7 @@ void MqttManager::check() {
     if (_mqtt->connect(getClientId().c_str(), getUser().c_str(),
                        getPass().c_str(), getStatusTopic().c_str(), MQTTQOS0,
                        true, "Offline")) {
-      String msg = "[MQTT] Reconnected to ";
-      msg += _server;
-      mqttFileLog(msg);
+      mqttFileLog("[MQTT] Reconnected");
       sendOnline();
       initSubscribe();
     } else {
@@ -262,9 +257,9 @@ void MqttManager::sendOnline() {
   // online message retain
   bool ret = sendMessage(getStatusTopic().c_str(), "Online", true);
   if (!ret) {
-    LOGN("[MQTT] mqtt online sent failed.");
+    LOGN("[MQTT] online sent failed.");
   } else {
-    LOGN("[MQTT] mqtt online sent successfully.");
+    LOGN("[MQTT] online sent successfully.");
   }
 }
 

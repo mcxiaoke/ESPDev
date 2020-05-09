@@ -87,7 +87,6 @@ void ESPUpdateServer::handleUpload(AsyncWebServerRequest* request,
     return;
   }
   if (!index) {
-    fileLog("Firmware update begin.");
     _updaterError = String();
     if (_serial_output)
       Serial.setDebugOutput(true);
@@ -97,6 +96,9 @@ void ESPUpdateServer::handleUpload(AsyncWebServerRequest* request,
     int fsCmd = U_FS;
 #endif
     int cmd = (filename.indexOf("spiffs") > -1) ? fsCmd : U_FLASH;
+    String s = "[OTA] update begin for ";
+    s += (cmd == U_FLASH ? "FLASH" : "SPIFFS");
+    fileLog(s);
     if (_serial_output) {
       Serial.printf("[OTA] Update Start: %s\n", filename.c_str());
       Serial.printf("[OTA] Update Type: %s\n",
@@ -118,13 +120,12 @@ void ESPUpdateServer::handleUpload(AsyncWebServerRequest* request,
     }
   }
   if (final) {
-    fileLog("Firmware update end.");
     request->send(200, "text/html", successResponse);
     if (!Update.end(true)) {
       _setUpdaterError();
-      fileLog("Firmware update failed!");
+      fileLog("[OTA] update failed!");
     } else {
-      fileLog("Firmware update success!");
+      fileLog("[OTA] update success!");
       if (_serial_output) {
         Serial.printf("\n[OTA] Update Success\n");
         Serial.flush();

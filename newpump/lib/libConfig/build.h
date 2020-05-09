@@ -20,10 +20,16 @@
 #define EANBLE_LOGGING
 #endif
 
-#ifdef BUILD_VERSION
-#define APP_VERSION STR(BUILD_VERSION)
+#ifdef BUILD_TIME
+#define APP_BUILD STR(BUILD_TIME)
 #else
-#define APP_VERSION "-"
+#define APP_BUILD "-"
+#endif
+
+#ifdef BUILD_REV
+#define APP_REVISION STR(BUILD_REV)
+#else
+#define APP_REVISION "-"
 #endif
 
 // fix for travis ci build begin

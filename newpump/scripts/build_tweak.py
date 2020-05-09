@@ -54,16 +54,14 @@ def process_os_envs():
 
 
 def process_version():
-    date = datetime.now().strftime("%m%d-%H%M%S")
+    build_time = datetime.now().strftime("%m%d-%H%M%S")
     revision = check_output(
         ["git", "rev-parse", "--short", "HEAD"]).strip().decode('utf8')
     # build_version = "{}-{}".format(date, revision)
-    build_version = date
-
-    print(date, revision, build_version)
-
+    print(build_time, revision)
     env.Append(CPPDEFINES=[
-        ("BUILD_VERSION", build_version)
+        ("BUILD_TIME", build_time),
+        ("BUILD_REV", revision)
     ])
 
 

@@ -25,7 +25,12 @@ function loadData(e) {
           };
           var fd = new FormData();
           fd.append("file_path", name);
-          ar.open("POST", serverUrl + "/api/delete_file");
+          ar.open(
+            "POST",
+            serverUrl +
+              "/api/control?token=pump&args=delete," +
+              encodeURIComponent(name)
+          );
           ar.send(fd);
         });
         var da = $("<button>").text("Download");

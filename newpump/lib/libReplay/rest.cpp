@@ -223,8 +223,11 @@ void RestApi::jsonStatus(const JsonVariant& doc) {
   doc["last_reset"] = st->timerResetAt / 1000;
   doc["heap"] = ESP.getFreeHeap();
   doc["device"] = getUDID();
-#ifdef APP_VERSION
-  doc["version"] = APP_VERSION;
+#ifdef APP_BUILD
+  doc["version"] = APP_BUILD;
+#endif
+#ifdef APP_REVISION
+  doc["revision"] = APP_REVISION;
 #endif
 #ifdef DEBUG
   doc["debug"] = 1;

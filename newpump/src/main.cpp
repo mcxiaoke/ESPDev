@@ -43,7 +43,8 @@ constexpr const char* blynkAuth = BLYNK_AUTH;
 constexpr const char* blynkHost = BLYNK_HOST;
 constexpr int blynkPort = BLYNK_PORT;
 
-constexpr const char* appVersion = APP_VERSION;
+constexpr const char* buildTime = APP_BUILD;
+constexpr const char* buildRev = APP_REVISION;
 constexpr int led = LED_BUILTIN;
 
 // #ifdef DEBUG_MODE
@@ -254,7 +255,7 @@ bool mqttConnected() {
 ////////// Command Handlers Begin //////////
 
 void cmdReboot(const CommandParam& param = CommandParam::INVALID) {
-  debugLog(F("Reboot now"));
+  debugLog(F("[Core] Reboot now"));
   sendMqttLog("System will reboot now");
   aTimer.setTimeout(
       1000, []() { ESP.restart(); }, "cmdReboot");
@@ -285,6 +286,21 @@ void cmdStop(const CommandParam& param = CommandParam::INVALID) {
 void cmdClear(const CommandParam& param = CommandParam::INVALID) {
   SPIFFS.remove(logFileName());
   debugLog(F("Logs cleared"));
+}
+
+void cmdDelete(const CommandParam& param = CommandParam::INVALID) {
+  auto args = param.args;
+  LOGN("cmdDelete");
+  if (args.size() < 2) {
+    return;
+  }
+  LOGN("cmdDelete file:", args[1]);
+  auto fileName = String(args[1].c_str());
+  SPIFFS.remove(fileName);
+  String s = "File ";
+  s += fileName;
+  s += " deleted.";
+  debugLog(s);
 }
 
 void cmdFiles(const CommandParam& param = CommandParam::INVALID) {
@@ -375,13 +391,13 @@ void cmdSettings(const CommandParam& param = CommandParam::INVALID) {
   }
 
   if (pin == 0 || interval == 0 || duration == 0) {
-    debugLog("Invalid Setting Value");
+    debugLog("Invalid Value");
     return;
   }
 
   int changed = pump.updateConfig({"newPump", pin, interval, duration});
   if (changed > 0) {
-    sendMqttLog("Pump config changed");
+    sendMqttLog("Config changed");
   }
   if (statusInterval != oldStatusInterval) {
     sendMqttLog("Settings changed, reset timers");
@@ -489,7 +505,7 @@ String getStatus() {
   data += "Device: ";
   data += getUDID();
   data += "\nVersion: ";
-  data += appVersion;
+  data += buildTime;
   data += "\nPump Pin: ";
   data += pump.pin();
   data += "\nPump Status: ";
@@ -848,7 +864,7 @@ void setupPump() {
     switch (evt) {
       case RelayEvent::Started: {
         digitalWrite(led, HIGH);
-        String msg = F("Pump Started");
+        String msg = F("[Core] Pump Started");
         debugLog(msg);
         sendMqttStatus(msg);
 #ifdef USING_BLYNK
@@ -857,7 +873,7 @@ void setupPump() {
       } break;
       case RelayEvent::Stopped: {
         digitalWrite(led, LOW);
-        String msg = F("Pump Stopped");
+        String msg = F("[Core] Pump Stopped");
         debugLog(msg);
         sendMqttStatus(msg);
 #ifdef USING_BLYNK
@@ -865,19 +881,19 @@ void setupPump() {
 #endif
       } break;
       case RelayEvent::Enabled: {
-        debugLog(F("Pump enabled"));
+        debugLog(F("[Core] Pump enabled"));
 #ifdef USING_BLYNK
         blynkSyncPinEnable();
 #endif
       } break;
       case RelayEvent::Disabled: {
-        debugLog(F("Pump disabled"));
+        debugLog(F("[Core] Pump disabled"));
 #ifdef USING_BLYNK
         blynkSyncPinEnable();
 #endif
       } break;
       case RelayEvent::ConfigChanged: {
-        debugLog(F("Pump config changed"));
+        debugLog(F("[Core] Config changed"));
 #ifdef USING_BLYNK
         blynkSyncPinEnable();
 #endif
@@ -916,6 +932,7 @@ void setupCommands() {
   CommandManager.addCommand("wifi", "get wifi status", cmdWiFi);
   CommandManager.addCommand("online", "check device online", cmdWiFi);
   CommandManager.addCommand("logs", "show device logs", cmdLogs);
+  CommandManager.addCommand("delete", "delete the file", cmdDelete);
   CommandManager.addCommand("files", "show device files", cmdFiles);
   CommandManager.addCommand("settings", "settings k1=v1 k2=v2", cmdSettings);
   CommandManager.addCommand("ioset", "gpio set [pin] [value]", cmdIOSet);
@@ -950,9 +967,9 @@ void checkModules() {
 #ifndef DEBUG
   Serial.println("Release Mode");
 #endif
-#ifdef APP_VERSION
+#ifdef APP_BUILD
   Serial.print("Version ");
-  Serial.println(appVersion);
+  Serial.println(buildTime);
 #endif
 }
 
@@ -977,8 +994,12 @@ void setup(void) {
   Serial.println("Booting Finished.");
   LOGN(DateTime.toISOString());
   checkModules();
-  debugLog(F("System is running"));
-  debugLog(appVersion);
+  debugLog(F("[Core] System started."));
+  String info = "[Core] ";
+  info += buildTime;
+  info += "-";
+  info += buildRev;
+  debugLog(info);
 }
 
 void loop(void) {
