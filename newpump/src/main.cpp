@@ -24,7 +24,9 @@
 // #include <BlynkSimpleEsp32_SSL.h>
 #endif
 #endif
+#ifdef USING_DISPLAY
 #include <display.h>
+#endif
 #include <net.h>
 #include <utils.h>
 
@@ -77,8 +79,9 @@ ArduinoTimer aTimer{"main"};
 AsyncWebServer server(80);
 RelayUnit pump;
 RestApi api(pump);
-
+#ifdef USING_DISPLAY
 Display display;
+#endif
 ESPUpdateServer otaUpdate(true);
 #ifdef USING_MQTT
 MqttManager mqttMgr(mqttServer, mqttPort, mqttUser, mqttPass);
@@ -129,6 +132,7 @@ String getFilesText() {
 }
 
 void displayBooting() {
+#ifdef USING_DISPLAY
   display.u8g2->setFont(u8g2_font_profont15_tf);
   display.u8g2->clearBuffer();
   display.u8g2->setCursor(16, 20);
@@ -138,9 +142,11 @@ void displayBooting() {
   display.u8g2->print(getUDID());
   display.u8g2->sendBuffer();
   display.u8g2->setFont(u8g2_font_profont12_tf);
+#endif
 }
 
 void updateDisplay() {
+#ifdef USING_DISPLAY
   auto upSecs = millis() / 1000;
 
   String s1 = dateTimeString();
@@ -189,6 +195,7 @@ void updateDisplay() {
   display.u8g2->setFont(u8g2_font_profont29_tf);
   display.u8g2->print(s3);
   display.u8g2->sendBuffer();
+#endif
 }
 
 ////////// MQTT Handlers Begin //////////
@@ -382,25 +389,28 @@ void cmdSettings(const CommandParam& param = CommandParam::INVALID) {
       } else if (kv[0] == "status_interval" || kv[0] == "stsi") {
         statusInterval = parseLong(kv[1]) * 1000L;
       } else {
-        String log = "Invalid Entry: ";
+        String log = "[Settings] Invalid Entry: ";
         log += kv[0].c_str();
-        sendMqttLog(log);
+        debugLog(log);
         return;
       }
     }
   }
 
-  if (pin == 0 || interval == 0 || duration == 0) {
-    debugLog("Invalid Value");
+  LOGF("cmdSettings pin=%lu,interval=%lu,duration=%lu\n", pin, interval,
+       duration);
+
+  if (pin == 0 && interval == 0 && duration == 0) {
+    debugLog("[Settings] Invalid Value");
     return;
   }
 
   int changed = pump.updateConfig({"newPump", pin, interval, duration});
   if (changed > 0) {
-    sendMqttLog("Config changed");
+    debugLog("[Settings] Config changed");
   }
   if (statusInterval != oldStatusInterval) {
-    sendMqttLog("Settings changed, reset timers");
+    debugLog("[Settings] Changed, reset timers");
     setupTimers(true);
   }
 }
@@ -943,8 +953,10 @@ void setupCommands() {
 }
 
 void setupDisplay() {
+#ifdef USING_DISPLAY
   display.begin();
   displayBooting();
+#endif
 }
 
 void setupBlynk() {

@@ -155,18 +155,17 @@ uint8_t RelayUnit::pinValue() const {
 }
 
 int RelayUnit::updateConfig(const RelayConfig& config) {
-  LOGF("RelayUnit::updateConfig, new:%s\n", config.toString().c_str());
   LOGF("RelayUnit::updateConfig, old:%s\n", pConfig->toString().c_str());
   int changed = 0;
-  if (pConfig->pin != config.pin) {
+  if (config.pin > 0 && pConfig->pin != config.pin) {
     pConfig->pin = config.pin;
     changed++;
   }
-  if (pConfig->interval != config.interval) {
+  if (config.interval > 0 && pConfig->interval != config.interval) {
     pConfig->interval = config.interval;
     changed++;
   }
-  if (pConfig->duration != config.duration) {
+  if (config.duration > 0 && pConfig->duration != config.duration) {
     pConfig->duration = config.duration;
     changed++;
   }
@@ -178,6 +177,7 @@ int RelayUnit::updateConfig(const RelayConfig& config) {
     if (callback) {
       callback(RelayEvent::ConfigChanged, 0);
     }
+    LOGF("RelayUnit::updateConfig, new:%s\n", pConfig->toString().c_str());
   }
   return changed;
 }
