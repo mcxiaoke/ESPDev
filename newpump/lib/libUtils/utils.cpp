@@ -95,6 +95,9 @@ String logFileName(const String& suffix) {
 
 size_t fileLog(const String& text, const String& path, bool appendDate) {
   String message = "";
+#ifdef DEBUG
+  message += "[D]";
+#endif
   if (appendDate) {
     message += "[";
     message += dateTimeString();

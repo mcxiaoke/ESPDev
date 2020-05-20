@@ -19,7 +19,7 @@ std::string RelayConfig::toString() const {
 }
 
 void RelayStatus::reset() {
-  enabled = true;
+  enabled = false;
   setupAt = 0;
   timerResetAt = millis();
   lastStart = 0;
@@ -51,7 +51,7 @@ void RelayUnit::begin(const RelayConfig& cfg) {
   LOGN("RelayUnit::begin");
   pConfig = std::make_shared<RelayConfig>(cfg);
   pStatus->setupAt = millis();
-  resetTimer();
+  reset();
   pinMode(pConfig->pin, OUTPUT);
   LOGN(pConfig->toString().c_str());
   LOGN(pStatus->toString().c_str());
@@ -123,12 +123,12 @@ bool RelayUnit::isEnabled() const {
 }
 
 void RelayUnit::setEnabled(bool enable) {
-  pStatus->enabled = enable;
+  LOGF("RelayUnit::setEnabled:%s\n", enable ? "true" : "false");
   if (enable == timer.isEnabled(runTimerId)) {
     return;
   }
-  LOGF("RelayUnit::setEnabled:%s\n", enable ? "true" : "false");
-  resetTimer();
+  pStatus->enabled = enable;
+  stop();
   if (enable) {
     timer.enable(runTimerId);
     if (callback) {
@@ -172,8 +172,7 @@ int RelayUnit::updateConfig(const RelayConfig& config) {
   if (changed > 0) {
     LOGN("RelayUnit::updateConfig changed");
     // ensure relay stopped
-    stop();
-    resetTimer();
+    reset();
     if (callback) {
       callback(RelayEvent::ConfigChanged, 0);
     }

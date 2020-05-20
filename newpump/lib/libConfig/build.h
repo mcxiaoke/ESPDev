@@ -17,7 +17,7 @@
 #define USING_MQTT
 #endif
 
-#if !defined(DISABLE_LOG) || defined(DEBUG)
+#if !defined(DISABLE_LOG)
 #define EANBLE_LOGGING
 #endif
 

@@ -22,7 +22,8 @@ function buildOutputDiv(d) {
     nextRunAt = moment(nextStart).format("MM-DD HH:mm:ss");
   }
   let surl = serverUrl || window.location.origin;
-  let debugMode = d["debug"] == 1 ? "测试版" : "正式版";
+  let debugMode = d["debug"] == 1 ? "开发版" : "正式版";
+  let dbClass = d["debug"] == 1 ? "danger" : "important";
   let tb = $("<table>").append(
     $("<tr>")
       .attr("id", "p-head")
@@ -30,7 +31,10 @@ function buildOutputDiv(d) {
     $("<tr>")
       .attr("id", "p-head")
       .append($("<td>").text("系统版本: "), $("<td>").text(d["version"]))
-      .append($("<td>").text("系统状态: "), $("<td>").text(debugMode)),
+      .append(
+        $("<td>").text("系统状态: "),
+        $("<td>").addClass(dbClass).text(debugMode)
+      ),
     $("<tr>")
       .attr("id", "p-status")
       .append(
@@ -290,8 +294,14 @@ function loadData(firstTime) {
       console.log("Data:", d);
       let c = document.getElementById("content");
       let t = document.createElement("h1");
+      let debugMode = d["debug"] == 1;
+      if (debugMode) {
+        t.setAttribute("class", "danger");
+        t.textContent = "智能浇水器（开发版）";
+      } else {
+        t.textContent = "智能浇水器";
+      }
       t.setAttribute("id", "pump-title");
-      t.textContent = "智能浇水器";
       $("#content").html("");
       $("#content").append(
         t,
@@ -313,6 +323,6 @@ function onReady(e) {
   loadData(true);
   setInterval(function () {
     loadData(false);
-  }, 10000);
+  }, 5000);
 }
 window.addEventListener("DOMContentLoaded", onReady);

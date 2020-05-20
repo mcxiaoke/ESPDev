@@ -22,7 +22,7 @@ struct RelayConfig {
 };
 
 struct RelayStatus {
-  bool enabled = true;
+  bool enabled = false;
   unsigned long setupAt;
   unsigned long timerResetAt;
   unsigned long lastStart;

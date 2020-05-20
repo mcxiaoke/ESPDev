@@ -49,15 +49,15 @@ constexpr const char* buildTime = APP_BUILD;
 constexpr const char* buildRev = APP_REVISION;
 constexpr int led = LED_BUILTIN;
 
-// #ifdef DEBUG_MODE
-// #define RUN_INTERVAL_DEFAULT 10 * 60 * 1000UL
-// #define RUN_DURATION_DEFAULT 12 * 1000UL
-// #define STATUS_INTERVAL_DEFAULT 10 * 60 * 1000UL
-// #else
+#ifdef DEBUG
+#define RUN_INTERVAL_DEFAULT 2 * 60 * 1000UL
+#define RUN_DURATION_DEFAULT 12 * 1000UL
+#define STATUS_INTERVAL_DEFAULT 60 * 60 * 1000UL
+#else
 #define RUN_INTERVAL_DEFAULT 24 * 3600 * 1000UL
 #define RUN_DURATION_DEFAULT 15 * 1000UL
 #define STATUS_INTERVAL_DEFAULT 8 * 60 * 60 * 1000UL
-// #endif
+#endif
 
 unsigned long statusInterval = STATUS_INTERVAL_DEFAULT;
 unsigned long timerReset = 0;
@@ -201,8 +201,10 @@ void updateDisplay() {
 ////////// MQTT Handlers Begin //////////
 
 size_t debugLog(const String text) {
+#ifndef DEBUG
 #ifdef USING_MQTT
   sendMqttLog(text);
+#endif
 #endif
   return fileLog(text);
 }
@@ -876,7 +878,7 @@ void setupPump() {
         digitalWrite(led, HIGH);
         String msg = F("[Core] Pump Started");
         debugLog(msg);
-        sendMqttStatus(msg);
+        // sendMqttStatus(msg);
 #ifdef USING_BLYNK
         blynkSyncPinValue();
 #endif
@@ -885,7 +887,7 @@ void setupPump() {
         digitalWrite(led, LOW);
         String msg = F("[Core] Pump Stopped");
         debugLog(msg);
-        sendMqttStatus(msg);
+        // sendMqttStatus(msg);
 #ifdef USING_BLYNK
         blynkSyncPinValue();
 #endif
@@ -976,12 +978,10 @@ void checkModules() {
 #ifndef USING_BLYNK
   Serial.println("Blynk Disabled");
 #endif
-#ifndef DEBUG
+#ifdef DEBUG
+  Serial.println("Debug Mode");
+#else
   Serial.println("Release Mode");
-#endif
-#ifdef APP_BUILD
-  Serial.print("Version ");
-  Serial.println(buildTime);
 #endif
 }
 
@@ -993,7 +993,7 @@ void setup(void) {
   setupDisplay();
   delay(1000);
   LOGN();
-  Serial.println("Booting Begin...");
+  Serial.println("======Booting Begin======");
   setupWiFi();
   setupDate();
   setupTimers(false);
@@ -1003,10 +1003,12 @@ void setup(void) {
   setupPump();
   setupBlynk();
   showESP();
-  Serial.println("Booting Finished.");
-  LOGN(DateTime.toISOString());
+  Serial.println("======Booting Finished======");
   checkModules();
   debugLog(F("[Core] System started."));
+#ifdef DEBUG
+  fileLog(F("[Core] Debug Mode"));
+#endif
   String info = "[Core] ";
   info += buildTime;
   info += "-";

@@ -118,7 +118,7 @@ void RestApi::setup(AsyncWebServer* server) {
   });
   server->on("/api/files", HTTP_GET | HTTP_POST, [&](AsyncWebServerRequest* r) {
     showUrlWithArgs(r);
-    showHeaders(r);
+    // showHeaders(r);
     r->send(buildResponse(
         std::bind(&RestApi::jsonFiles, this, std::placeholders::_1)));
   });
