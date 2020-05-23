@@ -50,12 +50,12 @@ constexpr const char* buildRev = APP_REVISION;
 constexpr int led = LED_BUILTIN;
 
 #ifdef DEBUG
-#define RUN_INTERVAL_DEFAULT 2 * 60 * 1000UL
-#define RUN_DURATION_DEFAULT 12 * 1000UL
+#define RUN_INTERVAL_DEFAULT 10 * 60 * 1000UL
+#define RUN_DURATION_DEFAULT 18 * 1000UL
 #define STATUS_INTERVAL_DEFAULT 60 * 60 * 1000UL
 #else
 #define RUN_INTERVAL_DEFAULT 24 * 3600 * 1000UL
-#define RUN_DURATION_DEFAULT 15 * 1000UL
+#define RUN_DURATION_DEFAULT 30 * 1000UL
 #define STATUS_INTERVAL_DEFAULT 8 * 60 * 60 * 1000UL
 #endif
 
@@ -275,11 +275,11 @@ void cmdReset(const CommandParam& param = CommandParam::INVALID) {
 }
 
 void cmdEnable(const CommandParam& param = CommandParam::INVALID) {
-  pump.setEnabled(true);
+  pump.setTimerEnabled(true);
 }
 
 void cmdDisable(const CommandParam& param = CommandParam::INVALID) {
-  pump.setEnabled(false);
+  pump.setTimerEnabled(false);
 }
 
 void cmdStart(const CommandParam& param = CommandParam::INVALID) {
@@ -537,7 +537,7 @@ String getStatus() {
   data += "\nStatus Interval: ";
   data += humanTimeMs(statusInterval);
   data += "\nTimer Status: ";
-  data += pump.isEnabled() ? "Enabled" : "Disabled";
+  data += pump.isTimerEnabled() ? "Enabled" : "Disabled";
   data += "\nTimer Reset: ";
   data += formatDateTime(getTimestamp() - (ts - timerReset) / 1000);
 #if defined(ESP8266)

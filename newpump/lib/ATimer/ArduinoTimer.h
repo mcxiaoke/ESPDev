@@ -56,6 +56,7 @@ struct TimerTask {
   bool enabled;
   int numRuns;
   int runType;
+  unsigned long startMillis;
   unsigned long prevMillis;
   unsigned long offset;
   int id;

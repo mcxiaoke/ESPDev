@@ -22,7 +22,6 @@ struct RelayConfig {
 };
 
 struct RelayStatus {
-  bool enabled = false;
   unsigned long setupAt;
   unsigned long timerResetAt;
   unsigned long lastStart;
@@ -45,8 +44,8 @@ class RelayUnit {
   bool start();
   bool stop();
   bool isOn() const;  // running
-  bool isEnabled() const;
-  void setEnabled(bool ena);
+  bool isTimerEnabled() const;
+  void setTimerEnabled(bool ena);
   void reset();
   void setCallback(CALLBACK_FUNC cb);
   uint8_t pin() const;

@@ -213,7 +213,7 @@ void RestApi::jsonStatus(const JsonVariant& doc) {
   doc["on"] = pump.isOn();
   doc["interval"] = cfg->interval / 1000;
   doc["duration"] = cfg->duration / 1000;
-  doc["enabled"] = pump.isEnabled();
+  doc["enabled"] = pump.isTimerEnabled();
   doc["last_elapsed"] = st->lastElapsed / 1000;
   doc["total_elapsed"] = st->totalElapsed / 1000;
   doc["boot_time"] = DateTime.getBootTime();
@@ -234,6 +234,8 @@ void RestApi::jsonStatus(const JsonVariant& doc) {
 #else
   doc["debug"] = 0;
 #endif
+  auto task = doc.createNestedObject("task");
+  jsonTask(task);
 }
 void RestApi::jsonNetwork(const JsonVariant& doc) {
   doc["device"] = getUDID();
@@ -247,10 +249,11 @@ void RestApi::jsonNetwork(const JsonVariant& doc) {
 void RestApi::jsonTask(const JsonVariant& doc) {
   auto t = pump.getRunTask();
   doc["id"] = t->id;
-  doc["interval"] = t->interval;
+  doc["interval"] = t->interval / 1000;
   doc["name"] = t->name;
   doc["enabled"] = t->enabled;
   doc["num_runs"] = t->numRuns;
+  doc["start"] = t->startMillis / 1000;
   doc["prev"] = t->prevMillis / 1000;
   doc["up_time"] = millis() / 1000;
   doc["time"] = DateTime.now();

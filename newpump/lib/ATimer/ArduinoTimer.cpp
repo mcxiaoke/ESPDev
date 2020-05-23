@@ -25,19 +25,21 @@ TimerTask::TimerTask(unsigned long interval,
       enabled(true),
       numRuns(0),
       runType(DEFCALL_DONTRUN),
+      startMillis(millis()),
       prevMillis(0),
       offset(0),
       id(generateId()),
       debug(debug) {
   if (debug) {
-    Serial.printf("TimerTask(%s,%d,%lu)\n", name.c_str(), id, interval);
+    Serial.printf("TimerTask(%s,%d,%lu, %lu)\n", name.c_str(), id, startMillis,
+                  interval);
   }
 }
 
 TimerTask::~TimerTask() {
   if (debug) {
-    Serial.printf("~TimerTask(%s,%d,%lu,%d)\n", name.c_str(), id, interval,
-                  numRuns);
+    Serial.printf("~TimerTask(%s,%d,%lu,%lu,%d)\n", name.c_str(), id,
+                  startMillis, interval, numRuns);
   }
   action = nullptr;
   name = "";

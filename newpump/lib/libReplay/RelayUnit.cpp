@@ -19,7 +19,6 @@ std::string RelayConfig::toString() const {
 }
 
 void RelayStatus::reset() {
-  enabled = false;
   setupAt = 0;
   timerResetAt = millis();
   lastStart = 0;
@@ -30,10 +29,9 @@ void RelayStatus::reset() {
 
 std::string RelayStatus::toString() const {
   return ext::format::strFormat2(
-      "RelayStatus(enabled=%d,setup=%lu,reset=%lu,start=%lu,stop=%lu,"
+      "RelayStatus(setup=%lu,reset=%lu,start=%lu,stop=%lu,"
       "elapsed=%lu/%lu)",
-      enabled, setupAt, timerResetAt, lastStart, lastStop, lastElapsed,
-      totalElapsed);
+      setupAt, timerResetAt, lastStart, lastStop, lastElapsed, totalElapsed);
 }
 
 RelayUnit::RelayUnit()
@@ -66,8 +64,8 @@ bool RelayUnit::start() {
     return false;
   }
   // no water check
-  if (pStatus->totalElapsed > pConfig->duration * 20) {
-    // 15s * 20 = 300s
+  if (pStatus->totalElapsed > pConfig->duration * 10) {
+    // 30s * 10 = 300s
     return false;
   }
   LOGN("RelayUnit::start");
@@ -118,16 +116,15 @@ bool RelayUnit::isOn() const {
   return pinValue() == HIGH;
 }
 
-bool RelayUnit::isEnabled() const {
+bool RelayUnit::isTimerEnabled() const {
   return timer.isEnabled(runTimerId);
 }
 
-void RelayUnit::setEnabled(bool enable) {
+void RelayUnit::setTimerEnabled(bool enable) {
   LOGF("RelayUnit::setEnabled:%s\n", enable ? "true" : "false");
   if (enable == timer.isEnabled(runTimerId)) {
     return;
   }
-  pStatus->enabled = enable;
   stop();
   if (enable) {
     timer.enable(runTimerId);

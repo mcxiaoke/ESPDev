@@ -1,9 +1,12 @@
+var serverVersion = "";
+
 function newLine() {
   return document.createElement("p");
 }
 
 function buildOutputDiv(d) {
   let now = Date.now();
+  let task = d["task"];
   var lastRunAt = "";
   if (d["last_start"] < 1) {
     lastRunAt = "N/A";
@@ -13,13 +16,17 @@ function buildOutputDiv(d) {
   }
 
   var nextRunAt = "";
-  let timeStart = Math.max(d["last_reset"], d["last_start"]);
-  let nextRemains = timeStart + d["interval"] - d["up_time"];
-  let nextStart = now + nextRemains * 1000;
+  var nextRemains = 0;
+  let timeStart = task["start"];
+  if (task["prev"] > 0) {
+    nextRemains = task["prev"] + task["interval"] - task["up_time"];
+  } else {
+    nextRemains = timeStart + task["interval"] - task["up_time"];
+  }
   if (timeStart < 1) {
     nextRunAt = "N/A";
   } else {
-    nextRunAt = moment(nextStart).format("MM-DD HH:mm:ss");
+    nextRunAt = moment(now + nextRemains * 1000).format("MM-DD HH:mm:ss");
   }
   let surl = serverUrl || window.location.origin;
   let debugMode = d["debug"] == 1 ? "开发版" : "正式版";
@@ -38,13 +45,11 @@ function buildOutputDiv(d) {
     $("<tr>")
       .attr("id", "p-status")
       .append(
-        $("<td>").addClass("important").text("设备状态: "),
+        $("<td>").text("当前时间: "),
+        $("<td>").text(moment.unix(d["time"]).format("MM-DD HH:mm:ss")),
+        $("<td>").text("运行状态: "),
         $("<td>")
-          .addClass("danger")
-          .text(d["enabled"] ? "已启用" : "已禁用"),
-        $("<td>").addClass("important").text("运行状态: "),
-        $("<td>")
-          .addClass("danger")
+          .addClass("important")
           .text(d["on"] ? "正在浇水" : "空闲")
       ),
     $("<tr>")
@@ -83,9 +88,11 @@ function buildOutputDiv(d) {
     $("<tr>")
       .attr("id", "p-time")
       .append(
-        $("<td>").text("当前时间: "),
-        $("<td>").text(moment.unix(d["time"]).format("MM-DD HH:mm:ss")),
-        $("<td>").text("剩余时间: "),
+        $("<td>").addClass("important").text("定时浇水: "),
+        $("<td>")
+          .addClass("danger")
+          .text(d["enabled"] ? "已启用" : "已禁用"),
+        $("<td>").text("定时剩余: "),
         $("<td>").addClass("important").text(humanElapsed(nextRemains))
       )
   );
@@ -121,7 +128,7 @@ function buildFormDiv(d) {
   };
 
   let btnSwitch = document.createElement("button");
-  btnSwitch.textContent = d["enabled"] ? "禁用设备" : "启用设备";
+  btnSwitch.textContent = d["enabled"] ? "禁用定时" : "启用定时";
   btnSwitch.setAttribute("id", "btn-switch");
   btnSwitch.setAttribute("class", "important button-large");
   btnSwitch.onclick = function (e) {
@@ -189,10 +196,10 @@ function buildFormDiv(d) {
   buttonDiv.setAttribute("id", "form-div");
   buttonDiv.append(
     btnPump,
-    btnSwitch,
+    btnReboot,
     newLine(),
     btnTimer,
-    btnReboot,
+    btnSwitch,
     newLine()
   );
   return buttonDiv;
@@ -292,6 +299,7 @@ function loadData(firstTime) {
     if (xhr.status < 400) {
       let d = JSON.parse(xhr.responseText);
       console.log("Data:", d);
+
       let c = document.getElementById("content");
       let t = document.createElement("h1");
       let debugMode = d["debug"] == 1;
@@ -309,6 +317,12 @@ function loadData(firstTime) {
         buildFormDiv(d),
         buildButtonDiv()
       );
+
+      if (serverVersion && d["version"] != serverVersion) {
+        serverVersion = d["version"];
+        console.log("serverVersion=", serverVersion);
+        location.reload(true);
+      }
     } else {
       handleError(firstTime);
     }
