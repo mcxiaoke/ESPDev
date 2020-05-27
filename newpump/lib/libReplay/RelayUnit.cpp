@@ -107,6 +107,8 @@ void RelayUnit::resetTimer() {
   pStatus->reset();
   auto startFunc = std::bind(&RelayUnit::start, this);
   runTimerId = timer.setInterval(pConfig->interval, startFunc, "start");
+  // timer default disabled
+  timer.disable(runTimerId);
   auto checkFunc = std::bind(&RelayUnit::check, this);
   checkTimerId =
       timer.setInterval(pConfig->duration / 2 + 2000, checkFunc, "check");
