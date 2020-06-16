@@ -47,10 +47,10 @@ RelayUnit::RelayUnit(const RelayConfig& cfg)
 
 void RelayUnit::begin(const RelayConfig& cfg) {
   LOGN("RelayUnit::begin");
+  pinMode(cfg.pin, OUTPUT);
   pConfig = std::make_shared<RelayConfig>(cfg);
   pStatus->setupAt = millis();
   reset();
-  pinMode(pConfig->pin, OUTPUT);
   LOGN(pConfig->toString().c_str());
   LOGN(pStatus->toString().c_str());
 }
