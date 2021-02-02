@@ -1,0 +1,7 @@
+#ifndef ESP_DEV_CONFIG_H
+#define ESP_DEV_CONFIG_H
+
+#define WIFI_SSID "xxx"
+#define WIFI_PASS "xxx"
+
+#endif
