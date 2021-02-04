@@ -10,10 +10,10 @@
 #define EANBLE_LOGGING
 #endif
 
-// fix for travis ci build begin
-#ifndef WIFI_SSID
-#define WIFI_SSID "x"
-#define WIFI_PASS "x"
-#endif
+// #ifdef BUILD_REV
+// #define APP_REVISION STR(BUILD_REV)
+// #else
+// #define APP_REVISION "0000"
+// #endif
 
 #endif

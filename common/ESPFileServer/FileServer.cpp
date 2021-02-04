@@ -3,19 +3,16 @@
 bool FileServer::handle(AsyncWebServerRequest* request) {
   String path = request->url();
   //   LOGN("[FileServer] Handling " + path);
-  String delSuffix = "/delete";
-  if (path.endsWith(delSuffix)) {
-    path = path.substring(0, path.length() - delSuffix.length());
+  if (request->hasParam("delete")) {
     if (SPIFFS.exists(path)) {
       Serial.printf("[FileServer] Delete %s\n", path.c_str());
       SPIFFS.remove(path);
-      request->redirect("/files");
+      request->redirect("/");
       return true;
     }
     return false;
   }
-  if (path.endsWith("/"))
-    path += "index.html";
+  if (path.endsWith("/")) path += "index.html";
   String contentType;
   if (path.endsWith(".htm") || path.endsWith(".html"))
     contentType = "text/html";
@@ -54,11 +51,9 @@ bool FileServer::handle(AsyncWebServerRequest* request) {
 
   // look for smaller versions of file
   // minified file, good (myscript.min.js)
-  if (SPIFFS.exists(prefix + ".min" + ext))
-    path = prefix + ".min" + ext;
+  if (SPIFFS.exists(prefix + ".min" + ext)) path = prefix + ".min" + ext;
   // gzipped file, better (myscript.js.gz)
-  if (SPIFFS.exists(prefix + ext + ".gz"))
-    path = prefix + ext + ".gz";
+  if (SPIFFS.exists(prefix + ext + ".gz")) path = prefix + ext + ".gz";
   // min and gzipped file, best (myscript.min.js.gz)
   if (SPIFFS.exists(prefix + ".min" + ext + ".gz"))
     path = prefix + ".min" + ext + ".gz";

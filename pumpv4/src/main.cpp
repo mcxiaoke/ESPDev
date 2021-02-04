@@ -3,7 +3,7 @@
 #include <ArduinoTimer.h>
 #include <ESPUpdateServer.h>
 #include <FileServer.h>
-#include <webio.h>
+#include <ServerIO.h>
 #include <build.h>
 #include <compat.h>
 #include <net.h>
@@ -33,8 +33,6 @@ void setupTimers();
 void setupDate();
 void checkDate();
 void checkWiFi();
-int ledControl(String command);
-void handleGPIO(AsyncWebServerRequest *r);
 
 // ========================================
 // ==== WebServer begin ====
@@ -56,10 +54,16 @@ void notFound(AsyncWebServerRequest *request) {
   }
 }
 
+void handleRoot(AsyncWebServerRequest *r) {
+  String text = "Server: ";
+  text += getUDID();
+  text += "-";
+  text += ESP.getSketchMD5().substring(24);
+  r->send(200, "text/plain", text);
+}
+
 void setupServer() {
-  server.on("/", HTTP_GET, [](AsyncWebServerRequest *r) {
-    r->send(200, "text/plain", "Server on ESP32-"+getUDID());
-  });
+  server.on("/", HTTP_GET, handleRoot);
   server.onNotFound(notFound);
   otaUpdate.setup(&server);
   server.on("/gpio", handleWebIO);
@@ -161,5 +165,5 @@ void loop(void) {
 #if defined(ESP8266)
   MDNS.update();
 #endif
+  delay(1);
 }
-
