@@ -18,5 +18,6 @@ String URLEncode(const char* msg);
 String urldecode(String str);
 String urlencode(String str);
 unsigned char h2int(char c);
+int pinMode(uint8_t pin);
 
 #endif
