@@ -23,7 +23,7 @@ def get_full_class_name(obj):
 
 def get_log_filename():
     dt = datetime.now().strftime("%Y%m")
-    return '/tmp/pump-monitor-{}.log'.format(dt)
+    return '/tmp/mqtt-monitor-{}.log'.format(dt)
 
 
 def logging_config():
@@ -82,7 +82,7 @@ def send_report(sender, msg):
     else:
         suffix = now.strftime("%H%M%S")
     data = {
-        "text": "Pump_Status_{}_{}_{}".format(sender, suffix, titleCounter),
+        "text": "Device_Status_{}_{}_{}".format(sender, suffix, titleCounter),
         "desp": msg.replace("\n", "  \n"),
     }
     send_ios_report(data)
@@ -106,7 +106,7 @@ def on_message(client, userdata, msg):
     message = msg.payload.decode('utf8')
     logger.info(topic+" - "+message.replace("\n", " ") +
                 " ("+str(msg.qos)+","+str(msg.retain)+")")
-    m = re.match(r"^pump/(\S+)/status$", topic)
+    m = re.match(r"^device/(\S+)/status$", topic)
     if m and m.group(1):
         send_report(m.group(1), message)
 
@@ -115,7 +115,7 @@ def on_connect(client, userdata, flags, rc):
     logger.info("Connected with result: "+mqtt.error_string(rc))
     # client.subscribe("$SYS/#")
     client.subscribe("#")
-    client.publish("monitor/pump", "Online", retain=True)
+    client.publish("monitor/device", "Online", retain=True)
 
 
 def on_disconnect(client, userdata, rc):
@@ -130,7 +130,7 @@ def create_client():
     client.on_disconnect = on_disconnect
     client.on_message = on_message
     client.username_pw_set(MQTT_USER, MQTT_PASS)
-    client.will_set("monitor/pump", payload="Offline", retain=True)
+    client.will_set("monitor/device", payload="Offline", retain=True)
     client.connect(MQTT_SERVER, port=MQTT_PORT, keepalive=60)
     return client
 
@@ -138,5 +138,5 @@ def create_client():
 if __name__ == "__main__":
     client = create_client()
     logger.info("====================")
-    logger.info("Pump monitor start")
+    logger.info("MQTT Monitor Started")
     client.loop_forever()
