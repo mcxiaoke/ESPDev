@@ -1,14 +1,16 @@
+#!/usr/bin/env python3
+
 from datetime import datetime
-import time
 import logging
 import requests
 import re
+import time
 import paho.mqtt.client as mqtt
 from config import *
 
 MSG_LIMIT_PER_MIN = 20
-MSG_LIMIT_PER_HOUR = 40
-MSG_LIMIT_PER_DAY = 400
+MSG_LIMIT_PER_HOUR = 50
+MSG_LIMIT_PER_DAY = 800
 
 sendCounter = {}
 titleCounter = 0
@@ -22,14 +24,14 @@ def get_full_class_name(obj):
 
 
 def get_log_filename():
-    dt = datetime.now().strftime("%Y%m")
+    dt = datetime.now().strftime("%Y%m%d")
     return '/tmp/mqtt-monitor-{}.log'.format(dt)
 
 
 def logging_config():
     logging.basicConfig(level=logging.INFO,
-                        format='[%(asctime)s][%(name)s][%(levelname)s] %(message)s',
-                        datefmt='%Y-%m-%d %H:%M:%S',
+                        format='[%(asctime)s][%(levelname)s] %(message)s',
+                        datefmt='%m%d_%H%M%S',
                         filename=get_log_filename(),
                         filemode='a')
     console = logging.StreamHandler()
@@ -47,11 +49,9 @@ logger = logging.getLogger("monitor")
 def send_ios_report(data):
     try:
         url = BARK_REPORT_URL.format(data['text'], data['desp'])
-        print(url)
         r = requests.post(url, timeout=10)
-        print(r.text)
         if r.ok:
-            logger.info("iOS Sent: %s", data["text"])
+            logger.debug("iOS Sent: %s", data["text"])
     except Exception as e:
         logger.warning("iOS Send report failed: %s", get_full_class_name(e))
 
@@ -75,51 +75,50 @@ def send_report(sender, msg):
     sendCounter[min_key] = min_value + 1
     sendCounter[day_key] = day_value + 1
     titleCounter += 1
-    first_line = msg and msg.split("\n")[0]
-    # print("first_line=", first_line)
-    if first_line and len(first_line) < 32:
-        suffix = first_line
-    else:
-        suffix = now.strftime("%H%M%S")
+    suffix = now.strftime("%Y%m%d")
+    msg += '\nCreated At '
+    msg += now.strftime("%Y-%m-%d %H:%M:%S")
     data = {
-        "text": "Device_Status_{}_{}_{}".format(sender, suffix, titleCounter),
+        "text": "Device_{}_{}_{}".format(sender, suffix, titleCounter),
         "desp": msg.replace("\n", "  \n"),
     }
-    send_ios_report(data)
     try:
         r = requests.post(WX_REPORT_URL, data=data, timeout=10)
-        print(r.text[0:64])
-        if r.ok and 'success' in r.text:
-            logger.info("Sent: %s", data["text"])
-            logger.info("Send %s report successful", sender)
+        if r.ok and 'pushid' in r.text:
+            logger.info("Sent: [%s]", data["text"])
+            logger.debug("Send report to %s successful", sender)
         else:
 
-            logger.warning("Send %s report failed, status: %s",
+            logger.warning("Send report to %s failed, status: %s",
                            sender, r.status_code)
     except Exception as e:
-        logger.warning("Send %s report failed: %s",
-                       sender,  get_full_class_name(e))
+        logger.warning("Send report to %s failed: %s",
+                       sender, get_full_class_name(e))
+    time.sleep(1)
+    send_ios_report(data)
 
 
 def on_message(client, userdata, msg):
     topic = msg.topic
     message = msg.payload.decode('utf8')
-    logger.info(topic+" - "+message.replace("\n", " ") +
-                " ("+str(msg.qos)+","+str(msg.retain)+")")
+    logMsg = "[{}]:<{}> ({},{})".format(topic, message, msg.qos, msg.retain)
+    logger.debug(logMsg)
+    if topic == 'device/monitor/status':
+        return
     m = re.match(r"^device/(\S+)/status$", topic)
     if m and m.group(1):
         send_report(m.group(1), message)
 
 
 def on_connect(client, userdata, flags, rc):
-    logger.info("Connected with result: "+mqtt.error_string(rc))
+    logger.info("Connected with result: " + mqtt.error_string(rc))
     # client.subscribe("$SYS/#")
     client.subscribe("#")
-    client.publish("monitor/device", "Online", retain=True)
+    client.publish("device/monitor/status", "Online", retain=True)
 
 
 def on_disconnect(client, userdata, rc):
-    logger.info("Disconnected with result: "+mqtt.error_string(rc))
+    logger.info("Disconnected with result: " + mqtt.error_string(rc))
 
 
 def create_client():
@@ -130,7 +129,7 @@ def create_client():
     client.on_disconnect = on_disconnect
     client.on_message = on_message
     client.username_pw_set(MQTT_USER, MQTT_PASS)
-    client.will_set("monitor/device", payload="Offline", retain=True)
+    client.will_set("device/monitor/status", payload="Offline", retain=True)
     client.connect(MQTT_SERVER, port=MQTT_PORT, keepalive=60)
     return client
 
