@@ -1,6 +1,16 @@
 #include <Arduino.h>
 #include <SoftwareSerial.h>
 
+// ENA PWM控制速度
+// 如果不需要速度直接跳线帽连接5V
+// ENB ENC END 以此类推
+// 电机A IN1 IN2
+// 电机B IN3 IN4
+// 电机C IN5 IN6
+// 电机D IN7 IN8
+// 驱动版单独供电 7V-12V
+// 驱动版GND接Arduino GND
+
 // ble definations
 // button 2, go forward
 #define BLE_UP "2"
@@ -58,17 +68,17 @@ const byte FRONT_LEFT = 1;
 const byte BACK_RIGHT = 2;
 const byte BACK_LEFT = 3;
 // wheel a, right
-const byte FRONT_RIGHT_1 = 2;//1
-const byte FRONT_RIGHT_2 = 3;//2
+const byte FRONT_RIGHT_1 = 2;  // 1
+const byte FRONT_RIGHT_2 = 3;  // 2
 // wheel b, left
-const byte FRONT_LEFT_1 = 4;//3
-const byte FRONT_LEFT_2 = 7;//4
+const byte FRONT_LEFT_1 = 4;  // 3
+const byte FRONT_LEFT_2 = 7;  // 4
 // wheel c, right
-const byte BACK_RIGHT_1 = A0;//5
-const byte BACK_RIGHT_2 = A1;//6
+const byte BACK_RIGHT_1 = A0;  // 5
+const byte BACK_RIGHT_2 = A1;  // 6
 // wheel d, left
-const byte BACK_LEFT_1 = A2;//7
-const byte BACK_LEFT_2 = A3;//8
+const byte BACK_LEFT_1 = A2;  // 7
+const byte BACK_LEFT_2 = A3;  // 8
 
 // pmw control
 const byte ENA = 5;
@@ -80,12 +90,12 @@ const byte END = 10;
 const byte RECV_PIN = 12;
 
 // Ultrasonic Sensor
-const byte TRIG_PIN = A4; // trigger pin
-const byte ECHO_PIN = A5; // echo pin
+const byte TRIG_PIN = A4;  // trigger pin
+const byte ECHO_PIN = A5;  // echo pin
 
 // Bluetooth const
-const byte BLE_TX = 8;// connect cc2541-rx
-const byte BLE_RX = 11;// connect cc2541-tx
+const byte BLE_TX = 8;   // connect cc2541-rx
+const byte BLE_RX = 11;  // connect cc2541-tx
 
 // Car const
 const int TURN_DURATION = 1500;
@@ -93,7 +103,7 @@ const int MOVE_DURATION = 200;
 const int TURN_SPEED = 180;
 const int SPEED_HIGH = 240;
 const int SPEED_LOW = 200;
-const int INIT_SPEED = SPEED_LOW;
+const int INIT_SPEED = SPEED_HIGH;
 const Command INIT_COMMAND = STOP;
 
 float maxDistance = 20.0;
@@ -106,7 +116,7 @@ String bleStr("");
 String bleCmd("");
 int bleIndex;
 
-SoftwareSerial ble(BLE_RX, BLE_TX);   //RX, TX
+SoftwareSerial ble(BLE_RX, BLE_TX);  // RX, TX
 
 void setSpeed(int);
 void left(int);
@@ -115,8 +125,8 @@ void up(int);
 void down(int);
 
 void setup() {
-  pinMode(TRIG_PIN, OUTPUT);
-  pinMode(ECHO_PIN, INPUT);
+  // pinMode(TRIG_PIN, OUTPUT);
+  // pinMode(ECHO_PIN, INPUT);
   pinMode(FRONT_RIGHT_1, OUTPUT);
   pinMode(FRONT_RIGHT_2, OUTPUT);
   pinMode(FRONT_LEFT_1, OUTPUT);
@@ -125,21 +135,21 @@ void setup() {
   pinMode(BACK_RIGHT_2, OUTPUT);
   pinMode(BACK_LEFT_1, OUTPUT);
   pinMode(BACK_LEFT_2, OUTPUT);
-  pinMode(ENA, OUTPUT);
-  pinMode(ENB, OUTPUT);
-  pinMode(ENC, OUTPUT);
-  pinMode(END, OUTPUT);
-  setSpeed(currentSpeed);
+  // pinMode(ENA, OUTPUT);
+  // pinMode(ENB, OUTPUT);
+  // pinMode(ENC, OUTPUT);
+  // pinMode(END, OUTPUT);
+  // setSpeed(currentSpeed);
   Serial.begin(9600);
   ble.begin(9600);
   ble.println("AT+NAME");
 }
 
 void setSpeed(int speed) {
-  analogWrite(ENA, speed);
-  analogWrite(ENB, speed);
-  analogWrite(ENC, speed);
-  analogWrite(END, speed);
+  // analogWrite(ENA, speed);
+  // analogWrite(ENB, speed);
+  // analogWrite(ENC, speed);
+  // analogWrite(END, speed);
 }
 
 void wait() {
@@ -170,38 +180,38 @@ void right_wait() {
 void test() {
   digitalWrite(FRONT_RIGHT_1, HIGH);
   digitalWrite(FRONT_RIGHT_2, LOW);
-  delay(1000);
-  digitalWrite(FRONT_RIGHT_1, HIGH);
-  digitalWrite(FRONT_RIGHT_2, HIGH);
-  delay(1000);
-
   digitalWrite(FRONT_LEFT_1, HIGH);
   digitalWrite(FRONT_LEFT_2, LOW);
-  delay(1000);
-  digitalWrite(FRONT_LEFT_1, HIGH);
-  digitalWrite(FRONT_LEFT_2, HIGH);
-  delay(1000);
-
   digitalWrite(BACK_RIGHT_1, HIGH);
   digitalWrite(BACK_RIGHT_2, LOW);
-  delay(1000);
-  digitalWrite(BACK_RIGHT_1, HIGH);
-  digitalWrite(BACK_RIGHT_2, HIGH);
-  delay(1000);
-
   digitalWrite(BACK_LEFT_1, HIGH);
   digitalWrite(BACK_LEFT_2, LOW);
-  delay(1000);
-
-  digitalWrite(BACK_LEFT_1, HIGH);
+  delay(2000);
+  digitalWrite(FRONT_RIGHT_2, HIGH);
+  digitalWrite(FRONT_RIGHT_1, LOW);
+  digitalWrite(FRONT_LEFT_2, HIGH);
+  digitalWrite(FRONT_LEFT_1, LOW);
+  digitalWrite(BACK_RIGHT_2, HIGH);
+  digitalWrite(BACK_RIGHT_1, LOW);
   digitalWrite(BACK_LEFT_2, HIGH);
-  delay(1000);
+  digitalWrite(BACK_LEFT_1, LOW);
+  delay(2000);
+  digitalWrite(FRONT_RIGHT_2, LOW);
+  digitalWrite(FRONT_RIGHT_1, LOW);
+  digitalWrite(FRONT_LEFT_2, LOW);
+  digitalWrite(FRONT_LEFT_1, LOW);
+  digitalWrite(BACK_RIGHT_2, LOW);
+  digitalWrite(BACK_RIGHT_1, LOW);
+  digitalWrite(BACK_LEFT_2, LOW);
+  digitalWrite(BACK_LEFT_1, LOW);
+  delay(2000);
 }
 
 void demo() {
   up(1500);
   left(1500);
   up(1500);
+  right(1500);
   wait();
 }
 
@@ -250,13 +260,9 @@ void move(int wheel, bool forward) {
   digitalWrite(w2, forward ? LOW : HIGH);
 }
 
-void moveUp(int wheel) {
-  move(wheel, true);
-}
+void moveUp(int wheel) { move(wheel, true); }
 
-void moveDown(int wheel) {
-  move(wheel, false);
-}
+void moveDown(int wheel) { move(wheel, false); }
 
 void up(int duration) {
   moveUp(FRONT_RIGHT);
@@ -277,7 +283,7 @@ void down(int duration) {
 void left(int duration) {
   wait();
   delay(MOVE_DURATION);
-  setSpeed(TURN_SPEED);
+  // setSpeed(TURN_SPEED);
   moveUp(FRONT_RIGHT);
   moveUp(BACK_RIGHT);
   moveDown(FRONT_LEFT);
@@ -285,17 +291,15 @@ void left(int duration) {
   delay(duration);
   wait();
   delay(MOVE_DURATION);
-  setSpeed(currentSpeed);
+  // setSpeed(currentSpeed);
 }
 
-void leftBack() {
-  left(TURN_DURATION * 2);
-}
+void leftBack() { left(TURN_DURATION * 2); }
 
 void right(int duration) {
   wait();
   delay(MOVE_DURATION);
-  setSpeed(TURN_SPEED);
+  // setSpeed(TURN_SPEED);
   moveUp(FRONT_LEFT);
   moveUp(BACK_LEFT);
   moveDown(FRONT_RIGHT);
@@ -303,13 +307,10 @@ void right(int duration) {
   delay(duration);
   wait();
   delay(MOVE_DURATION);
-  setSpeed(currentSpeed);
+  // setSpeed(currentSpeed);
 }
 
-void rightBack() {
-  right(TURN_DURATION * 2);
-}
-
+void rightBack() { right(TURN_DURATION * 2); }
 
 void leftM(int duration) {
   moveUp(FRONT_RIGHT);
@@ -327,7 +328,7 @@ void rightM(int duration) {
   delay(duration);
 }
 
-//void parseCommand() {
+// void parseCommand() {
 //  if (irrecv.decode(&results)) {
 //    Serial.println(results.value, HEX);
 //    if (results.value == IR_UP) {
@@ -522,7 +523,7 @@ float getDistance() {
   delayMicroseconds(10);
   digitalWrite(TRIG_PIN, LOW);
   float delta = pulseIn(ECHO_PIN, HIGH);
-  float distance = delta / 58.8; // in cm
+  float distance = delta / 58.8;  // in cm
   //  Serial.print("Echo = ");
   //  Serial.print(delta);
   //  Serial.print(" || Distance = ");
@@ -554,7 +555,7 @@ void checkBarrier() {
 
 void loop() {
   parseBleCommand();
-  delay(500);
+  test();
   // if (autoMode) {
   //   autoExecute();
   //   checkBarrier();
