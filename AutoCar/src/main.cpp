@@ -7,10 +7,19 @@
  */
 
 #include <Arduino.h>
-#include <ArduinoBlue.h>
 #include <PCF8574.h>
 #include <SoftwareSerial.h>
 #include <Wire.h>
+
+//#define USE_ARDUINO_BLUE
+
+#ifdef USE_ARDUINO_BLUE
+#include <ArduinoBlue.h>
+#else
+#define CUSTOM_SETTINGS
+#define INCLUDE_GAMEPAD_MODULE
+#include <Dabble.h>
+#endif
 
 // ENA PWM控制速度
 // 如果不需要速度直接跳线帽连接5V
@@ -30,12 +39,16 @@ const byte echoPin = 3;
 const byte BLE_TX = 9;
 // connect cc2541-tx
 const byte BLE_RX = 8;
+
+#ifdef USE_ARDUINO_BLUE
 // BLE RX, TX
 SoftwareSerial ble(BLE_RX, BLE_TX);
 ArduinoBlue remote(ble);
 String bleStr("");
 String bleCmd("");
 int bleIndex;
+
+#endif
 
 void motorIdle() { pcf.write8(0x00); }
 
@@ -52,8 +65,35 @@ void moveRight() { pcf.write8(0b10001000); }
 #define CMD_DOWN 8
 #define CMD_LEFT 4
 #define CMD_RIGHT 6
-#define CMD_IDLE 0
+#define SET_MODE 9
 
+String getCmdName(int cmd) {
+  switch (cmd) {
+    case SET_MODE:
+      return "SET_MODE";
+      break;
+    case CMD_UP:
+      return "CMD_UP";
+      break;
+    case CMD_DOWN:
+      return "CMD_DOWN";
+      break;
+    case CMD_LEFT:
+      return "CMD_LEFT";
+      break;
+    case CMD_RIGHT:
+      return "CMD_RIGHT";
+      break;
+    case CMD_OK:
+      return "CMD_OK";
+      break;
+    default:
+      return "NONE";
+      break;
+  }
+}
+
+bool autoMode = false;
 bool forceCmd = false;
 int newCmd = CMD_OK;
 int lastCmd = CMD_OK;
@@ -103,7 +143,7 @@ void checkDistance() {
     Serial.print(" cm");
     Serial.println();
     // near, stop
-    if (newCmd != CMD_OK && newCmd != CMD_IDLE) {
+    if (newCmd == CMD_UP) {
       Serial.println("stop and turn right");
       moveBackward();
       delay(200);
@@ -117,7 +157,12 @@ void checkDistance() {
 
 void setup() {
   Serial.begin(9600);
+#ifdef USE_ARDUINO_BLUE
+  autoMode = true;
   ble.begin(9600);
+#else
+  Dabble.begin(9600, BLE_RX, BLE_TX);
+#endif
   Serial.println("setup()");
   setupPCF8574();
   setupSR();
@@ -125,57 +170,111 @@ void setup() {
   // ble.println("AT+NAME");
 }
 
-void executeCmd(int cmd) {
-  Serial.print("executeCmd:");
-  Serial.println(cmd);
-  switch (cmd) {
+void showCmd(String prefix) {
+  Serial.print(millis());
+  Serial.print(",");
+  Serial.print(prefix);
+  Serial.print(", new:");
+  Serial.print(getCmdName(newCmd));
+  Serial.print(", last:");
+  Serial.print(getCmdName(lastCmd));
+  Serial.print(", auto:");
+  Serial.println(autoMode ? 1 : 0);
+}
+
+void executeCmd() {
+  // Serial.print(millis());
+  // Serial.print(",executeCmd:");
+  // Serial.println(getCmdName(newCmd));
+  switch (newCmd) {
     case CMD_UP:
-      Serial.println("UP");
       moveForward();
       break;
     case CMD_DOWN:
-      Serial.println("DOWN");
       moveBackward();
       break;
     case CMD_LEFT:
-      Serial.println("LEFT");
       moveLeft();
       break;
     case CMD_RIGHT:
-      Serial.println("RIGHT");
       moveRight();
       break;
     case CMD_OK:
-    case CMD_IDLE:
     default:
-      Serial.println("IDLE");
       motorIdle();
       break;
   }
-  // lastCmd = CMD_OK;
+  lastCmd = newCmd;
+  delay(20);
 }
 
-void handleBLE() {
-  int btnId = remote.getButton();
-  if (btnId != -1) {
-    newCmd = btnId;
-    Serial.print("BLE newCmd: ");
-    Serial.print(newCmd);
-    Serial.print(",lastCmd: ");
-    Serial.println(lastCmd);
+#ifdef USE_ARDUINO_BLUE
+void handleArduinoBlue() {
+  String text = remote.getText();
+  if (text != "" && text.length() > 0) {
+    Serial.println(text);
+  }
+  int bleCmd = remote.getButton();
+  if (bleCmd != -1) {
+    if (bleCmd == SET_MODE) {
+      autoMode = !autoMode;
+    } else {
+      newCmd = bleCmd;
+    }
+    showCmd("blue");
   }
 }
+#else
+void handleDabble() {
+  Dabble.processInput();
+  if (GamePad.isSelectPressed()) {
+    autoMode = !autoMode;
+    Serial.print(millis());
+    Serial.print(", autoMode:");
+    Serial.println(autoMode ? 1 : 0);
+    return;
+  }
+
+  int bleCmd = -1;
+  if (GamePad.isUpPressed() || GamePad.isTrianglePressed()) {
+    bleCmd = CMD_UP;
+  } else if (GamePad.isDownPressed() || GamePad.isCrossPressed()) {
+    bleCmd = CMD_DOWN;
+  } else if (GamePad.isLeftPressed() || GamePad.isSquarePressed()) {
+    bleCmd = CMD_LEFT;
+  } else if (GamePad.isRightPressed() || GamePad.isCirclePressed()) {
+    bleCmd = CMD_RIGHT;
+  } else if (GamePad.isStartPressed()) {
+    bleCmd = CMD_OK;
+  }
+
+  if (bleCmd != -1) {
+    newCmd = bleCmd;
+    showCmd("dabble");
+  }
+}
+#endif
 
 void loop() {
-  handleBLE();
-  if (millis() - sensorLastCheck > 30) {
-    sensorLastCheck = millis();
-    checkDistance();
+#ifdef USE_ARDUINO_BLUE
+  handleArduinoBlue();
+#else
+  handleDabble();
+#endif
+  if (autoMode) {
+    if (millis() - sensorLastCheck > 50) {
+      sensorLastCheck = millis();
+      checkDistance();
+    }
   }
-
-  if (forceCmd || newCmd != lastCmd) {
+  if (!autoMode) {
+    executeCmd();
+    newCmd = CMD_OK;
+  } else if (forceCmd || newCmd != lastCmd) {
     forceCmd = false;
-    executeCmd(newCmd);
-    lastCmd = newCmd;
+    showCmd("loop");
+    executeCmd();
+  }
+  if (!autoMode) {
   }
 }
