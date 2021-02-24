@@ -8,7 +8,6 @@
 
 #include <Arduino.h>
 #include <ArduinoBlue.h>
-#include <IRremote.h>
 #include <PCF8574.h>
 #include <SoftwareSerial.h>
 #include <Wire.h>
@@ -21,6 +20,10 @@
 // 驱动版单独供电 7V-12V, GND接Arduino GND
 
 PCF8574 pcf(0x20);
+
+// HC-SR04 const
+const byte trigPin = 2;
+const byte echoPin = 3;
 
 // Bluetooth const
 // connect cc2541-rx
@@ -51,43 +54,11 @@ void moveRight() { pcf.write8(0b10001000); }
 #define CMD_RIGHT 6
 #define CMD_IDLE 0
 
+bool forceCmd = false;
+int newCmd = CMD_OK;
 int lastCmd = CMD_OK;
-unsigned long lastCheck = 0;
-//
-// ###############
-//
-// IR Commands (White B)
-// CH- = 0x45, CH = 0x46, CH+ = 0x47
-// PREV = 0x44, NEXT = 0x40, PLAY = 0x43
-// - = 0x7, + = 0x15, 100 = 0x19, 200 = 0xd
-// 1 = 0xc, 2 = 0x18, 3 = 0x5e, 4 = 0x8, 5 = 0x1c
-// 6 = 0x5a, 7 = 0x42, 8 = 0x52, 9 = 0x4a, 0 = 0x16
-
-int IR_RECEIVE_PIN = A0;
-
-void setupIR() {
-  pinMode(LED_BUILTIN, OUTPUT);
-  IrReceiver.begin(IR_RECEIVE_PIN, ENABLE_LED_FEEDBACK,
-                   USE_DEFAULT_FEEDBACK_LED_PIN);
-}
-
-void loopIR() {
-  if (IrReceiver.decode()) {
-    // Print a short summary of received data
-    IrReceiver.printIRResultShort(&Serial);
-    // if (IrReceiver.decodedIRData.protocol == UNKNOWN) {
-    //   // We have an unknown protocol here, print more info
-    //   IrReceiver.printIRResultRawFormatted(&Serial, true);
-    // }
-    Serial.println();
-    IrReceiver.resume();  // Enable receiving of the next value
-    if (IrReceiver.decodedIRData.protocol != UNKNOWN) {
-      lastCmd = IrReceiver.decodedIRData.command;
-    }
-    // lastCmd = lastCmdRetain;
-  }
-  delay(5);
-}
+unsigned long cmdLastCheck = 0;
+unsigned long sensorLastCheck = 0;
 
 void setupPCF8574() {
   // SDA=A4, SCL=A5
@@ -97,22 +68,50 @@ void setupPCF8574() {
   Serial.println(x, BIN);
 }
 
-void readBlEData() {
-  char c;
-  while (ble.available() > 0) {
-    c = ble.read();
-    bleStr += c;
-    if (bleIndex < 2) {
-      bleCmd += c;
+void setupSR() {
+  pinMode(trigPin, OUTPUT);
+  pinMode(echoPin, INPUT);
+}
+
+unsigned long checkOnce() {
+  // The sensor is triggered by a HIGH pulse of 10 or more microseconds.
+  // Give a short LOW pulse beforehand to ensure a clean HIGH pulse:
+  digitalWrite(trigPin, LOW);
+  delayMicroseconds(2);
+  digitalWrite(trigPin, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(trigPin, LOW);
+
+  // Read the signal from the sensor: a HIGH pulse whose
+  // duration is the time (in microseconds) from the sending
+  // of the ping to the reception of its echo off of an object.
+  return pulseIn(echoPin, HIGH);
+}
+
+void checkDistance() {
+  float duration = checkOnce();
+
+  // convert the time into a distance
+  double cm = (duration / 2) / 29.1;
+  double inches = (duration / 2) / 74;
+
+  if (cm < 20 && cm > 0) {
+    Serial.print("Distance: ");
+    Serial.print(inches);
+    Serial.print(" in, ");
+    Serial.print(cm);
+    Serial.print(" cm");
+    Serial.println();
+    // near, stop
+    if (newCmd != CMD_OK && newCmd != CMD_IDLE) {
+      Serial.println("stop and turn right");
+      moveBackward();
+      delay(200);
+      moveRight();
+      delay(400);
+      newCmd = CMD_UP;
+      forceCmd = true;
     }
-    bleIndex++;
-    delay(1);
-  }
-  bleIndex = 0;
-  if (bleStr.length() > 0) {
-    Serial.println(bleStr);
-    bleCmd = "";
-    bleStr = "";
   }
 }
 
@@ -121,8 +120,9 @@ void setup() {
   ble.begin(9600);
   Serial.println("setup()");
   setupPCF8574();
+  setupSR();
   delay(500);
-  ble.println("AT+NAME");
+  // ble.println("AT+NAME");
 }
 
 void executeCmd(int cmd) {
@@ -156,24 +156,26 @@ void executeCmd(int cmd) {
 }
 
 void handleBLE() {
-  int newCmd = remote.getButton();
-  if (newCmd == -1) {
-    return;
+  int btnId = remote.getButton();
+  if (btnId != -1) {
+    newCmd = btnId;
+    Serial.print("BLE newCmd: ");
+    Serial.print(newCmd);
+    Serial.print(",lastCmd: ");
+    Serial.println(lastCmd);
   }
-
-  Serial.print("BLE newCmd: ");
-  Serial.print(newCmd);
-  Serial.print(",lastCmd: ");
-  Serial.println(lastCmd);
-
-  if (newCmd != lastCmd) {
-    if (millis() - lastCheck > 50) {
-      lastCheck = millis();
-      executeCmd(newCmd);
-    }
-  }
-
-  lastCmd = newCmd;
 }
 
-void loop() { handleBLE(); }
+void loop() {
+  handleBLE();
+  if (millis() - sensorLastCheck > 30) {
+    sensorLastCheck = millis();
+    checkDistance();
+  }
+
+  if (forceCmd || newCmd != lastCmd) {
+    forceCmd = false;
+    executeCmd(newCmd);
+    lastCmd = newCmd;
+  }
+}
