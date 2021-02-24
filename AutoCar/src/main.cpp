@@ -7,107 +7,52 @@
  */
 
 #include <Arduino.h>
+#include <ArduinoBlue.h>
 #include <IRremote.h>
 #include <PCF8574.h>
+#include <SoftwareSerial.h>
 #include <Wire.h>
 
-#define MOTOR_DELAY 100
+// ENA PWM控制速度
+// 如果不需要速度直接跳线帽连接5V
+// ENB ENC END 以此类推
+// 电机A IN1 IN2, 电机B IN3 IN4
+// 电机C IN5 IN6, 电机D IN7 IN8
+// 驱动版单独供电 7V-12V, GND接Arduino GND
 
 PCF8574 pcf(0x20);
 
-void motorIdle() {
-  // Serial.println("idle");
-  pcf.write8(0x00);
-}
+// Bluetooth const
+// connect cc2541-rx
+const byte BLE_TX = 9;
+// connect cc2541-tx
+const byte BLE_RX = 8;
+// BLE RX, TX
+SoftwareSerial ble(BLE_RX, BLE_TX);
+ArduinoBlue remote(ble);
+String bleStr("");
+String bleCmd("");
+int bleIndex;
 
-void moveForward() {
-  // 右前方 0,1
-  // 左前方 3,2
-  // 右后方 4,5
-  // 左后方 7,6
-  // pcf.write(0, HIGH);
-  // pcf.write(1, LOW);
-  // pcf.write(2, LOW);
-  // pcf.write(3, HIGH);
-  // pcf.write(4, HIGH);
-  // pcf.write(5, LOW);
-  // pcf.write(6, LOW);
-  // pcf.write(7, HIGH);
-  // Serial.println("forward");
-  pcf.write8(0b10011001);
-  delay(MOTOR_DELAY);
-}
+void motorIdle() { pcf.write8(0x00); }
 
-void moveBackward() {
-  // pcf.write(0, LOW);
-  // pcf.write(1, HIGH);
-  // pcf.write(2, HIGH);
-  // pcf.write(3, LOW);
-  // pcf.write(4, LOW);
-  // pcf.write(5, HIGH);
-  // pcf.write(6, HIGH);
-  // pcf.write(7, LOW);
-  // Serial.println("backward");
-  pcf.write8(0b01100110);
-  delay(MOTOR_DELAY);
-}
+void moveForward() { pcf.write8(0b10011001); }
 
-void moveLeft() {
-  // pcf.write(0, HIGH);
-  // pcf.write(1, LOW);
-  // pcf.write(2, LOW);
-  // pcf.write(3, LOW);
-  // pcf.write(4, HIGH);
-  // pcf.write(5, LOW);
-  // pcf.write(6, LOW);
-  // pcf.write(7, LOW);
-  // Serial.println("left");
-  pcf.write8(0b00010001);
-  delay(MOTOR_DELAY);
-}
+void moveBackward() { pcf.write8(0b01100110); }
 
-void moveRight() {
-  // pcf.write(0, LOW);
-  // pcf.write(1, LOW);
-  // pcf.write(2, LOW);
-  // pcf.write(3, HIGH);
-  // pcf.write(4, LOW);
-  // pcf.write(5, LOW);
-  // pcf.write(6, LOW);
-  // pcf.write(7, HIGH);
-  // Serial.println("right");
-  pcf.write8(0b10001000);
-  delay(MOTOR_DELAY);
-}
+void moveLeft() { pcf.write8(0b00010001); }
 
-// IR Commands (Black A)
-// Protocol=NEC Address=0x0
-// OK = 0x1c, UP = 0x18, DOWN = 0x52, LEFT = 0x8, RIGHT = 0x5a
-// 1 = 0x45, 2 = 0x46, 3 = 0x47, 4 = 0x44, 5 = 0x40
-// 6 = 0x43, 7 = 0x7, 8 = 0x15, 9 = 0x9, 0 = 0x19
-// * = 0x16, # = 0xd
-#define CMD_OK 0x1c
-#define CMD_UP 0x18
-#define CMD_DOWN 0x52
-#define CMD_LEFT 0x8
-#define CMD_RIGHT 0x5a
+void moveRight() { pcf.write8(0b10001000); }
 
-#define CMD_N1 0x45
-#define CMD_N2 0x46
-#define CMD_N3 0x47
-#define CMD_N4 0x44
-#define CMD_N5 0x40
-#define CMD_N6 0x43
-#define CMD_N7 0x7
-#define CMD_N8 0x15
-#define CMD_N9 0x9
+#define CMD_OK 5
+#define CMD_UP 2
+#define CMD_DOWN 8
+#define CMD_LEFT 4
+#define CMD_RIGHT 6
+#define CMD_IDLE 0
 
-#define CMD_N0 0x19
-#define CMD_N0 0x19
-#define CMD_STAR 0x16
-#define CMD_BOX 0xd
-
-uint16_t lastCmd = CMD_OK;
+int lastCmd = CMD_OK;
+unsigned long lastCheck = 0;
 //
 // ###############
 //
@@ -120,13 +65,6 @@ uint16_t lastCmd = CMD_OK;
 
 int IR_RECEIVE_PIN = A0;
 
-// ENA PWM控制速度
-// 如果不需要速度直接跳线帽连接5V
-// ENB ENC END 以此类推
-// 电机A IN1 IN2, 电机B IN3 IN4
-// 电机C IN5 IN6, 电机D IN7 IN8
-// 驱动版单独供电 7V-12V, GND接Arduino GND
-
 void setupIR() {
   pinMode(LED_BUILTIN, OUTPUT);
   IrReceiver.begin(IR_RECEIVE_PIN, ENABLE_LED_FEEDBACK,
@@ -137,24 +75,16 @@ void loopIR() {
   if (IrReceiver.decode()) {
     // Print a short summary of received data
     IrReceiver.printIRResultShort(&Serial);
-    if (IrReceiver.decodedIRData.protocol == UNKNOWN) {
-      // We have an unknown protocol here, print more info
-      IrReceiver.printIRResultRawFormatted(&Serial, true);
-    }
+    // if (IrReceiver.decodedIRData.protocol == UNKNOWN) {
+    //   // We have an unknown protocol here, print more info
+    //   IrReceiver.printIRResultRawFormatted(&Serial, true);
+    // }
     Serial.println();
-
-    /*
-     * !!!Important!!! Enable receiving of the next value,
-     * since receiving has stopped after the end of the current received data
-     * packet.
-     */
     IrReceiver.resume();  // Enable receiving of the next value
-
-    /*
-     * Finally, check the received data and perform actions according to the
-     * received command
-     */
-    lastCmd = IrReceiver.decodedIRData.command;
+    if (IrReceiver.decodedIRData.protocol != UNKNOWN) {
+      lastCmd = IrReceiver.decodedIRData.command;
+    }
+    // lastCmd = lastCmdRetain;
   }
   delay(5);
 }
@@ -167,111 +97,83 @@ void setupPCF8574() {
   Serial.println(x, BIN);
 }
 
-void printPCF8574() {
-  Serial.print("Read ");
-  Serial.println(pcf.read8(), BIN);
-}
-
-void testPCF8574() {
-  // 右前方 0,1
-  // 左前方 3,2
-  // 右后方 4,5
-  // 左后方 7,6
-  pcf.write8(0x00);
-  pcf.write(0, HIGH);
-  pcf.write(1, LOW);
-  printPCF8574();
-  pcf.write8(0x00);
-  pcf.write(3, HIGH);
-  pcf.write(2, LOW);
-  printPCF8574();
-  pcf.write8(0x00);
-  pcf.write(4, HIGH);
-  pcf.write(5, LOW);
-  printPCF8574();
-  pcf.write8(0x00);
-  pcf.write(7, HIGH);
-  pcf.write(6, LOW);
-  printPCF8574();
-  // // pcf.write8(0x55);
-  // // printPCF8574();
-
-  // pcf.write8(0xaa);
-  // printPCF8574();
-
-  // pcf.write8(0x00);
-  // printPCF8574();
-}
-
-void wirePrint() {
-  if (Wire.requestFrom((uint8_t)0x20, (uint8_t)1) == 1) {
-    uint8_t d = Wire.read();
-    Serial.print("Read ");
-    Serial.println(d, BIN);
+void readBlEData() {
+  char c;
+  while (ble.available() > 0) {
+    c = ble.read();
+    bleStr += c;
+    if (bleIndex < 2) {
+      bleCmd += c;
+    }
+    bleIndex++;
+    delay(1);
   }
-}
-
-void testWire() {
-  Wire.beginTransmission(0x20);
-  Wire.write(0xAA);
-  Wire.endTransmission();
-  wirePrint();
-  delay(2000);
-  Wire.beginTransmission(0x20);
-  Wire.write(0x55);
-  Wire.endTransmission();
-  wirePrint();
-  delay(2000);
-  Wire.beginTransmission(0x20);
-  Wire.write(0x00);
-  Wire.endTransmission();
-  wirePrint();
-  delay(2000);
-}
-
-void setupWire() {
-  Wire.begin();
-  Wire.beginTransmission(0x20);
-  Wire.write(0x00);
-  Wire.endTransmission();
-  delay(1000);
-  wirePrint();
+  bleIndex = 0;
+  if (bleStr.length() > 0) {
+    Serial.println(bleStr);
+    bleCmd = "";
+    bleStr = "";
+  }
 }
 
 void setup() {
   Serial.begin(9600);
+  ble.begin(9600);
   Serial.println("setup()");
   setupPCF8574();
-  setupIR();
+  delay(500);
+  ble.println("AT+NAME");
 }
 
-void checkDirection() {
-  switch (lastCmd) {
+void executeCmd(int cmd) {
+  Serial.print("executeCmd:");
+  Serial.println(cmd);
+  switch (cmd) {
     case CMD_UP:
+      Serial.println("UP");
       moveForward();
       break;
     case CMD_DOWN:
+      Serial.println("DOWN");
       moveBackward();
       break;
     case CMD_LEFT:
+      Serial.println("LEFT");
       moveLeft();
       break;
     case CMD_RIGHT:
+      Serial.println("RIGHT");
       moveRight();
       break;
     case CMD_OK:
-    case CMD_N0:
-    case CMD_STAR:
-    case CMD_BOX:
+    case CMD_IDLE:
+    default:
+      Serial.println("IDLE");
       motorIdle();
       break;
-    default:
-      break;
   }
-  lastCmd = CMD_OK;
+  // lastCmd = CMD_OK;
 }
 
-void loop() {
-  loopIR();
-  checkDirection();
+void handleBLE() {
+  int newCmd = remote.getButton();
+  if (newCmd == -1) {
+    return;
+  }
+
+  Serial.print("BLE newCmd: ");
+  Serial.print(newCmd);
+  Serial.print(",lastCmd: ");
+  Serial.println(lastCmd);
+
+  if (newCmd != lastCmd) {
+    if (millis() - lastCheck > 50) {
+      lastCheck = millis();
+      executeCmd(newCmd);
+    }
+  }
+
+  lastCmd = newCmd;
 }
+
+void loop() { handleBLE(); }
