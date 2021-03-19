@@ -53,37 +53,37 @@ bool MqttManager::isConnected() {
 }
 
 string MqttManager::getStatusTopic() {
-  // pump/%DEVICE%/status
-  string topic("pump/");
+  // device/%DEVICE%/status
+  string topic("device/");
   topic += getDeviceId();
   topic += "/status";
   return topic;
 }
 
 string MqttManager::getLogTopic() {
-  // pump/%DEVICE%/log
-  string topic("pump/");
+  // device/%DEVICE%/log
+  string topic("device/");
   topic += getDeviceId();
   topic += "/logs";
   return topic;
 }
 
 string MqttManager::getCmdTopic() {
-  // pump/%DEVICE%/cmd
-  string topic("pump/");
+  // device/%DEVICE%/cmd
+  string topic("device/");
   topic += getDeviceId();
   topic += "/cmd";
   return topic;
 }
 
 string MqttManager::getSerialTxTopic() {
-  string topic("pump/");
+  string topic("device/");
   topic += getDeviceId();
   topic += "/serial/tx";
   return topic;
 }
 string MqttManager::getSerialRxTopic() {
-  string topic("pump/");
+  string topic("device/");
   topic += getDeviceId();
   topic += "/serial/rx";
   return topic;
