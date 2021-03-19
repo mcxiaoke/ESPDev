@@ -7,7 +7,6 @@
  */
 
 #include <Arduino.h>
-#include <PCF8574.h>
 #include <SoftwareSerial.h>
 #include <Wire.h>
 
@@ -27,8 +26,6 @@
 // 电机A IN1 IN2, 电机B IN3 IN4
 // 电机C IN5 IN6, 电机D IN7 IN8
 // 驱动版单独供电 7V-12V, GND接Arduino GND
-
-PCF8574 pcf(0x20);
 
 // HC-SR04 const
 const byte trigPin = 2;
@@ -50,15 +47,40 @@ int bleIndex;
 
 #endif
 
-void motorIdle() { pcf.write8(0x00); }
+void motorIdle() {
+  digitalWrite(4, LOW);
+  digitalWrite(5, LOW);
+  digitalWrite(6, LOW);
+  digitalWrite(7, LOW);
+}
 
-void moveForward() { pcf.write8(0b10011001); }
+void moveForward() {
+  digitalWrite(4, LOW);
+  digitalWrite(5, HIGH);
+  digitalWrite(6, LOW);
+  digitalWrite(7, HIGH);
+}
 
-void moveBackward() { pcf.write8(0b01100110); }
+void moveBackward() {
+  digitalWrite(4, HIGH);
+  digitalWrite(5, LOW);
+  digitalWrite(6, HIGH);
+  digitalWrite(7, LOW);
+}
 
-void moveLeft() { pcf.write8(0b00010001); }
+void moveLeft() {
+  digitalWrite(4, LOW);
+  digitalWrite(5, LOW);
+  digitalWrite(6, LOW);
+  digitalWrite(7, HIGH);
+}
 
-void moveRight() { pcf.write8(0b10001000); }
+void moveRight() {
+  digitalWrite(4, LOW);
+  digitalWrite(5, HIGH);
+  digitalWrite(6, LOW);
+  digitalWrite(7, LOW);
+}
 
 #define CMD_OK 5
 #define CMD_UP 2
@@ -99,14 +121,6 @@ int newCmd = CMD_OK;
 int lastCmd = CMD_OK;
 unsigned long cmdLastCheck = 0;
 unsigned long sensorLastCheck = 0;
-
-void setupPCF8574() {
-  // SDA=A4, SCL=A5
-  pcf.begin(0x00);
-  int x = pcf.read8();
-  Serial.print("Init ");
-  Serial.println(x, BIN);
-}
 
 void setupSR() {
   pinMode(trigPin, OUTPUT);
@@ -164,7 +178,10 @@ void setup() {
   Dabble.begin(9600, BLE_RX, BLE_TX);
 #endif
   Serial.println("setup()");
-  setupPCF8574();
+  pinMode(4, OUTPUT);
+  pinMode(5, OUTPUT);
+  pinMode(6, OUTPUT);
+  pinMode(7, OUTPUT);
   setupSR();
   delay(500);
   // ble.println("AT+NAME");
