@@ -1,12 +1,13 @@
 #ifndef __ESP_HTTP_UPDATE_SERVER_H__
 #define __ESP_HTTP_UPDATE_SERVER_H__
 
-#include <ext/utility.hpp>
-#include <utils.h>
 #include <Arduino.h>
 #include <FS.h>
 #include <WiFiClient.h>
 #include <WiFiUdp.h>
+#include <utils.h>
+
+#include <ext/utility.hpp>
 #if defined(ESP8266)
 #include <ESP8266HTTPClient.h>
 #include <ESP8266WiFi.h>
@@ -16,8 +17,8 @@
 #include <ESPmDNS.h>
 #include <HTTPClient.h>
 #include <SPIFFS.h>
-#include <WiFi.h>
 #include <Update.h>
+#include <WiFi.h>
 #endif
 #include <ESPAsyncWebServer.h>
 
@@ -35,15 +36,12 @@ class ESPUpdateServer {
     setup(server, path, emptyString, emptyString);
   }
 
-  void setup(AsyncWebServer* server,
-             const String& username,
+  void setup(AsyncWebServer* server, const String& username,
              const String& password) {
     setup(server, "/update", username, password);
   }
 
-  void setup(AsyncWebServer* server,
-             const String& path,
-             const String& username,
+  void setup(AsyncWebServer* server, const String& path, const String& username,
              const String& password);
 
   void updateCredentials(const String& username, const String& password) {
@@ -51,25 +49,25 @@ class ESPUpdateServer {
     _password = password;
   }
 
+  void loop();
+
  protected:
   void _setUpdaterError();
 
  private:
   bool _serial_output;
+  bool _shouldRestart;
   AsyncWebServer* _server;
   String _username;
   String _password;
   bool _authenticated;
   String _updaterError;
+  unsigned long progressMs;
   void handleUpdate(AsyncWebServerRequest* request);
   void handleUploadEnd(AsyncWebServerRequest* request);
   void handleUploadProgress(size_t progress, size_t total);
-  void handleUpload(AsyncWebServerRequest* request,
-                    const String& filename,
-                    size_t index,
-                    uint8_t* data,
-                    size_t len,
-                    bool final);
+  void handleUpload(AsyncWebServerRequest* request, const String& filename,
+                    size_t index, uint8_t* data, size_t len, bool final);
 };
 
 #endif

@@ -41,6 +41,16 @@ inline void setHostname(const char* hostname) {
 #endif
 }
 
+inline size_t fsSize() {
+#if defined(ESP8266)
+  FSInfo fs_info;
+  SPIFFS.info(fs_info);
+  return fs_info.totalBytes;
+#elif defined(ESP32)
+  return SPIFFS.totalBytes();
+#endif
+}
+
 }  // namespace compat
 
 #endif

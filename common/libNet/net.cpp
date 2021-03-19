@@ -1,10 +1,12 @@
 #include "net.h"
 
-HttpResult wifiHttpPost(const String& url,
-                        const String& body,
+HttpResult wifiHttpPost(const String& url, const String& body,
                         WiFiClient& client) {
   HTTPClient http;
-  LOGF("[HTTP] POST, url: %s\n", url.c_str());
+  http.setReuse(true);
+  http.useHTTP10(false);
+  http.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
+  // LOGF("[HTTP] POST, url: %s\n", url.c_str());
   int httpCode = -1;
   String payload = "";
   if (http.begin(client, url)) {  // HTTP
@@ -14,15 +16,15 @@ HttpResult wifiHttpPost(const String& url,
     httpCode = http.POST(body);
     if (httpCode > 0) {
       // HTTP header has been send and Server response header has been handled
-      LOGF("[HTTP] POST, code: %d\n", httpCode);
+      // LOGF("[HTTP] POST, code: %d\n", httpCode);
       // file found at server
       payload = http.getString();
-      LOGF("[HTTP] POST, content: %s\n", payload.c_str());
+      // LOGF("[HTTP] POST, content: %s\n", payload.c_str());
     } else {
-      LOGF("[HTTP] POST, error: %s\n", http.errorToString(httpCode).c_str());
+      // LOGF("[HTTP] POST, error: %s\n", http.errorToString(httpCode).c_str());
     }
   } else {
-    LOGN("[HTTP] POST failed.");
+    // LOGN("[HTTP] POST failed.");
   }
   http.end();
   yield();
@@ -32,7 +34,10 @@ HttpResult wifiHttpPost(const String& url,
 
 HttpResult wifiHttpGet(const String& url, WiFiClient& client) {
   HTTPClient http;
-  LOGF("[HTTP] GET, url: %s\n", url.c_str());
+  http.setReuse(true);
+  http.useHTTP10(false);
+  http.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
+  // LOGF("[HTTP] GET, url: %s\n", url.c_str());
   int httpCode = -1;
   String payload = "";
   if (http.begin(client, url)) {  // HTTP
@@ -40,15 +45,15 @@ HttpResult wifiHttpGet(const String& url, WiFiClient& client) {
     httpCode = http.GET();
     if (httpCode > 0) {
       // HTTP header has been send and Server response header has been handled
-      LOGF("[HTTP] GET, code: %d\n", httpCode);
+      // LOGF("[HTTP] GET, code: %d\n", httpCode);
       // file found at server
       payload = http.getString();
-      LOGF("[HTTP] GET, content: %s\n", payload.c_str());
+      // LOGF("[HTTP] GET, content: %s\n", payload.c_str());
     } else {
-      LOGF("[HTTP] GET, error: %s\n", http.errorToString(httpCode).c_str());
+      // LOGF("[HTTP] GET, error: %s\n", http.errorToString(httpCode).c_str());
     }
   } else {
-    LOGN("[HTTP] GET failed.");
+    // LOGN("[HTTP] GET failed.");
   }
   http.end();
   HttpResult ret{httpCode, url, payload};
