@@ -19,4 +19,5 @@ config.py
 config.txt
 config.ini
 config.h
-
+config.h
+private.h
