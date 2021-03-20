@@ -517,6 +517,8 @@ String getStatus() {
   data += getUDID();
   data += "\nVersion: ";
   data += buildTime;
+  data += "-";
+  data += buildRev;
   data += "\nPump Pin: ";
   data += pump.pin();
   data += "\nPump Status: ";
@@ -535,10 +537,6 @@ String getStatus() {
   data += humanTimeMs(cfg->duration);
   data += "\nStatus Interval: ";
   data += humanTimeMs(statusInterval);
-  data += "\nTimer Status: ";
-  data += pump.isTimerEnabled() ? "Enabled" : "Disabled";
-  data += "\nTimer Reset: ";
-  data += formatDateTime(getTimestamp() - (ts - timerReset) / 1000);
 #if defined(ESP8266)
   data += "\nFree Stack: ";
   data += ESP.getFreeContStack();
@@ -564,8 +562,16 @@ String getStatus() {
     data += "\nLast Stop: N/A";
   }
   data += "\nNext Start: ";
-  auto remains = st->lastStart + cfg->interval - ts;
-  data += formatDateTime(getTimestamp() + remains / 1000);
+  if (!pump.isTimerEnabled()) {
+    data += "N/A";
+  } else {
+    auto remains = st->lastStart + cfg->interval - ts;
+    data += formatDateTime(getTimestamp() + remains / 1000);
+  }
+  data += "\nTimer Status: ";
+  data += pump.isTimerEnabled() ? "Enabled" : "Disabled";
+  data += "\nTimer Reset: ";
+  data += formatDateTime(getTimestamp() - (ts - timerReset) / 1000);
   return data;
 }
 
@@ -853,7 +859,7 @@ void setupServer() {
       .setLastModified(timeinfo);
   //   server.on("/", handleRoot);
   server.on("/files", handleFiles);
-  server.on("/logs", handleLogs);
+  server.on("/logs", handleFiles);
   server.on("/help", handleHelp);
   server.onNotFound(handleNotFound);
   setupApi();
@@ -922,6 +928,7 @@ void setupTimers(bool reset) {
   displayTimerId = aTimer.setInterval(1000, updateDisplay, "updateDisplay");
   aTimer.setInterval(5 * 60 * 1000L, checkWiFi, "checkWiFi");
   aTimer.setInterval(statusInterval, statusReport, "statusReport");
+  aTimer.setTimeout(48 * 60 * 60 * 1000L, reboot, "reboot");
   mqttTimer();
 }
 
