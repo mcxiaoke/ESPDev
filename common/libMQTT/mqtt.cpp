@@ -6,6 +6,20 @@ static string getDeviceId() {
   return mac.substr(mac.length() / 2);
 }
 
+static String getOnlineMsg() {
+  String msg = getUDID();
+  msg += "/Online ";
+  msg += WiFi.localIP().toString();
+  return msg;
+}
+
+static String getOfflineMsg() {
+  String msg = getUDID();
+  msg += "/Offline ";
+  msg += WiFi.localIP().toString();
+  return msg;
+}
+
 static void mqttFileLog(const String& text) {
   fileLog(text, logFileName(), true);
 }
@@ -17,10 +31,8 @@ constexpr unsigned int MqttManager::COMMAND_MAX_LENGTH;
 // constexpr const char* MqttManager::TOPIC_DEVICE_ONLINE = "device/online";
 // constexpr const char* MqttManager::CMD_DEVICE_CHECK = "check";
 
-MqttManager::MqttManager(const char* server,
-                         const int port,
-                         const char* username,
-                         const char* password)
+MqttManager::MqttManager(const char* server, const int port,
+                         const char* username, const char* password)
     : _server(server),
       _port(port),
       _username(username),
@@ -31,26 +43,20 @@ MqttManager::MqttManager(const char* server,
       std::bind(&MqttManager::handleMessage, this, std::placeholders::_1,
                 std::placeholders::_2, std::placeholders::_3);
   _mqtt->setCallback(callback);
+  _mqtt->setBufferSize(1024);
+  _mqtt->setKeepAlive(60);
   _lastOnlineMs = 0;
   _lastOfflineMs = 0;
   _silentMode = false;
 }
 
-String MqttManager::getUser() {
-  return _username;
-}
+String MqttManager::getUser() { return _username; }
 
-String MqttManager::getPass() {
-  return _password;
-}
+String MqttManager::getPass() { return _password; }
 
-String MqttManager::getClientId() {
-  return getUDID();
-}
+String MqttManager::getClientId() { return getUDID(); }
 
-bool MqttManager::isConnected() {
-  return _mqtt->state() == MQTT_CONNECTED;
-}
+bool MqttManager::isConnected() { return _mqtt->state() == MQTT_CONNECTED; }
 
 string MqttManager::getStatusTopic() {
   // device/%DEVICE%/status
@@ -125,9 +131,10 @@ void MqttManager::connect() {
     // Attempt to connect
     // offline will message retain
     if (_mqtt->connect(getClientId().c_str(), getUser().c_str(),
-                       getPass().c_str(), getStatusTopic().c_str(), MQTTQOS0,
-                       true, "Offline")) {
+                       getPass().c_str(), TOPIC_DEVICE_ONLINE, MQTTQOS0, true,
+                       getOfflineMsg().c_str())) {
       mqttFileLog("[MQTT] Connected");
+      sendMessage(TOPIC_DEVICE_ONLINE, getOnlineMsg().c_str());
       sendOnline();
       initSubscribe();
     } else {
@@ -182,16 +189,13 @@ void MqttManager::loop() {
   }
 }
 
-void MqttManager::mute(bool silent) {
-  _silentMode = silent;
-}
+void MqttManager::mute(bool silent) { _silentMode = silent; }
 
 void MqttManager::handleStateChange(int state) {
   LOGF("[MQTT] State changed to %d\n", state);
 }
 
-void MqttManager::handleMessage(const char* _topic,
-                                const uint8_t* _payload,
+void MqttManager::handleMessage(const char* _topic, const uint8_t* _payload,
                                 const unsigned int _length) {
   yield();
   string topic(_topic);
@@ -207,18 +211,11 @@ void MqttManager::handleMessage(const char* _topic,
   }
 
   if (MqttManager::TOPIC_DEVICE_CHECK == topic) {
-    LOGF("[MQTT] Device check message: %s\n", message.c_str());
-    // send response
-    String msg = "";
-    msg += getUDID();
-    msg += "/";
-    msg += WiFi.localIP().toString();
-    sendMessage(TOPIC_DEVICE_ONLINE, msg.c_str());
-    if (MqttManager::CMD_DEVICE_CHECK == message) {
-      // hook for online command
-      topic = getCmdTopic();
-      message = "/online";
-    }
+    LOGN("[MQTT] Device check message.");
+    sendMessage(TOPIC_DEVICE_ONLINE, getOnlineMsg().c_str());
+    // hook for online command
+    topic = getCmdTopic();
+    message = "/wifi";
   }
 
   // replace newline for log print
@@ -239,8 +236,7 @@ void MqttManager::handleMessage(const char* _topic,
   }
 }
 
-bool MqttManager::sendMessage(const char* topic,
-                              const char* payload,
+bool MqttManager::sendMessage(const char* topic, const char* payload,
                               boolean retained) {
   if (_silentMode) {
     LOGN("[MQTT] Silent Mode, ignore sendMessage.");
@@ -255,7 +251,8 @@ void MqttManager::sendOnline() {
   // one online message per 30 minutes at most
   _lastOnlineMs = millis();
   // online message retain
-  bool ret = sendMessage(getStatusTopic().c_str(), "Online", true);
+  bool ret =
+      sendMessage(getStatusTopic().c_str(), getOnlineMsg().c_str(), true);
   if (!ret) {
     LOGN("[MQTT] online sent failed.");
   } else {

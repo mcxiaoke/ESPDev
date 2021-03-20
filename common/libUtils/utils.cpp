@@ -48,6 +48,7 @@ void fsCheck() {
 }
 
 String getUDID() {
+  // ESP.getChipId();
   String mac = WiFi.macAddress();
   mac.replace(":", "");
   return mac.substring(mac.length() / 2);
@@ -69,9 +70,7 @@ String getMD5(const char* data) {
   return md5.toString();
 }
 
-String getMD5(const String& data) {
-  return getMD5(data.c_str());
-}
+String getMD5(const String& data) { return getMD5(data.c_str()); }
 
 void showESP(const char* extra) {
 #if defined(ESP8266)
@@ -130,22 +129,12 @@ String readLog(const String& path) {
   return s;
 }
 
-time_t getTimestamp() {
-  return DateTime.getTime();
-}
+time_t getTimestamp() { return DateTime.getTime(); }
 
-time_t getBootTime() {
-  return upTimestamp;
-}
+time_t getBootTime() { return upTimestamp; }
 
-String dateString() {
-  return DateTime.format(DateFormatter::DATE_ONLY);
-}
+String dateString() { return DateTime.format(DateFormatter::DATE_ONLY); }
 
-String dateTimeString() {
-  return DateTime.toString();
-}
+String dateTimeString() { return DateTime.toString(); }
 
-String timeString() {
-  return DateTime.format(DateFormatter::TIME_ONLY);
-}
+String timeString() { return DateTime.format(DateFormatter::TIME_ONLY); }

@@ -1,6 +1,10 @@
 #ifndef ARDUINO_A_LOGGER_H
 #define ARDUINO_A_LOGGER_H
 
+#ifndef DEBUG_SERIAL
+#define DEBUG_SERIAL Serial
+#endif
+
 #include "ext/format.hpp"
 
 // print logs only on debug mode
@@ -31,12 +35,12 @@
 
 template <typename Arg>
 void _log(Arg const& arg) {
-  Serial.print(ext::format::ArgConvert(arg));
+  DEBUG_SERIAL.print(ext::format::ArgConvert(arg));
 }
 
 template <typename Arg>
 void _logn(Arg const& arg) {
-  Serial.println(ext::format::ArgConvert(arg));
+  DEBUG_SERIAL.println(ext::format::ArgConvert(arg));
 }
 
 template <typename Head, typename... Args>
