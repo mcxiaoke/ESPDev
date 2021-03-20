@@ -47,8 +47,7 @@ static void showHeaders(AsyncWebServerRequest* r) {
 }
 
 static AsyncJsonResponse* buildResponse(
-    std::function<void(const JsonVariant&)> prepareFunc,
-    bool isArray = false) {
+    std::function<void(const JsonVariant&)> prepareFunc, bool isArray = false) {
   auto res = new AsyncJsonResponse(isArray);
   auto root = res->getRoot();
   prepareFunc(root);
@@ -56,8 +55,7 @@ static AsyncJsonResponse* buildResponse(
   return res;
 }
 
-static AsyncJsonResponse* errorResponse(int code,
-                                        const String& msg,
+static AsyncJsonResponse* errorResponse(int code, const String& msg,
                                         const String& uri) {
   auto func = [&](const JsonVariant& doc) {
     doc["code"] = code;
@@ -223,6 +221,8 @@ void RestApi::jsonStatus(const JsonVariant& doc) {
   doc["last_reset"] = st->timerResetAt / 1000;
   doc["heap"] = ESP.getFreeHeap();
   doc["device"] = getUDID();
+  doc["chip_id"] = ESP.getChipId();
+  doc["sketch"] = ESP.getSketchMD5().substring(0,8);
 #ifdef APP_BUILD
   doc["version"] = APP_BUILD;
 #endif
