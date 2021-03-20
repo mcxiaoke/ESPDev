@@ -1,88 +1,114 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <title>OTA Update</title>
-    <link rel="stylesheet" type="text/css" href="main.css" />
-    <script src="config.js"></script>
-  </head>
 
-  <body>
-    <div class="content">
-      <h1>OTA Update</h1>
-      <p>
-        Select firmware or spiffs binay file.
-      </p>
-      <p>
-        <span>Server: </span
-        ><input
-          type="text"
-          name="server"
-          id="server"
-          placeholder=""
-        /><span> [Optional]</span>
-      </p>
-      <form
-        id="ota-form"
-        name="ota-form"
-        method="POST"
-        action="/update"
-        enctype="multipart/form-data"
-      >
-        <input type="file" name="firmware" id="firmware" />
-        <input type="submit" id="submit" value="Update" disabled />
-      </form>
-      <p class="output" id="progress" style="color: red;"></p>
-    </div>
-    <script>
-      window.addEventListener("DOMContentLoaded", (e) => {
-        let btnSubmit = document.getElementById("submit");
-        let fileInput = document.getElementById("firmware");
-        fileInput.addEventListener("change", (e) => {
-          if (e.target.files.length > 0) {
-            console.log("input file = " + e.target.files[0].name);
-          } else {
-            console.log("input file: no file");
-          }
-          btnSubmit.disabled = e.target.files.length < 1;
-        });
-        let form = document.getElementById("ota-form");
-        form.addEventListener("submit", (e) => {
-          e.preventDefault();
-          let pg = document.getElementById("progress");
-          let ip = document.getElementById("server");
-          let url = serverUrl || ip.value || "";
-          console.log("submit, server=" + ip.value);
-          xhr = new XMLHttpRequest();
-          xhr.onload = function () {
-            console.log("xhr onload " + xhr.status);
-            if (xhr.status < 400) {
-              console.log("Board firmware updated!");
-              alert("Board firmware updated!");
-            }
-          };
-          xhr.upload.onprogress = function (e) {
-            if (e.lengthComputable) {
-              let pct = Math.ceil((e.loaded / e.total) * 100);
-              if (e.loaded < e.total) {
-                pg.textContent = "Uploading Progress: " + pct + "%";
-              } else {
-                pg.textContent = "Upload Completed!";
-                location.href = "/";
-              }
-              console.log("Uploading: " + e.loaded + " / " + e.total);
-            }
-          };
-          xhr.onload = (e) => {
-            pg.textContent = "Upload Completed!";
-          };
-          let fd = new FormData(form);
-          xhr.open("POST", url + form.getAttribute("action"));
-          xhr.send(fd);
+<head>
+  <meta charset="UTF-8" />
+  <title>ESP Web Update</title>
+  <link rel="stylesheet" type="text/css" href="main.css" />
+  <script src="config.js"></script>
+</head>
 
-          return false;
-        });
+<body>
+  <div class="content">
+    <h1>Firmware Update</h1>
+    <p>
+      Select firmware or spiffs binay file.
+    </p>
+    <p>
+      <span>Server: </span><input type="text" name="server" id="server" placeholder="" /><span> [Optional]</span>
+    </p>
+    <form id="ota-form" name="ota-form" method="POST" action="/update" enctype="multipart/form-data">
+      <input type="file" name="firmware" id="firmware" />
+      <input type="submit" id="submit" value="Update" disabled />
+    </form>
+    <p class="output" id="progress" style="color: red;"></p>
+  </div>
+  <script>
+    let ip = document.getElementById("server");
+    let url = serverUrl || ip.value || window.location.origin;
+    var checkApiRetries = 3;
+    function checkOnline() {
+      console.log("Checking device online...");
+      xhr2 = new XMLHttpRequest();
+      xhr2.onload = function (e) {
+        console.log("Redirecting to homepage...");
+        console.log("onload", e);
+        console.log(xhr2.response);
+        setTimeout(() => {
+          location.href = "/";
+        }, 1000);
+      };
+      let errorCallback = function (e) {
+        console.error(e);
+        if (checkApiRetries-- > 0) {
+          setTimeout(() => {
+            checkOnline();
+          }, 1000);
+        } else {
+          console.log("check api error, giveup.");
+          setTimeout(() => {
+            location.href = "/";
+          }, 3000);
+        }
+      };
+      xhr2.onerror = errorCallback;
+      xhr2.ontimeout = errorCallback;
+      xhr2.timeout = 8000;
+      xhr2.open("GET", url + "/api/network");
+      xhr2.setRequestHeader("X-Source", "XMLHttpRequest");
+      xhr2.send();
+    }
+
+    window.addEventListener("DOMContentLoaded", (e) => {
+      document.getElementById("server").setAttribute("placeholder", url);
+      let btnSubmit = document.getElementById("submit");
+      let fileInput = document.getElementById("firmware");
+      fileInput.addEventListener("change", (e) => {
+        if (e.target.files.length > 0) {
+          console.log("input file = " + e.target.files[0].name);
+        } else {
+          console.log("input file: no file");
+        }
+        btnSubmit.disabled = e.target.files.length < 1;
       });
-    </script>
-  </body>
+      let form = document.getElementById("ota-form");
+      form.addEventListener("submit", (e) => {
+        e.preventDefault();
+        let pg = document.getElementById("progress");
+        console.log("submit, server=" + url);
+        xhr = new XMLHttpRequest();
+        xhr.onload = function (e) {
+          console.log("xhr onload " + xhr.status);
+          if (xhr.status < 300) {
+            pg.textContent = "Uploading Completed!";
+            setTimeout(() => {
+              pg.textContent = "Waiting for device reboot ...";
+              checkOnline();
+            }, 3000);
+          } else {
+            pg.textContent = "Uploading Failed.";
+          }
+        };
+        xhr.upload.onprogress = function (e) {
+          if (e.lengthComputable) {
+            let pct = Math.ceil((e.loaded / e.total) * 100);
+            if (e.loaded < e.total) {
+              pg.textContent = "Uploading Progress: " + pct + "%";
+            } else {
+              pg.textContent = "Uploading Progress: 100%";
+            }
+            console.log("Uploading: " + e.loaded + " / " + e.total);
+          }
+        };
+        let fd = new FormData(form);
+        xhr.open("POST", url + form.getAttribute("action"));
+        xhr.setRequestHeader("X-Source", "XMLHttpRequest");
+        xhr.send(fd);
+
+        return false;
+      });
+    });
+  </script>
+</body>
+
 </html>
