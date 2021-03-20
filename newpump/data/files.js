@@ -28,8 +28,8 @@ function loadData(e) {
           ar.open(
             "POST",
             serverUrl +
-              "/api/control?token=pump&args=delete," +
-              encodeURIComponent(name)
+            "/api/control?token=pump&args=delete," +
+            encodeURIComponent(name)
           );
           ar.send(fd);
         });

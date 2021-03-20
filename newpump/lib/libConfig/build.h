@@ -5,7 +5,7 @@
 #define BLYNK_NO_BUILTIN
 #define BLYNK_NO_FLOAT
 
-#include "config.h"
+#include "private.h"
 
 #define STR1(x) #x
 #define STR(x) STR1(x)

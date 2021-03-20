@@ -1,12 +1,12 @@
-#include <build.h>
+#include <ACommand.h>
 #include <ALogger.h>
 #include <Arduino.h>
 #include <ArduinoTimer.h>
 #include <ESPUpdateServer.h>
 #include <FileServer.h>
-#include <ACommand.h>
-#include <compat.h>
 #include <RelayUnit.h>
+#include <build.h>
+#include <compat.h>
 #include <rest.h>
 #ifdef USING_MQTT
 #include <mqtt.h>
@@ -487,7 +487,6 @@ void checkDate() {
   if (!DateTime.isTimeValid()) {
     if (WiFi.isConnected()) {
       LOGN("[System] checkDate");
-      DateTime.setTimeZone(8);
       DateTime.begin();
     }
   }
@@ -616,9 +615,7 @@ void handleClear(AsyncWebServerRequest* request) {
   }
 }
 
-void reboot() {
-  ESP.restart();
-}
+void reboot() { ESP.restart(); }
 
 void handleReboot(AsyncWebServerRequest* request) {
   LOGN("handleReboot");
@@ -728,9 +725,7 @@ void handleWiFiGotIP() {
   }
 }
 
-void handleWiFiLost() {
-  LOG("---");
-}
+void handleWiFiLost() { LOG("---"); }
 
 #if defined(ESP8266)
 WiFiEventHandler h0, h1, h2;
@@ -763,38 +758,40 @@ void setupWiFi() {
 #endif
 
   WiFi.begin(ssid, password);
+  PLOGF("[WiFi] ssid:%s, pass:%s\n", ssid, password);
   LOG("[WiFi] Connecting");
   auto startMs = millis();
-  // setup wifi timeout 60 seconds
-  while (WiFi.status() != WL_CONNECTED && (millis() - startMs) < 60 * 1000L) {
+  // setup wifi timeout 300 seconds
+  while (WiFi.status() != WL_CONNECTED && (millis() - startMs) < 300 * 1000L) {
     LOG(".");
     delay(1000);
-    if (millis() / 1000 % 8 == 0) {
+    if (millis() / 1000 % 10 == 0) {
       WiFi.reconnect();
-      LOG("===");
+      LOGF("=%d=", millis() / 1000);
     }
   }
   if (!WiFi.isConnected()) {
-    LOGN("[WiFi] Connect failed, will retry");
-    WiFi.reconnect();
-    wifiInitTimerId = aTimer.setTimer(10 * 1000L, checkWiFi, 15, "wifiInit");
-  } else {
-    wifiInitialized = true;
-    LOGF("[WiFi] Setup connection using %lus.\n", millis() / 1000);
+    PLOGN(F("[WiFi] Connect failed, will restart"));
+    // WiFi.reconnect();
+    // wifiInitTimerId = aTimer.setTimer(10 * 1000L, checkWiFi, 15, "wifiInit");
+    ESP.restart();
   }
+  wifiInitialized = true;
+  LOGF("[WiFi] Setup connection using %lus.\n", millis() / 1000);
+  PLOGF("[WiFi] IP:%s\n", WiFi.localIP().toString());
 }
 
 void setupDate() {
   LOGN("setupDate");
   if (WiFi.isConnected()) {
-    DateTime.setTimeZone(8);
+    DateTime.setServer("ntp.aliyun.com");
+    DateTime.setTimeZone("CST-8");
     DateTime.begin();
+    PLOGF("[Date] %s\n", DateTime.toISOString());
   }
 }
 
-void setupApi() {
-  api.setup(&server);
-}
+void setupApi() { api.setup(&server); }
 
 void setupUpdate() {
   LOGN("setupUpdate");
@@ -866,7 +863,7 @@ void setupServer() {
   DefaultHeaders::Instance().addHeader("Access-Control-Allow-Headers", "*");
   server.begin();
   MDNS.addService("http", "tcp", 80);
-  LOGN(F("[Server] HTTP server started"));
+  PLOGN(F("[Server] HTTP server started"));
 }
 
 void setupPump() {
@@ -970,18 +967,18 @@ void setupBlynk() {
 
 void checkModules() {
 #ifndef USING_MQTT
-  Serial.println("MQTT Disabled");
+  PLOGN("[MQTT] MQTT Disabled");
 #endif
 #ifndef EANBLE_LOGGING
-  Serial.println("Logging Disabled");
+  PLOGN("[Debug] Logging Disabled");
 #endif
 #ifndef USING_BLYNK
-  Serial.println("Blynk Disabled");
+  PLOGN("[Blynk] Blynk Disabled");
 #endif
 #ifdef DEBUG
-  Serial.println("Debug Mode");
+  PLOGN("[Debug] Debug Mode");
 #else
-  Serial.println("Release Mode");
+  PLOGN("[Debug] Release Mode");
 #endif
 }
 
@@ -990,10 +987,10 @@ void setup(void) {
   Serial.begin(115200);
   showESP();
   fsCheck();
-  setupDisplay();
   delay(1000);
+  setupDisplay();
   LOGN();
-  Serial.println("======Booting Begin======");
+  PLOGN("======Booting Begin======");
   setupWiFi();
   setupDate();
   setupTimers(false);
@@ -1003,17 +1000,18 @@ void setup(void) {
   setupPump();
   setupBlynk();
   showESP();
-  Serial.println("======Booting Finished======");
   checkModules();
   debugLog(F("[Core] System started."));
 #ifdef DEBUG
   fileLog(F("[Core] Debug Mode"));
 #endif
-  String info = "[Core] ";
+  String info = "[Core] Ver:";
   info += buildTime;
   info += "-";
   info += buildRev;
   debugLog(info);
+  PLOGN(info);
+  PLOGN("======Booting Finished======");
 }
 
 void loop(void) {
@@ -1042,9 +1040,7 @@ void handleCommand(const CommandParam& param) {
 
 #ifdef USING_BLYNK
 
-void blynkSyncPinValue() {
-  Blynk.virtualWrite(V1, pump.pinValue());
-}
+void blynkSyncPinValue() { Blynk.virtualWrite(V1, pump.pinValue()); }
 void blynkSyncPinEnable() {
   Blynk.virtualWrite(V0, pump.isEnabled() ? HIGH : LOW);
 }
@@ -1060,17 +1056,11 @@ BLYNK_CONNECTED() {
   blynkSync();
 }
 
-BLYNK_APP_CONNECTED() {
-  LOGN("BLYNK_APP_CONNECTED");
-}
+BLYNK_APP_CONNECTED() { LOGN("BLYNK_APP_CONNECTED"); }
 
-BLYNK_APP_DISCONNECTED() {
-  LOGN("BLYNK_APP_DISCONNECTED");
-}
+BLYNK_APP_DISCONNECTED() { LOGN("BLYNK_APP_DISCONNECTED"); }
 
-BLYNK_DISCONNECTED() {
-  LOGN("BLYNK_DISCONNECTED");
-}
+BLYNK_DISCONNECTED() { LOGN("BLYNK_DISCONNECTED"); }
 
 BLYNK_READ(V0) {
   // builtin led

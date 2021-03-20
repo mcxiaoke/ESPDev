@@ -5,7 +5,7 @@ function disableEnterSubmit() {
       if (
         e.keyIdentifier == "U+000A" ||
         e.keyIdentifier == "Enter" ||
-        e.keyCode == 13
+        e.key == "Enter"
       ) {
         if (e.target.nodeName == "INPUT" && e.target.type == "text") {
           e.preventDefault();

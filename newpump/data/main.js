@@ -140,8 +140,8 @@ function buildFormDiv(d) {
     xhr.open(
       "POST",
       serverUrl +
-        "/api/control?token=pump&args=" +
-        (d["enabled"] ? "off" : "on")
+      "/api/control?token=pump&args=" +
+      (d["enabled"] ? "off" : "on")
     );
     xhr.send();
     return true;
