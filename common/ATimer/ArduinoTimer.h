@@ -155,4 +155,7 @@ class ArduinoTimer {
   std::vector<std::unique_ptr<TimerTask> > tasks;
 };
 
+
+extern ArduinoTimer Timer;  // define in cpp
+
 #endif

@@ -1,13 +1,15 @@
 #ifndef ESP_DEV_UTILS_H
 #define ESP_DEV_UTILS_H
 
-#include <MD5Builder.h>
+#include <ALogger.h>
 #include <DateTime.h>
+#include <MD5Builder.h>
+#include <compat.h>
+
 #include <ext/format.hpp>
 #include <ext/string.hpp>
 #include <ext/utility.hpp>
-#include <ALogger.h>
-#include <compat.h>
+
 #include "tools.h"
 
 // #include <umm_malloc/umm_malloc.h>
@@ -41,11 +43,11 @@ String getMD5(const char* data);
 String getMD5(const String& data);
 void showESP(const char* extra = "");
 String logFileName(const String& suffix = "");
-size_t fileLog(const String& text,
-               const String& path = logFileName(),
+size_t fileLog(const String& text, const String& path = logFileName(),
                bool appendDate = true);
-size_t _writeLog(const String& text, const String& path);
-String readLog(const String& path);
+size_t writeLine(const String& path, const String& line);
+size_t writeFile(const String& path, const String& content, bool append=true);
+String readFile(const String& path);
 
 bool hasValidTime();
 time_t setTimestamp();

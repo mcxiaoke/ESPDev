@@ -199,14 +199,10 @@ void MqttManager::handleMessage(const char* _topic, const uint8_t* _payload,
                                 const unsigned int _length) {
   yield();
   string topic(_topic);
-  string message(_payload,
-                 _payload + std::min(_length, MqttManager::COMMAND_MAX_LENGTH));
-  mqttFileLog(ext::format::strFormat("[MQTT][%s] %s (%u)", topic.c_str(),
-                                     message, _length)
-                  .c_str());
+  string message(_payload, _payload + _length);
   if (strcmp("test", _topic) == 0) {
     LOGF("[MQTT] Test message: %s\n", message.c_str());
-    _mqtt->publish("test/resp", message.c_str());
+    sendMessage("test/resp", message.c_str());
     return;
   }
 
@@ -214,9 +210,14 @@ void MqttManager::handleMessage(const char* _topic, const uint8_t* _payload,
     LOGN("[MQTT] Device check message.");
     sendMessage(TOPIC_DEVICE_ONLINE, getOnlineMsg().c_str());
     // hook for online command
-    topic = getCmdTopic();
-    message = "/wifi";
+    return;
+    // topic = getCmdTopic();
+    // message = "/online";
   }
+
+  mqttFileLog(ext::format::strFormat("[MQTT][%s] %s (%u)", topic.c_str(),
+                                     message, _length)
+                  .c_str());
 
   // replace newline for log print
   message = ext::string::replace_all(message, "\n", " ");

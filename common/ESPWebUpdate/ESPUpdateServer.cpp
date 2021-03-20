@@ -84,7 +84,8 @@ void ESPUpdateServer::handleUpdate(AsyncWebServerRequest* request) {
 
 void ESPUpdateServer::handleUploadEnd(AsyncWebServerRequest* request) {
   if (!_authenticated) return request->requestAuthentication();
-  if (_serial_output) Serial.printf("[OTA] Update End!\n");
+  Serial.printf("[OTA] Update End!\n");
+  delay(1000);
   if (!Update.hasError()) {
     AsyncWebServerResponse* response =
         request->beginResponse(200, "text/html", successResponse);
@@ -92,13 +93,15 @@ void ESPUpdateServer::handleUploadEnd(AsyncWebServerRequest* request) {
     response->addHeader("Refresh", "20");
     response->addHeader("Location", "/");
     request->send(response);
+    delay(500);
     if (_serial_output) {
-      Serial.printf("\n[OTA] Rebooting... \n");
+      Serial.println("[OTA] update process finished");
       Serial.flush();
     }
-    // delay(100);
-    // request->client()->stop();
-    // request->client()->close();
+
+    fileLog("[OTA] finished at " + dateTimeString());
+    writeFile(FIRMWARE_UPDATE_FILE, dateTimeString());
+    delay(500);
     _shouldRestart = true;
     // ESP.restart();
   } else {
@@ -129,6 +132,8 @@ void ESPUpdateServer::handleUpload(AsyncWebServerRequest* request,
   }
   size_t binSize = request->contentLength();
   if (!index) {
+    Serial.println("[OTA] update process start");
+    fileLog("[OTA] updated from " + ESP.getSketchMD5());
     _updaterError = String();
     int cmd = (filename.indexOf("spiffs") > -1) ? CMD_FS : CMD_FLASH;
     if (_serial_output) {
@@ -161,19 +166,26 @@ void ESPUpdateServer::handleUpload(AsyncWebServerRequest* request,
       handleUploadProgress(index + len, binSize);
 #endif
     }
+  } else {
+    if (_serial_output) {
+      Serial.printf("[OTA] progress error: %d%%\n",
+                    ((index + len) * 100 / binSize));
+    }
   }
   if (final) {
+    Serial.println("[OTA] update process final");
     if (!Update.end(true)) {
       _setUpdaterError();
-      if (_serial_output) Serial.printf("[OTA] update failed!\n");
+      fileLog("[OTA] update failed!\n");
     } else {
-      if (_serial_output) Serial.printf("[OTA] update success!\n");
+      fileLog("[OTA] update success!\n");
     }
   }
 }
 
 void ESPUpdateServer::loop() {
   if (_shouldRestart) {
+    PLOGN("[OTA] update completed, now reboot.");
     _shouldRestart = false;
     delay(100);
     ESP.restart();

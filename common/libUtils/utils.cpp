@@ -41,9 +41,9 @@ void fsCheck() {
 #else
   if (false) {
 #endif
-    Serial.println(F("[System] Failed to mount file system"));
+    PLOGN(F("[Core] Failed to mount File System"));
   } else {
-    Serial.println(F("[System] SPIFFS file system mounted."));
+    PLOGN(F("[Core] File System mounted."));
   }
 }
 
@@ -104,22 +104,24 @@ size_t fileLog(const String& text, const String& path, bool appendDate) {
   }
   message += text;
   LOGN(message);
-  size_t c = _writeLog(message, path);
+  size_t c = writeLine(path, message);
   return c;
 }
 
-size_t _writeLog(const String& text, const String& path) {
-  File f = SPIFFS.open(path, "a");
+size_t writeLine(const String& path, const String& line) {
+  return writeFile(path, line + "\n", true);
+}
+
+size_t writeFile(const String& path, const String& content, bool append) {
+  File f = SPIFFS.open(path, append ? "a" : "w");
   if (!f) {
     return -1;
   }
-  size_t c = f.print(text);
-  c += f.print('\n');
+  size_t c = f.print(content);
   f.close();
   return c;
 }
-
-String readLog(const String& path) {
+String readFile(const String& path) {
   File f = SPIFFS.open(path, "r");
   if (!f) {
     return "";

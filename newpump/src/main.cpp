@@ -75,7 +75,6 @@ constexpr const char MIME_TEXT_HTML[] PROGMEM = "text/html";
 WidgetTerminal terminal(V20);
 #endif
 
-ArduinoTimer aTimer{"main"};
 AsyncWebServer server(80);
 RelayUnit pump;
 RestApi api(pump);
@@ -232,7 +231,7 @@ void checkMqtt() {
 
 void mqttTimer() {
 #ifdef USING_MQTT
-  aTimer.setInterval((MQTT_KEEPALIVE * 10 - 5) * 1000L, checkMqtt, "checkMqtt");
+  Timer.setInterval((MQTT_KEEPALIVE * 10 - 5) * 1000L, checkMqtt, "checkMqtt");
 #endif
 }
 
@@ -266,7 +265,7 @@ bool mqttConnected() {
 void cmdReboot(const CommandParam& param = CommandParam::INVALID) {
   debugLog(F("[Core] Reboot now"));
   sendMqttLog("System will reboot now");
-  aTimer.setTimeout(
+  Timer.setTimeout(
       1000, []() { ESP.restart(); }, "cmdReboot");
 }
 
@@ -715,7 +714,7 @@ void handleWiFiGotIP() {
     // on on setup stage
     wifiInitialized = true;
     LOGN("[WiFi] Initialized");
-    aTimer.setTimeout(
+    Timer.setTimeout(
         100,
         []() {
           LOGN("[WiFi] Check services");
@@ -726,7 +725,7 @@ void handleWiFiGotIP() {
         "wifiAfter");
   }
   if (wifiInitTimerId >= 0) {
-    aTimer.deleteTimer(wifiInitTimerId);
+    Timer.deleteTimer(wifiInitTimerId);
     wifiInitTimerId = -1;
   }
 }
@@ -779,7 +778,7 @@ void setupWiFi() {
   if (!WiFi.isConnected()) {
     PLOGN(F("[WiFi] Connect failed, will restart"));
     // WiFi.reconnect();
-    // wifiInitTimerId = aTimer.setTimer(10 * 1000L, checkWiFi, 15, "wifiInit");
+    // wifiInitTimerId = Timer.setTimer(10 * 1000L, checkWiFi, 15, "wifiInit");
     ESP.restart();
   }
   wifiInitialized = true;
@@ -857,9 +856,8 @@ void setupServer() {
   server.serveStatic("/", SPIFFS, "/")
       .setDefaultFile("index.html")
       .setLastModified(timeinfo);
-  //   server.on("/", handleRoot);
   server.on("/files", handleFiles);
-  server.on("/logs", handleFiles);
+  server.on("/logs", handleLogs);
   server.on("/help", handleHelp);
   server.onNotFound(handleNotFound);
   setupApi();
@@ -922,13 +920,13 @@ void setupPump() {
 void setupTimers(bool reset) {
   LOGN("setupTimers");
   if (reset) {
-    aTimer.reset();
+    Timer.reset();
   }
   timerReset = millis();
-  displayTimerId = aTimer.setInterval(1000, updateDisplay, "updateDisplay");
-  aTimer.setInterval(5 * 60 * 1000L, checkWiFi, "checkWiFi");
-  aTimer.setInterval(statusInterval, statusReport, "statusReport");
-  aTimer.setTimeout(48 * 60 * 60 * 1000L, reboot, "reboot");
+  displayTimerId = Timer.setInterval(1000, updateDisplay, "updateDisplay");
+  Timer.setInterval(5 * 60 * 1000L, checkWiFi, "checkWiFi");
+  Timer.setInterval(statusInterval, statusReport, "statusReport");
+  Timer.setTimeout(48 * 60 * 60 * 1000L, reboot, "reboot");
   mqttTimer();
 }
 
@@ -946,7 +944,6 @@ void setupCommands() {
   CommandManager.addCommand("stop", "stop device at pin", cmdStop);
   CommandManager.addCommand("status", "get device pin status", cmdStatus);
   CommandManager.addCommand("wifi", "get wifi status", cmdWiFi);
-  CommandManager.addCommand("online", "check device online", cmdWiFi);
   CommandManager.addCommand("logs", "show device logs", cmdLogs);
   CommandManager.addCommand("delete", "delete the file", cmdDelete);
   CommandManager.addCommand("files", "show device files", cmdFiles);
@@ -994,37 +991,39 @@ void setup(void) {
   Serial.begin(115200);
   showESP();
   fsCheck();
-  delay(1000);
+  delay(500);
   setupDisplay();
-  LOGN();
+  Serial.println();
   PLOGN("======Booting Begin======");
   setupWiFi();
   setupDate();
-  setupTimers(false);
-  setupCommands();
-  setupServer();
-  setupMqtt();
-  setupPump();
-  setupBlynk();
-  showESP();
-  checkModules();
+  debugLog("==========================");
   debugLog(F("[Core] System started."));
 #ifdef DEBUG
   fileLog(F("[Core] Debug Mode"));
 #endif
-  String info = "[Core] Ver:";
+  String info = "[Core] Version:";
   info += buildTime;
   info += "-";
   info += buildRev;
   debugLog(info);
-  PLOGN(info);
+  debugLog("[Core] Sketch:" + ESP.getSketchMD5());
+  setupTimers(false);
+  setupCommands();
+  setupPump();
+  checkModules();
+  setupBlynk();
+  setupServer();
+  setupMqtt();
+  showESP();
   PLOGN("======Booting Finished======");
 }
 
 void loop(void) {
   pump.run();
-  aTimer.run();
+  Timer.run();
   mqttLoop();
+  otaUpdate.loop();
 #if defined(ESP8266)
   MDNS.update();
 #endif
@@ -1042,7 +1041,7 @@ void handleCommand(const CommandParam& param) {
       LOGN("[CMD] Unknown command");
     }
   };
-  aTimer.setTimeout(5, processFunc, "handleCommand");
+  Timer.setTimeout(5, processFunc, "handleCommand");
 }
 
 #ifdef USING_BLYNK

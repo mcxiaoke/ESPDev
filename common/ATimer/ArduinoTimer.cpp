@@ -9,15 +9,10 @@ static constexpr int DEFCALL_RUNANDDEL =
 static constexpr int DEFCALL_DELETEONLY = 3;
 
 static int _taskId = 0;
-static int generateId() {
-  return ++_taskId;
-}
+static int generateId() { return ++_taskId; }
 
-TimerTask::TimerTask(unsigned long interval,
-                     timer_callback_func action,
-                     int maxNumRuns,
-                     String name,
-                     bool debug)
+TimerTask::TimerTask(unsigned long interval, timer_callback_func action,
+                     int maxNumRuns, String name, bool debug)
     : interval(interval),
       action(action),
       maxNumRuns(maxNumRuns),
@@ -45,9 +40,7 @@ TimerTask::~TimerTask() {
   name = "";
 }
 
-static inline unsigned long elapsed() {
-  return millis();
-}
+static inline unsigned long elapsed() { return millis(); }
 
 ArduinoTimer::ArduinoTimer(const char* name, bool debugMode)
     : name(name), debugMode(debugMode) {
@@ -55,9 +48,7 @@ ArduinoTimer::ArduinoTimer(const char* name, bool debugMode)
   reset();
 }
 
-void ArduinoTimer::setDebug(bool debug) {
-  debugMode = debug;
-}
+void ArduinoTimer::setDebug(bool debug) { debugMode = debug; }
 
 void ArduinoTimer::reset() {
   if (debugMode) {
@@ -130,11 +121,8 @@ void ArduinoTimer::run() {
   }
 }
 
-int ArduinoTimer::setTimer(unsigned long interval,
-                           timer_callback_func action,
-                           int numRuns,
-                           const String _name,
-                           bool debug) {
+int ArduinoTimer::setTimer(unsigned long interval, timer_callback_func action,
+                           int numRuns, const String _name, bool debug) {
   if (action == nullptr) {
     return -1;
   }
@@ -151,16 +139,13 @@ int ArduinoTimer::setTimer(unsigned long interval,
 }
 
 int ArduinoTimer::setInterval(unsigned long interval,
-                              timer_callback_func action,
-                              const String name,
+                              timer_callback_func action, const String name,
                               bool debug) {
   return setTimer(interval, action, RUN_FOREVER, name, debug);
 }
 
-int ArduinoTimer::setTimeout(unsigned long interval,
-                             timer_callback_func action,
-                             const String name,
-                             bool debug) {
+int ArduinoTimer::setTimeout(unsigned long interval, timer_callback_func action,
+                             const String name, bool debug) {
   return setTimer(interval, action, RUN_ONCE, name, debug);
 }
 
@@ -267,3 +252,5 @@ String ArduinoTimer::getDescription(int taskId) const {
   }
   return "";
 }
+
+ArduinoTimer Timer;

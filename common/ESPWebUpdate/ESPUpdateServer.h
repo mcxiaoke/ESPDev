@@ -1,6 +1,8 @@
 #ifndef __ESP_HTTP_UPDATE_SERVER_H__
 #define __ESP_HTTP_UPDATE_SERVER_H__
 
+#define FIRMWARE_UPDATE_FILE "/firmware_update.txt"
+
 #include <Arduino.h>
 #include <FS.h>
 #include <WiFiClient.h>
@@ -20,6 +22,7 @@
 #include <Update.h>
 #include <WiFi.h>
 #endif
+#include <ArduinoTimer.h>
 #include <ESPAsyncWebServer.h>
 
 class ESPUpdateServer {

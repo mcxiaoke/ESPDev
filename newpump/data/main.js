@@ -218,7 +218,7 @@ function buildButtonDiv() {
   btnRaw.setAttribute("class", "button-large");
   btnRaw.onclick = (e) => {
     window.open(
-      serverUrl + "/logs/log-" + moment().format("YYYY-MM") + ".txt",
+      serverUrl + "/logs",
       "_blank"
     );
   };
