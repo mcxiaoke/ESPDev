@@ -112,7 +112,7 @@ void ESPUpdateServer::handleUploadEnd(AsyncWebServerRequest* request) {
     }
 
     fileLog("[OTA] finished at " + dateTimeString());
-    writeFile(FIRMWARE_UPDATE_FILE, dateTimeString());
+    writeFile(FIRMWARE_UPDATE_FILE, dateTimeString(), false);
     delay(200);
     _shouldRestart = true;
   } else {
