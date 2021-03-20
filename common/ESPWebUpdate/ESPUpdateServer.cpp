@@ -27,8 +27,9 @@ static const char serverIndex[] PROGMEM =
      </body>
      </html>)";
 static const char successResponse[] PROGMEM =
-    "<META http-equiv=\"refresh\" content=\"15;URL=/\">Update Success! "
+    "<META http-equiv=\"refresh\" content=\"15;URL=/\">Update Success! Now "
     "Rebooting...";
+static const char jsonResponse[] PROGMEM = "{\"code\":0,\"msg\":\"ok\"}";
 
 ESPUpdateServer::ESPUpdateServer(bool serial_debug, const String& username,
                                  const String& password)
@@ -44,8 +45,9 @@ void ESPUpdateServer::setup(AsyncWebServer* server, const String& path,
   _username = username;
   _password = password;
 
-  _server->on(path.c_str(), HTTP_GET,
-              [&](AsyncWebServerRequest* request) { handleUpdate(request); });
+  _server->on(path.c_str(), HTTP_GET, [&](AsyncWebServerRequest* request) {
+    handleUpdatePage(request);
+  });
 
   // handler for the /update form POST (once file upload finishes)
   _server->on(
@@ -74,26 +76,36 @@ void ESPUpdateServer::_setUpdaterError() {
   _updaterError = str;
 }
 
-void ESPUpdateServer::handleUpdate(AsyncWebServerRequest* request) {
+void ESPUpdateServer::handleUpdatePage(AsyncWebServerRequest* request) {
   // handler for the /update form page
   if (_username != emptyString && _password != emptyString &&
       !request->authenticate(_username.c_str(), _password.c_str()))
     return request->requestAuthentication();
-  request->send_P(200, PSTR("text/html"), serverIndex);
+  if (false && SPIFFS.exists("/update.html")) {
+    request->send(SPIFFS, "/update.html");
+  } else {
+    request->send_P(200, PSTR("text/html"), serverIndex);
+  }
 }
 
 void ESPUpdateServer::handleUploadEnd(AsyncWebServerRequest* request) {
   if (!_authenticated) return request->requestAuthentication();
   Serial.printf("[OTA] Update End!\n");
-  delay(1000);
+  delay(100);
   if (!Update.hasError()) {
-    AsyncWebServerResponse* response =
-        request->beginResponse(200, "text/html", successResponse);
+    AsyncWebServerResponse* response;
+    if (request->hasHeader("X-Source")) {
+      response = request->beginResponse(200, "application/json", jsonResponse);
+    } else {
+      response = request->beginResponse(200, "text/html", successResponse);
+      response->addHeader("Refresh", "15");
+      response->addHeader("Location", "/");
+    }
     response->addHeader("Connection", "close");
-    response->addHeader("Refresh", "20");
-    response->addHeader("Location", "/");
     request->send(response);
-    delay(500);
+    delay(200);
+    request->client()->stop();
+    request->client()->close();
     if (_serial_output) {
       Serial.println("[OTA] update process finished");
       Serial.flush();
@@ -101,9 +113,8 @@ void ESPUpdateServer::handleUploadEnd(AsyncWebServerRequest* request) {
 
     fileLog("[OTA] finished at " + dateTimeString());
     writeFile(FIRMWARE_UPDATE_FILE, dateTimeString());
-    delay(500);
+    delay(200);
     _shouldRestart = true;
-    // ESP.restart();
   } else {
     request->send(200, "text/html",
                   String(F("Update error: ")) + _updaterError + "\n");
@@ -111,10 +122,13 @@ void ESPUpdateServer::handleUploadEnd(AsyncWebServerRequest* request) {
 }
 
 void ESPUpdateServer::handleUploadProgress(size_t progress, size_t total) {
-  if (millis() - progressMs > 2000) {
-    progressMs = millis();
+  static size_t nextChunk = 50 * 1024;
+  if (progress > nextChunk) {
+    // progressMs = millis();
+    nextChunk += 50 * 1024;
     if (_serial_output) {
-      Serial.printf("[OTA] Progress: %d%%\n", (progress * 100) / total);
+      Serial.printf("[OTA] Upload progress: %d%% (%d)\n",
+                    (progress * 100) / total, progress);
       // Serial.flush();
     }
   }
@@ -132,12 +146,12 @@ void ESPUpdateServer::handleUpload(AsyncWebServerRequest* request,
   }
   size_t binSize = request->contentLength();
   if (!index) {
-    Serial.println("[OTA] update process start");
+    Serial.println("[OTA] update process init stage");
     fileLog("[OTA] updated from " + ESP.getSketchMD5());
     _updaterError = String();
     int cmd = (filename.indexOf("spiffs") > -1) ? CMD_FS : CMD_FLASH;
     if (_serial_output) {
-      Serial.printf("[OTA] Update FileName: %s\n", filename.c_str());
+      Serial.printf("[OTA] Update Firmware: %s\n", filename.c_str());
       Serial.printf("[OTA] Update Type: %s\n", cmd == CMD_FS ? "FS" : "FLASH");
     }
 #ifdef ESP8266
@@ -145,8 +159,6 @@ void ESPUpdateServer::handleUpload(AsyncWebServerRequest* request,
 #endif
 
     if (cmd == CMD_FS) {
-      // size_t fsSize = ((size_t)&_FS_end - (size_t)&_FS_start);
-      // close_all_fs();
       if (!Update.begin(compat::fsSize(), CMD_FS)) {
         _setUpdaterError();
       }
@@ -166,19 +178,14 @@ void ESPUpdateServer::handleUpload(AsyncWebServerRequest* request,
       handleUploadProgress(index + len, binSize);
 #endif
     }
-  } else {
-    if (_serial_output) {
-      Serial.printf("[OTA] progress error: %d%%\n",
-                    ((index + len) * 100 / binSize));
-    }
   }
   if (final) {
-    Serial.println("[OTA] update process final");
+    Serial.println("[OTA] update process final stage");
     if (!Update.end(true)) {
       _setUpdaterError();
-      fileLog("[OTA] update failed!\n");
+      fileLog("[OTA] update failed!");
     } else {
-      fileLog("[OTA] update success!\n");
+      fileLog("[OTA] update success!");
     }
   }
 }

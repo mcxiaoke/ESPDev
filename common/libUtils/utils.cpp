@@ -103,7 +103,7 @@ size_t fileLog(const String& text, const String& path, bool appendDate) {
     message += "] ";
   }
   message += text;
-  LOGN(message);
+  PLOGN(message);
   size_t c = writeLine(path, message);
   return c;
 }

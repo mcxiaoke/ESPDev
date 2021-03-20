@@ -2,7 +2,7 @@
 
 bool FileServer::handle(AsyncWebServerRequest* request) {
   String path = request->url();
-  //   LOGN("[FileServer] Handling " + path);
+  // Serial.println("[FileServer] Handling " + path);
   if (request->hasParam("delete")) {
     if (SPIFFS.exists(path)) {
       Serial.printf("[FileServer] Delete %s\n", path.c_str());

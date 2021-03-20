@@ -66,7 +66,7 @@ class ESPUpdateServer {
   bool _authenticated;
   String _updaterError;
   unsigned long progressMs;
-  void handleUpdate(AsyncWebServerRequest* request);
+  void handleUpdatePage(AsyncWebServerRequest* request);
   void handleUploadEnd(AsyncWebServerRequest* request);
   void handleUploadProgress(size_t progress, size_t total);
   void handleUpload(AsyncWebServerRequest* request, const String& filename,

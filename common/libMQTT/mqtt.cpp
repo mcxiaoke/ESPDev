@@ -133,7 +133,7 @@ void MqttManager::connect() {
     if (_mqtt->connect(getClientId().c_str(), getUser().c_str(),
                        getPass().c_str(), TOPIC_DEVICE_ONLINE, MQTTQOS0, true,
                        getOfflineMsg().c_str())) {
-      mqttFileLog("[MQTT] Connected");
+      mqttFileLog("[MQTT] Connected to " + String(_server));
       sendMessage(TOPIC_DEVICE_ONLINE, getOnlineMsg().c_str());
       sendOnline();
       initSubscribe();

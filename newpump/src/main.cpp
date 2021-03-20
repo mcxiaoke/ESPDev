@@ -620,7 +620,7 @@ void handleClear(AsyncWebServerRequest* request) {
   }
 }
 
-void reboot() { ESP.restart(); }
+void reboot() { ESP.reset(); }
 
 void handleReboot(AsyncWebServerRequest* request) {
   LOGN("handleReboot");
@@ -713,16 +713,16 @@ void handleWiFiGotIP() {
   if (!wifiInitialized) {
     // on on setup stage
     wifiInitialized = true;
-    LOGN("[WiFi] Initialized");
-    Timer.setTimeout(
-        100,
-        []() {
-          LOGN("[WiFi] Check services");
-          checkDate();
-          checkMqtt();
-          checkBlynk();
-        },
-        "wifiAfter");
+    LOGN("[WiFi] Initialized Got IP");
+    // Timer.setTimeout(
+    //     100,
+    //     []() {
+    //       LOGN("[WiFi] Check services");
+    //       checkDate();
+    //       checkMqtt();
+    //       checkBlynk();
+    //     },
+    //     "wifiAfter");
   }
   if (wifiInitTimerId >= 0) {
     Timer.deleteTimer(wifiInitTimerId);
@@ -783,7 +783,6 @@ void setupWiFi() {
   }
   wifiInitialized = true;
   LOGF("[WiFi] Setup connection using %lus.\n", millis() / 1000);
-  PLOGF("[WiFi] IP:%s\n", WiFi.localIP().toString());
 }
 
 void setupDate() {
@@ -792,7 +791,6 @@ void setupDate() {
     DateTime.setServer("ntp.aliyun.com");
     DateTime.setTimeZone("CST-8");
     DateTime.begin();
-    PLOGF("[Date] %s\n", DateTime.toISOString());
   }
 }
 
@@ -826,6 +824,7 @@ void handleNotFound(AsyncWebServerRequest* request) {
     request->send(200);
     return;
   }
+  LOGN("handleNotFound " + request->url());
   if (request->url().startsWith("/api/")) {
     DynamicJsonDocument doc(128);
     doc["code"] = 404;
@@ -837,7 +836,6 @@ void handleNotFound(AsyncWebServerRequest* request) {
     return;
   }
   if (!FileServer::handle(request)) {
-    LOGN("handleNotFound " + request->url());
     String data = F("ERROR: NOT FOUND\nURI: ");
     data += request->url();
     data += "\n";
@@ -987,25 +985,28 @@ void checkModules() {
 }
 
 void setup(void) {
-  pinMode(led, OUTPUT);
   Serial.begin(115200);
-  showESP();
-  fsCheck();
-  delay(500);
-  setupDisplay();
   Serial.println();
   PLOGN("======Booting Begin======");
+  pinMode(led, OUTPUT);
+  showESP();
+  fsCheck();
+  delay(100);
+  setupDisplay();
   setupWiFi();
   setupDate();
   debugLog("==========================");
-  debugLog(F("[Core] System started."));
+  debugLog("[Core] System started at " + timeString());
 #ifdef DEBUG
   fileLog(F("[Core] Debug Mode"));
 #endif
-  String info = "[Core] Version:";
+  String info = "[Core] ";
   info += buildTime;
   info += "-";
   info += buildRev;
+#ifdef DEBUG
+  info += " (Debug Mode)";
+#endif
   debugLog(info);
   debugLog("[Core] Sketch:" + ESP.getSketchMD5());
   setupTimers(false);
@@ -1015,7 +1016,9 @@ void setup(void) {
   setupBlynk();
   setupServer();
   setupMqtt();
-  showESP();
+  debugLog("[Date] NTP:" + DateTime.toISOString());
+  debugLog("[WiFi] IP:" + WiFi.localIP().toString());
+  PLOGF("[Core] Booting using time: %ds\n", millis() / 1000);
   PLOGN("======Booting Finished======");
 }
 
