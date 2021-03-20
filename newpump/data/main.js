@@ -36,8 +36,11 @@ function buildOutputDiv(d) {
       .attr("id", "p-head")
       .append($("<td>").text("远程服务: "), $("<td>").text(surl)),
     $("<tr>")
+      .attr("id", "p-sketch")
+      .append($("<td>").text("固件指纹: "), $("<td>").text(d["sketch"])),
+    $("<tr>")
       .attr("id", "p-head")
-      .append($("<td>").text("系统版本: "), $("<td>").text(d["version"]))
+      .append($("<td>").text("系统版本: "), $("<td>").text(d["revision"]))
       .append(
         $("<td>").text("系统状态: "),
         $("<td>").addClass(dbClass).text(debugMode)
@@ -45,8 +48,8 @@ function buildOutputDiv(d) {
     $("<tr>")
       .attr("id", "p-status")
       .append(
-        $("<td>").text("当前时间: "),
-        $("<td>").text(moment.unix(d["time"]).format("MM-DD HH:mm:ss")),
+        $("<td>").text("开机时刻: "),
+        $("<td>").text(moment.unix(d["boot_time"]).format("MM-DD HH:mm:ss")),
         $("<td>").text("运行状态: "),
         $("<td>")
           .addClass("important")
