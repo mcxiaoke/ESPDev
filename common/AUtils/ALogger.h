@@ -3,6 +3,7 @@
 
 #include "ext/format.hpp"
 
+// print logs only on debug mode
 #if defined(DEBUG) || defined(EANBLE_LOGGING)
 #define LOG(...) _log(__VA_ARGS__)
 #define LOGN(...) _logn(__VA_ARGS__)
@@ -14,6 +15,12 @@
 #define LOGF(...)
 #define LOGNF(...)
 #endif
+
+// print log on no condition
+#define PLOG(...) _log(__VA_ARGS__)
+#define PLOGN(...) _logn(__VA_ARGS__)
+#define PLOGF(...) _logf(__VA_ARGS__)
+#define PLOGNF(...) _lognf(__VA_ARGS__)
 
 // https://pabloariasal.github.io/2018/06/26/std-variant/
 // https://www.ibm.com/support/knowledgecenter/en/SSLTBW_2.4.0/com.ibm.zos.v2r4.cbclx01/variadic_templates.htm

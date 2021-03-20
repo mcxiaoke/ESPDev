@@ -1,10 +1,9 @@
 #ifndef ESP_DEV_MQTT_H
 #define ESP_DEV_MQTT_H
 
+#include <ACommand.h>
 #include <Arduino.h>
 #include <PubSubClient.h>
-#include <ACommand.h>
-#include <config.h>
 #include <utils.h>
 
 using std::string;
@@ -18,9 +17,7 @@ class MqttManager {
   constexpr static const char* TOPIC_DEVICE_CHECK = "device/check";
   constexpr static const char* TOPIC_DEVICE_ONLINE = "device/online";
   constexpr static const char* CMD_DEVICE_CHECK = "check";
-  MqttManager(const char* server,
-              const int port,
-              const char* username,
+  MqttManager(const char* server, const int port, const char* username,
               const char* password);
   MqttManager(const MqttManager& m) = delete;
   MqttManager& operator=(const MqttManager& dp) = delete;
@@ -49,11 +46,9 @@ class MqttManager {
   PubSubClient* _mqtt;
   CMD_HANDLER_FUNC _handler;
   void handleStateChange(int state);
-  void handleMessage(const char* topic,
-                     const uint8_t* payload,
+  void handleMessage(const char* topic, const uint8_t* payload,
                      const unsigned int length);
-  boolean sendMessage(const char* topic,
-                      const char* payload,
+  boolean sendMessage(const char* topic, const char* payload,
                       boolean retained = false);
   void sendOnline();
   void initSubscribe();

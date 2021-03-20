@@ -1,3 +1,5 @@
+#ifdef USING_DISPLAY
+
 #include "display.h"
 
 // U8G2_SSD1306_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0);  // working, full buffer
@@ -23,9 +25,7 @@ void Display::clear() {
   u8g2->sendBuffer();
 }
 
-void Display::setText(const String& a,
-                      const String& b,
-                      const String& c,
+void Display::setText(const String& a, const String& b, const String& c,
                       const String& d) {
   u8g2->clearBuffer();
   u8g2->setCursor(2, 20);
@@ -38,3 +38,5 @@ void Display::setText(const String& a,
   u8g2->print(d);
   u8g2->sendBuffer();
 }
+
+#endif

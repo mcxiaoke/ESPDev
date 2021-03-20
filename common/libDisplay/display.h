@@ -1,6 +1,8 @@
 #ifndef ESP_DEV_DISPLAY_H
 #define ESP_DEV_DISPLAY_H
 
+#ifdef USING_DISPLAY
+
 #include <U8g2lib.h>
 
 #ifdef U8X8_HAVE_HW_SPI
@@ -30,12 +32,12 @@ class Display {
   ~Display();
   void begin();
   void clear();
-  void setText(const String& a = "",
-               const String& b = "",
-               const String& c = "",
+  void setText(const String& a = "", const String& b = "", const String& c = "",
                const String& d = "");
 
  private:
 };
+
+#endif
 
 #endif
