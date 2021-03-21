@@ -13,23 +13,35 @@
 #include "build.h"
 #include "private.h"
 
+struct LanDevice {
+  const String name;
+  const String info;
+  const String host;
+  const uint16_t port;
+  bool online;
+  unsigned long lastOnlineMs;
+
+  String toString() const {
+    return name + "/" + host + ":" + port + " " +
+           (online ? "Online" : "Offline");
+  }
+
+  String msgTitle() {
+    return "Device " + name + (online ? " Online" : " Offline");
+  }
+
+  String msgDesp() { return "IP: " + host + " (" + info + ")"; }
+};
+
 constexpr int led = LED_BUILTIN;
 constexpr const char MIME_TEXT_PLAIN[] PROGMEM = "text/plain";
 constexpr const char MIME_TEXT_HTML[] PROGMEM = "text/html";
 
-#define HOST_N1 "192.168.1.165"
-#define PORT_N1 22
-#define HOST_N54L "192.168.1.110"
-#define PORT_N54L 80
-#define HOST_PUMP "192.168.1.116"
-#define PORT_PUMP 6053
-
-bool n1Online;
-bool n54lOnline;
-bool pumpOnline;
+LanDevice pump{"ESP_DF975D", "ESP Plant Watering Device", "192.168.1.116", 80};
+LanDevice armn1{"Armbian_N1", "N1 Armbian Home Server", "192.168.1.165", 22};
+LanDevice n54l{"N54L", "Windows 7 NAS Server", "192.168.1.110", 80};
 
 WiFiClient client;
-ArduinoTimer timer{"main"};
 AsyncWebServer server(80);
 ESPUpdateServer otaUpdate(true);
 
@@ -49,52 +61,28 @@ void sendMessage(String title, String content = "") {
   wifiHttpGet(wxUrl, client);
 }
 
-bool checkPortOpen(String host, int port) {
-  client.connect(host, port);
+bool checkPortOpen(const LanDevice& device) {
+  client.setTimeout(5000);
+  client.connect(device.host, device.port);
   yield();
-  // if (!client.connected()) {
-  //   sendMessage("Device " + host + " Offline", "Offline IP: " + host);
-  //   return false;
-  // }
-  bool ret = client.connected();
+  bool online = client.connected();
   client.stop();
-  return ret;
+  return online;
 }
 
-void checkN1() {
-  bool online = checkPortOpen(HOST_N1, PORT_N1);
-  if (online != n1Online || !online) {
-    n1Online = online;
-    sendMessage("Device " + String(HOST_N1) + (online ? " Online" : " Offline"),
-                "IP: " + String(HOST_N1));
+void checkDevice(LanDevice& device) {
+  bool online = checkPortOpen(device);
+  if (online != device.online) {
+    device.online = online;
+    sendMessage(device.msgTitle(), device.msgDesp());
   }
-}
-
-void checkN54L() {
-  bool online = checkPortOpen(HOST_N54L, PORT_N54L);
-  if (online != n54lOnline) {
-    n54lOnline = online;
-    sendMessage(
-        "Device " + String(HOST_N54L) + (online ? " Online" : " Offline"),
-        "IP: " + String(HOST_N54L));
-  }
-}
-
-void checkPump() {
-  bool online = checkPortOpen(HOST_PUMP, PORT_PUMP);
-  if (online != pumpOnline || !online) {
-    pumpOnline = online;
-    sendMessage(
-        "Device " + String(HOST_PUMP) + (online ? " Online" : " Offline"),
-        "IP: " + String(HOST_PUMP));
-  }
+  PLOGNF("[%s] Checked %s", timeString(), device.toString());
 }
 
 void checkAllPorts() {
-  Serial.println("Checking lan network ports.");
-  checkN1();
-  checkN54L();
-  checkPump();
+  Timer.setTimeout(3000L, []() { checkDevice(pump); });
+  Timer.setTimeout(100L, []() { checkDevice(armn1); });
+  Timer.setTimeout(1500L, []() { checkDevice(n54l); });
 }
 
 void checkWiFi() {
@@ -104,8 +92,8 @@ void checkWiFi() {
 }
 
 void sendOnline() {
-  sendMessage("Monitor " + getUDID() + " Online",
-              "Online IP: " + WiFi.localIP().toString());
+  sendMessage("LAN Monitor " + getUDID() + " Online",
+              "IP: " + WiFi.localIP().toString());
 }
 
 void reboot() { ESP.reset(); }
@@ -207,13 +195,13 @@ void setup() {
   setupDate();
   setupServer();
   // check wifi status every 10 minutes
-  timer.setInterval(8 * 60 * 1000L, checkWiFi, "checkWiFi");
-  // check ports open every 15 minutes
-  timer.setInterval(5 * 60 * 1000L, checkAllPorts, "checkPorts");
+  Timer.setInterval(10 * 60 * 1000L, checkWiFi, "checkWiFi");
+  // check ports open every 5 minutes
+  Timer.setInterval(5 * 60 * 1000L, checkAllPorts, "checkPorts");
   // send online message every 12 hours
-  timer.setInterval(12 * 60 * 60 * 1000L, sendOnline, "sendOnline");
+  Timer.setInterval(12 * 60 * 60 * 1000L, sendOnline, "sendOnline");
   // reboot device after 48 hours
-  timer.setTimeout(48 * 60 * 60 * 1000L, reboot, "reboot");
+  Timer.setTimeout(48 * 60 * 60 * 1000L, reboot, "reboot");
   delay(1000);
   checkAllPorts();
 }
@@ -222,6 +210,6 @@ void loop() {
 #if defined(ESP8266)
   MDNS.update();
 #endif
-  timer.run();
+  Timer.run();
   otaUpdate.loop();
 }

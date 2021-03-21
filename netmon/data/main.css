@@ -1,0 +1,46 @@
+.content {
+  max-width: 720px;
+  margin: auto;
+  padding: 16px;
+}
+
+.output {
+  font-size: 80%;
+  line-height: 80%;
+}
+
+.important {
+  color: blue;
+}
+
+.danger {
+  color: red;
+}
+
+.title {
+  font-size: 110%;
+  font-weight: 500;
+}
+
+.button-large {
+  padding: 0.5em;
+  font-size: 120%;
+  font-weight: 500;
+}
+
+button {
+  margin-left: 5px;
+  margin-right: 5px;
+}
+
+td {
+  padding: 4px;
+}
+
+form {
+  display: inline-block;
+}
+
+textarea {
+  width: 100%;
+}
