@@ -4,26 +4,14 @@
 #define FIRMWARE_UPDATE_FILE "/firmware_update.txt"
 
 #include <Arduino.h>
-#include <FS.h>
+#include <ArduinoTimer.h>
+#include <ESPAsyncWebServer.h>
 #include <WiFiClient.h>
 #include <WiFiUdp.h>
+#include <compat.h>
 #include <utils.h>
 
 #include <ext/utility.hpp>
-#if defined(ESP8266)
-#include <ESP8266HTTPClient.h>
-#include <ESP8266WiFi.h>
-#include <ESP8266httpUpdate.h>
-#include <ESP8266mDNS.h>
-#elif defined(ESP32)
-#include <ESPmDNS.h>
-#include <HTTPClient.h>
-#include <SPIFFS.h>
-#include <Update.h>
-#include <WiFi.h>
-#endif
-#include <ArduinoTimer.h>
-#include <ESPAsyncWebServer.h>
 
 class ESPUpdateServer {
  public:

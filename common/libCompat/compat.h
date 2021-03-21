@@ -17,10 +17,20 @@
 #include <ESPmDNS.h>
 #include <HTTPClient.h>
 #include <SPIFFS.h>
+#include <Update.h>
 // #include <WebServer.h>
 #include <WiFi.h>
 #include <WiFiClientSecure.h>
 #include <analogWrite.h>
+#endif
+
+#if USE_LITTLEFS
+#include <LittleFS.h>
+#define FileFS LittleFS
+#define FS_Name "LittleFS"
+#else
+#define FileFS SPIFFS
+#define FS_Name "SPIFFS"
 #endif
 
 namespace compat {
@@ -46,7 +56,7 @@ inline size_t flashSize() {
 #if defined(ESP8266)
   return ((size_t)&_FS_end - (size_t)&_FS_start);
 #elif defined(ESP32)
-  return SPIFFS.totalBytes();
+  return FileFS.totalBytes();
 #endif
 }
 

@@ -4,9 +4,9 @@ bool FileServer::handle(AsyncWebServerRequest* request) {
   String path = request->url();
   // Serial.println("[FileServer] Handling " + path);
   if (request->hasParam("delete")) {
-    if (SPIFFS.exists(path)) {
+    if (FileFS.exists(path)) {
       LOGF("[FileServer] Delete %s\n", path);
-      SPIFFS.remove(path);
+      FileFS.remove(path);
       request->redirect("/");
       return true;
     }
@@ -51,20 +51,20 @@ bool FileServer::handle(AsyncWebServerRequest* request) {
 
   // look for smaller versions of file
   // minified file, good (myscript.min.js)
-  if (SPIFFS.exists(prefix + ".min" + ext)) path = prefix + ".min" + ext;
+  if (FileFS.exists(prefix + ".min" + ext)) path = prefix + ".min" + ext;
   // gzipped file, better (myscript.js.gz)
-  // if (SPIFFS.exists(prefix + ext + ".gz")) path = prefix + ext + ".gz";
+  // if (FileFS.exists(prefix + ext + ".gz")) path = prefix + ext + ".gz";
   // min and gzipped file, best (myscript.min.js.gz)
-  // if (SPIFFS.exists(prefix + ".min" + ext + ".gz"))
+  // if (FileFS.exists(prefix + ".min" + ext + ".gz"))
   // path = prefix + ".min" + ext + ".gz";
-  // if SPIFFS.exists
-  if (SPIFFS.exists(path)) {
+  // if FileFS.exists
+  if (FileFS.exists(path)) {
     LOGF("[FileServer] Sending %s\n", path);
 
     AsyncWebServerResponse* response =
-        request->beginResponse(SPIFFS, path, contentType);
+        request->beginResponse(FileFS, path, contentType);
 
-    File file = SPIFFS.open(path, "r");
+    File file = FileFS.open(path, "r");
     if (request->hasParam("download", false))
       response->addHeader("Content-Disposition", " attachment;");
     if (path.indexOf("nocache") < 0)

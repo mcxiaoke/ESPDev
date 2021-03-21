@@ -81,8 +81,8 @@ void ESPUpdateServer::handleUpdatePage(AsyncWebServerRequest* request) {
   if (_username != emptyString && _password != emptyString &&
       !request->authenticate(_username.c_str(), _password.c_str()))
     return request->requestAuthentication();
-  if (false && SPIFFS.exists("/update.html")) {
-    request->send(SPIFFS, "/update.html");
+  if (false && FileFS.exists("/update.html")) {
+    request->send(FileFS, "/update.html");
   } else {
     request->send_P(200, PSTR("text/html"), serverIndex);
   }

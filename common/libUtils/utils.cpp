@@ -4,10 +4,10 @@ static time_t upTimestamp = 0;  // in seconds
 
 std::vector<std::tuple<String, size_t>> listFiles(const char* dest) {
   std::vector<std::tuple<String, size_t>> output;
-//   Serial.println(F("[System] SPIFFS Files:"));
+//   Serial.println(F("[System] FileFS Files:"));
 #if defined(ESP8266)
 
-  Dir f = SPIFFS.openDir(dest);
+  Dir f = FileFS.openDir(dest);
   while (f.next()) {
     // Serial.printf("[File] %s (%d bytes)\n", f.fileName().c_str(),
     // f.fileSize());
@@ -15,7 +15,7 @@ std::vector<std::tuple<String, size_t>> listFiles(const char* dest) {
   }
 
 #elif defined(ESP32)
-  File root = SPIFFS.open(dest);
+  File root = FileFS.open(dest);
   if (root.isDirectory()) {
     File f = root.openNextFile();
     while (f) {
@@ -35,17 +35,23 @@ std::vector<std::tuple<String, size_t>> listLogs() {
 
 void fsCheck() {
 #if defined(ESP8266)
-  if (!SPIFFS.begin()) {
+  if (!FileFS.begin()) {
 #elif defined(ESP32)
-  if (!SPIFFS.begin(true)) {
+  if (!FileFS.begin(true)) {
 #endif
     PLOGN(F("[Core] File System failed."));
   } else {
     PLOGN(F("[Core] File System ok."));
+#if defined(ESP8266)
     FSInfo info;
-    SPIFFS.info(info);
+    FileFS.info(info);
     PLOGNF("[Core] Free Space: %dK/%dK",
            (info.totalBytes - info.usedBytes) / 1024, info.totalBytes / 1024);
+#elif defined(ESP32)
+    PLOGNF("[Core] Free Space: %dK/%dK",
+           (FileFS.totalBytes() - FileFS.usedBytes()) / 1024,
+           FileFS.totalBytes() / 1024);
+#endif
   }
 }
 
@@ -120,12 +126,12 @@ size_t fileLog(const String& text, const String& path, bool appendDate) {
 }
 
 bool trimLogFile(String fileName) {
-  if (SPIFFS.exists(fileName)) {
-    File file = SPIFFS.open(fileName, "r");
+  if (FileFS.exists(fileName)) {
+    File file = FileFS.open(fileName, "r");
     if (file.size() > 100 * 1024) {
       String newName = fileName + ".old";
-      SPIFFS.remove(newName);
-      if (SPIFFS.rename(fileName.c_str(), newName.c_str())) {
+      FileFS.remove(newName);
+      if (FileFS.rename(fileName.c_str(), newName.c_str())) {
         return true;
       }
     }
@@ -138,7 +144,7 @@ size_t writeLine(const String& path, const String& line) {
 }
 
 size_t writeFile(const String& path, const String& content, bool append) {
-  File f = SPIFFS.open(path, append ? "a" : "w");
+  File f = FileFS.open(path, append ? "a" : "w");
   if (!f) {
     return -1;
   }
@@ -147,7 +153,7 @@ size_t writeFile(const String& path, const String& content, bool append) {
   return c;
 }
 String readFile(const String& path) {
-  File f = SPIFFS.open(path, "r");
+  File f = FileFS.open(path, "r");
   if (!f) {
     return "";
   }

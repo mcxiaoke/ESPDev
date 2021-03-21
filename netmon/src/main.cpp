@@ -151,8 +151,7 @@ String getFilesHtml() {
 
 void handleLogs(AsyncWebServerRequest* request) {
   LOGN("handleLogs");
-  //   File file = SPIFFS.open(logFileName(), "r");
-  request->send(SPIFFS, logFileName(), MIME_TEXT_PLAIN);
+  request->send(FileFS, logFileName(), MIME_TEXT_PLAIN);
 }
 
 void handleFiles(AsyncWebServerRequest* request) {
@@ -174,7 +173,7 @@ void handleNotFound(AsyncWebServerRequest* request) {
 }
 
 void handleRoot(AsyncWebServerRequest* request) {
-  request->send(SPIFFS, "/index.html");
+  request->send(FileFS, "/index.html");
 }
 
 void setupServer() {
