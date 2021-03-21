@@ -174,6 +174,12 @@ void handleRoot(AsyncWebServerRequest* request) {
   request->send(FileFS, "/index.html");
 }
 
+void handleCheck(AsyncWebServerRequest* request) {
+  request->send(200, MIME_TEXT_PLAIN, "OK");
+  fileLog("[Monitor] Check ports from HTTP");
+  checkAllPorts();
+}
+
 void setupServer() {
 #ifdef ESP32
   server.addHandler(new SPIFFSEditor(SPIFFS));
@@ -196,6 +202,7 @@ void setupServer() {
   });
   server.on("/files", handleFiles);
   server.on("/logs", handleLogs);
+  server.on("/check", handleCheck);
   server.on("/", handleRoot);
   server.onNotFound(handleNotFound);
   server.begin();
