@@ -44,7 +44,7 @@ MqttManager::MqttManager(const char* server, const int port,
                 std::placeholders::_2, std::placeholders::_3);
   _mqtt->setCallback(callback);
   _mqtt->setBufferSize(1024);
-  _mqtt->setKeepAlive(60);
+  // _mqtt->setKeepAlive(60);
   _lastOnlineMs = 0;
   _lastOfflineMs = 0;
   _silentMode = false;
@@ -140,7 +140,7 @@ void MqttManager::connect() {
     } else {
       LOG("[MQTT] Connect failed, rc=");
       LOGN(_mqtt->state());
-      delay(2000);
+      delay(1000);
     }
   }
 }

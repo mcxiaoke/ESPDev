@@ -11,7 +11,9 @@ std::vector<std::tuple<String, size_t>> listFiles(const char* dest) {
   while (f.next()) {
     // Serial.printf("[File] %s (%d bytes)\n", f.fileName().c_str(),
     // f.fileSize());
-    output.push_back(std::make_tuple(f.fileName(), f.fileSize()));
+    if (f.fileName().length() > 0 && f.fileSize() > 0) {
+      output.push_back(std::make_tuple(f.fileName(), f.fileSize()));
+    }
   }
 
 #elif defined(ESP32)
@@ -19,8 +21,10 @@ std::vector<std::tuple<String, size_t>> listFiles(const char* dest) {
   if (root.isDirectory()) {
     File f = root.openNextFile();
     while (f) {
-      Serial.printf("[File] %s (%d bytes)\n", f.name(), f.size());
-      output.push_back(std::make_tuple(f.name(), f.size()));
+      // Serial.printf("[File] %s (%d bytes)\n", f.name(), f.size());
+      if (f.name().length() > 0 && f.size() > 0) {
+        output.push_back(std::make_tuple(f.name(), f.size()));
+      }
       f = root.openNextFile();
     }
   }

@@ -620,8 +620,6 @@ void handleClear(AsyncWebServerRequest* request) {
   }
 }
 
-void reboot() { ESP.reset(); }
-
 void handleReboot(AsyncWebServerRequest* request) {
   LOGN("handleReboot");
   if (request->hasParam("do", false)) {
@@ -664,7 +662,8 @@ void handleReset(AsyncWebServerRequest* request) {
 
 void handleRoot(AsyncWebServerRequest* request) {
   LOGN("handleRoot");
-  request->redirect("/index.html");
+  // request->redirect("/index.html");
+  request->send(SPIFFS, "/index.html");
   showESP();
 }
 
@@ -730,7 +729,10 @@ void handleWiFiGotIP() {
   }
 }
 
-void handleWiFiLost() { LOG("---"); }
+void handleWiFiLost() {
+  debugLog("[WiFi] Connection lost");
+  LOG("---");
+}
 
 #if defined(ESP8266)
 WiFiEventHandler h0, h1, h2;
@@ -845,15 +847,10 @@ void handleNotFound(AsyncWebServerRequest* request) {
 
 void setupServer() {
   LOGN("setupServer");
-  if (MDNS.begin(getUDID().c_str())) {
+  if (MDNS.begin(getHostName().c_str())) {
     LOGN(F("[Server] MDNS responder started"));
   }
-  time_t now = DateTime.getBootTime();
-  struct tm* timeinfo;
-  timeinfo = localtime(&now);
-  server.serveStatic("/", SPIFFS, "/")
-      .setDefaultFile("index.html")
-      .setLastModified(timeinfo);
+  server.on("/", handleRoot);
   server.on("/files", handleFiles);
   server.on("/logs", handleLogs);
   server.on("/help", handleHelp);
@@ -924,7 +921,7 @@ void setupTimers(bool reset) {
   displayTimerId = Timer.setInterval(1000, updateDisplay, "updateDisplay");
   Timer.setInterval(5 * 60 * 1000L, checkWiFi, "checkWiFi");
   Timer.setInterval(statusInterval, statusReport, "statusReport");
-  Timer.setTimeout(48 * 60 * 60 * 1000L, reboot, "reboot");
+  Timer.setTimeout(48 * 60 * 60 * 1000L, compat::restart, "reboot");
   mqttTimer();
 }
 

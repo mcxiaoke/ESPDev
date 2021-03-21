@@ -9,8 +9,10 @@ static void filesToJson(const std::vector<std::tuple<String, size_t>>& vec,
   for (auto& v : vec) {
     LOGN("File:", std::get<0>(v), std::get<1>(v));
     JsonObject o = arr.createNestedObject();
-    o["n"] = std::get<0>(v);
-    o["z"] = std::get<1>(v);
+    if (std::get<0>(v).length() > 0 && std::get<1>(v) > 0) {
+      o["n"] = std::get<0>(v);
+      o["z"] = std::get<1>(v);
+    }
   }
 }
 
@@ -222,7 +224,7 @@ void RestApi::jsonStatus(const JsonVariant& doc) {
   doc["heap"] = ESP.getFreeHeap();
   doc["device"] = getUDID();
   doc["chip_id"] = ESP.getChipId();
-  doc["sketch"] = ESP.getSketchMD5().substring(0,8);
+  doc["sketch"] = ESP.getSketchMD5().substring(0, 8);
 #ifdef APP_BUILD
   doc["version"] = APP_BUILD;
 #endif
