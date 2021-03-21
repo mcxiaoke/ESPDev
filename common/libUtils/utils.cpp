@@ -45,7 +45,7 @@ void fsCheck() {
     FSInfo info;
     SPIFFS.info(info);
     PLOGNF("[Core] Free Space: %dK/%dK",
-           (info.totalBytes - info.usedBytes) / 1000, info.totalBytes / 1000);
+           (info.totalBytes - info.usedBytes) / 1024, info.totalBytes / 1024);
   }
 }
 
@@ -93,7 +93,7 @@ void showESP(const char* extra) {
 }
 
 String logFileName(const String& suffix) {
-  String fileName = "/logs/log-";
+  String fileName = "/log-";
   fileName += DateTime.format("%Y%m");
   if (suffix.length() > 0) {
     fileName += "-";

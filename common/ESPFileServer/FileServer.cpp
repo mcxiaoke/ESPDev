@@ -5,7 +5,7 @@ bool FileServer::handle(AsyncWebServerRequest* request) {
   // Serial.println("[FileServer] Handling " + path);
   if (request->hasParam("delete")) {
     if (SPIFFS.exists(path)) {
-      Serial.printf("[FileServer] Delete %s\n", path.c_str());
+      LOGF("[FileServer] Delete %s\n", path);
       SPIFFS.remove(path);
       request->redirect("/");
       return true;
@@ -53,13 +53,13 @@ bool FileServer::handle(AsyncWebServerRequest* request) {
   // minified file, good (myscript.min.js)
   if (SPIFFS.exists(prefix + ".min" + ext)) path = prefix + ".min" + ext;
   // gzipped file, better (myscript.js.gz)
-  if (SPIFFS.exists(prefix + ext + ".gz")) path = prefix + ext + ".gz";
+  // if (SPIFFS.exists(prefix + ext + ".gz")) path = prefix + ext + ".gz";
   // min and gzipped file, best (myscript.min.js.gz)
-  if (SPIFFS.exists(prefix + ".min" + ext + ".gz"))
-    path = prefix + ".min" + ext + ".gz";
+  // if (SPIFFS.exists(prefix + ".min" + ext + ".gz"))
+  // path = prefix + ".min" + ext + ".gz";
   // if SPIFFS.exists
   if (SPIFFS.exists(path)) {
-    Serial.printf("[FileServer] Sending %s\n", path.c_str());
+    LOGF("[FileServer] Sending %s\n", path);
 
     AsyncWebServerResponse* response =
         request->beginResponse(SPIFFS, path, contentType);
@@ -79,6 +79,8 @@ bool FileServer::handle(AsyncWebServerRequest* request) {
     }
     file.close();
     return true;
+  } else {
+    LOGF("[FileServer] Not Found %s\n", path);
   }
   return false;
 }

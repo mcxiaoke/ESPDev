@@ -77,8 +77,8 @@ void checkDevice(LanDevice& device) {
   if (online != device.online) {
     device.online = online;
     sendMessage(device.msgTitle(), device.msgDesp());
+    fileLog("[Monitor] " + device.toString() + " at " + timeString());
   }
-  fileLog("[Monitor] " + device.toString() + " at " + timeString());
 }
 
 void checkAllPorts() {
@@ -145,6 +145,7 @@ String getFilesHtml() {
     html += " bytes)</a></li>\n";
   }
   html += "</ul>";
+  html += "<p> You can delete file by add '?delete=1' to file url.<p>";
   return html;
 }
 
@@ -172,6 +173,10 @@ void handleNotFound(AsyncWebServerRequest* request) {
   }
 }
 
+void handleRoot(AsyncWebServerRequest* request) {
+  request->send(SPIFFS, "/index.html");
+}
+
 void setupServer() {
   otaUpdate.setup(&server);
   DefaultHeaders::Instance().addHeader("Access-Control-Allow-Origin", "*");
@@ -188,7 +193,7 @@ void setupServer() {
   });
   server.on("/files", handleFiles);
   server.on("/logs", handleLogs);
-  server.serveStatic("/", SPIFFS, "/").setDefaultFile("index.html");
+  server.on("/", handleRoot);
   server.begin();
   MDNS.begin(getHostName().c_str());
   MDNS.addService("http", "tcp", 80);

@@ -7,6 +7,7 @@
 #ifdef ESP32
 #include <SPIFFS.h>
 #endif
+#include <ALogger.h>
 
 struct FileServer {
   static bool handle(AsyncWebServerRequest* request);
