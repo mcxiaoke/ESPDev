@@ -2,6 +2,7 @@
 #include <ArduinoTimer.h>
 #include <ESPUpdateServer.h>
 #include <FileServer.h>
+#include <SPIFFSEditor.h>
 #include <compat.h>
 #include <mqtt.h>
 #include <net.h>
@@ -39,8 +40,8 @@ constexpr int led = LED_BUILTIN;
 constexpr const char MIME_TEXT_PLAIN[] PROGMEM = "text/plain";
 constexpr const char MIME_TEXT_HTML[] PROGMEM = "text/html";
 
-LanDevice pump{"ESP_DF975D", "ESP Plant Watering Device", "192.168.1.116", 80};
-LanDevice armn1{"Armbian_N1", "N1 Armbian Home Server", "192.168.1.165", 22};
+LanDevice pump{"DF975D", "ESP Plant Watering Device", "192.168.1.116", 80};
+LanDevice armn1{"N1BOX", "N1 Armbian Home Server", "192.168.1.165", 22};
 LanDevice n54l{"N54L", "Windows 7 NAS Server", "192.168.1.110", 80};
 
 WiFiClient client;
@@ -177,10 +178,16 @@ void handleRoot(AsyncWebServerRequest* request) {
 }
 
 void setupServer() {
+#ifdef ESP32
+  server.addHandler(new SPIFFSEditor(SPIFFS));
+#elif defined(ESP8266)
+  server.addHandler(new SPIFFSEditor());
+#endif
+
   otaUpdate.setup(&server);
   DefaultHeaders::Instance().addHeader("Access-Control-Allow-Origin", "*");
   DefaultHeaders::Instance().addHeader("Access-Control-Allow-Headers", "*");
-  server.onNotFound(handleNotFound);
+
   server.on("/info", HTTP_GET, [](AsyncWebServerRequest* request) {
     String content = "UDID: ";
     content += getUDID();
@@ -193,6 +200,22 @@ void setupServer() {
   server.on("/files", handleFiles);
   server.on("/logs", handleLogs);
   server.on("/", handleRoot);
+  server.onNotFound(handleNotFound);
+  server.serveStatic("/", SPIFFS, "/").setDefaultFile("index.html");
+
+  server.onFileUpload([](AsyncWebServerRequest* request, const String& filename,
+                         size_t index, uint8_t* data, size_t len, bool final) {
+    if (!index) Serial.printf("UploadStart: %s\n", filename.c_str());
+    Serial.printf("%s", (const char*)data);
+    if (final)
+      Serial.printf("UploadEnd: %s (%u)\n", filename.c_str(), index + len);
+  });
+  server.onRequestBody([](AsyncWebServerRequest* request, uint8_t* data,
+                          size_t len, size_t index, size_t total) {
+    if (!index) Serial.printf("BodyStart: %u\n", total);
+    Serial.printf("%s", (const char*)data);
+    if (index + len == total) Serial.printf("BodyEnd: %u\n", total);
+  });
   server.begin();
   MDNS.begin(getHostName().c_str());
   MDNS.addService("http", "tcp", 80);
@@ -200,6 +223,7 @@ void setupServer() {
 
 void setup() {
   Serial.begin(115200);
+  Serial.setDebugOutput(true);
   Serial.println();
   fsCheck();
   setupWiFi();
