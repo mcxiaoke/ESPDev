@@ -12,10 +12,6 @@
 #include "build.h"
 #include "private.h"
 
-#ifndef DEBUG_UPDATER
-#define DEBUG_UPDATER Serial
-#endif
-
 struct LanDevice {
   const char* name;
   const char* info;
@@ -41,8 +37,8 @@ constexpr const char MIME_TEXT_PLAIN[] PROGMEM = "text/plain";
 constexpr const char MIME_TEXT_HTML[] PROGMEM = "text/html";
 
 LanDevice pump{"DF975D", "ESP Plant Watering Device", "192.168.1.116", 80};
-LanDevice armn1{"N1BOX", "N1 Armbian Home Server", "192.168.1.165", 22};
-LanDevice n54l{"N54L", "Windows 7 NAS Server", "192.168.1.110", 80};
+LanDevice n1box{"N1BOX", "N1 Armbian Home Server", "192.168.1.114", 22};
+// LanDevice n54l{"N54L", "Windows 7 NAS Server", "192.168.1.110", 80};
 
 WiFiClient client;
 AsyncWebServer server(80);
@@ -78,14 +74,14 @@ void checkDevice(LanDevice& device) {
   if (online != device.online) {
     device.online = online;
     sendMessage(device.msgTitle(), device.msgDesp());
-    fileLog("[Monitor] " + device.toString() + " at " + timeString());
+    fileLog("[Monitor] " + device.toString());
   }
 }
 
 void checkAllPorts() {
-  Timer.setTimeout(3000L, []() { checkDevice(pump); });
-  Timer.setTimeout(100L, []() { checkDevice(armn1); });
-  Timer.setTimeout(1500L, []() { checkDevice(n54l); });
+  Timer.setTimeout(100L, []() { checkDevice(pump); });
+  Timer.setTimeout(1500L, []() { checkDevice(n1box); });
+  // Timer.setTimeout(1500L, []() { checkDevice(n54l); });
 }
 
 void checkWiFi() {
@@ -95,8 +91,9 @@ void checkWiFi() {
 }
 
 void sendOnline() {
-  sendMessage("LAN Monitor " + getUDID() + " Online",
-              "IP: " + WiFi.localIP().toString());
+  sendMessage(
+      "LAN Monitor " + getUDID() + " Online",
+      "IP: " + WiFi.localIP().toString() + F(" (Lan Device Online Monitor)"));
 }
 
 void setupWiFi() {
@@ -201,21 +198,6 @@ void setupServer() {
   server.on("/logs", handleLogs);
   server.on("/", handleRoot);
   server.onNotFound(handleNotFound);
-  server.serveStatic("/", SPIFFS, "/").setDefaultFile("index.html");
-
-  server.onFileUpload([](AsyncWebServerRequest* request, const String& filename,
-                         size_t index, uint8_t* data, size_t len, bool final) {
-    if (!index) Serial.printf("UploadStart: %s\n", filename.c_str());
-    Serial.printf("%s", (const char*)data);
-    if (final)
-      Serial.printf("UploadEnd: %s (%u)\n", filename.c_str(), index + len);
-  });
-  server.onRequestBody([](AsyncWebServerRequest* request, uint8_t* data,
-                          size_t len, size_t index, size_t total) {
-    if (!index) Serial.printf("BodyStart: %u\n", total);
-    Serial.printf("%s", (const char*)data);
-    if (index + len == total) Serial.printf("BodyEnd: %u\n", total);
-  });
   server.begin();
   MDNS.begin(getHostName().c_str());
   MDNS.addService("http", "tcp", 80);
@@ -229,18 +211,18 @@ void setup() {
   setupWiFi();
   setupDate();
   setupServer();
+  fileLog("====================");
+  fileLog("[Core] Started: " + dateTimeString());
+  fileLog("[Core] Sketch: " + ESP.getSketchMD5());
   // check wifi status every 10 minutes
   Timer.setInterval(10 * 60 * 1000L, checkWiFi, "checkWiFi");
   // check ports open every 5 minutes
   Timer.setInterval(5 * 60 * 1000L, checkAllPorts, "checkPorts");
   // send online message every 12 hours
   Timer.setInterval(12 * 60 * 60 * 1000L, sendOnline, "sendOnline");
-  // trim log file every day
-  Timer.setInterval(
-      24 * 60 * 60 * 1000L, []() { trimLogFile(); }, "trim_log");
   // reboot device after 48 hours
-  Timer.setTimeout(48 * 60 * 60 * 1000L, compat::restart, "reboot");
-  delay(1000);
+  // Timer.setTimeout(48 * 60 * 60 * 1000L, compat::restart, "reboot");
+  // delay(1000);
   checkAllPorts();
 }
 

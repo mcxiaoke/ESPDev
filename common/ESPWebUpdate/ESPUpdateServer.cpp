@@ -90,8 +90,8 @@ void ESPUpdateServer::handleUpdatePage(AsyncWebServerRequest* request) {
 
 void ESPUpdateServer::handleUploadEnd(AsyncWebServerRequest* request) {
   if (!_authenticated) return request->requestAuthentication();
-  Serial.printf("[OTA] Update End!\n");
-  delay(100);
+  PLOGN("[OTA] Update End!");
+  delay(500);
   if (!Update.hasError()) {
     AsyncWebServerResponse* response;
     if (request->hasHeader("X-Source")) {
@@ -103,7 +103,7 @@ void ESPUpdateServer::handleUploadEnd(AsyncWebServerRequest* request) {
     }
     response->addHeader("Connection", "close");
     request->send(response);
-    delay(200);
+    delay(500);
     request->client()->stop();
     request->client()->close();
     if (_serial_output) {
@@ -113,12 +113,12 @@ void ESPUpdateServer::handleUploadEnd(AsyncWebServerRequest* request) {
 
     fileLog("[OTA] successed at " + dateTimeString());
     writeFile(FIRMWARE_UPDATE_FILE, dateTimeString(), false);
-    delay(200);
+    delay(500);
     _shouldRestart = true;
   } else {
     request->send(200, "text/html",
                   String(F("Update error: ")) + _updaterError + "\n");
-    delay(200);
+    delay(500);
     fileLog("[OTA] failed at " + dateTimeString());
     _shouldRestart = false;
   }
@@ -150,7 +150,7 @@ void ESPUpdateServer::handleUpload(AsyncWebServerRequest* request,
   size_t binSize = request->contentLength();
   if (!index) {
     Serial.println("[OTA] update process init stage");
-    fileLog("[OTA] updated from " + ESP.getSketchMD5());
+    // fileLog("[OTA] updated from " + ESP.getSketchMD5());
     _updaterError = String();
     int cmd = (filename.indexOf("spiffs") > -1) ? CMD_FS : CMD_FLASH;
     if (_serial_output) {
@@ -190,9 +190,9 @@ void ESPUpdateServer::handleUpload(AsyncWebServerRequest* request,
     Serial.println("[OTA] update process final stage");
     if (!Update.end(true)) {
       _setUpdaterError();
-      fileLog("[OTA] update failed!");
+      PLOGN("[OTA] update failed!");
     } else {
-      fileLog("[OTA] update success!");
+      PLOGN("[OTA] update success!");
     }
   }
 }
