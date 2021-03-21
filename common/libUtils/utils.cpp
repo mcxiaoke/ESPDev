@@ -38,12 +38,14 @@ void fsCheck() {
   if (!SPIFFS.begin()) {
 #elif defined(ESP32)
   if (!SPIFFS.begin(true)) {
-#else
-  if (false) {
 #endif
-    PLOGN(F("[Core] Failed to mount File System"));
+    PLOGN(F("[Core] File System failed."));
   } else {
-    PLOGN(F("[Core] File System mounted."));
+    PLOGN(F("[Core] File System ok."));
+    FSInfo info;
+    SPIFFS.info(info);
+    PLOGNF("[Core] Free Space: %dK/%dK",
+           (info.totalBytes - info.usedBytes) / 1000, info.totalBytes / 1000);
   }
 }
 
@@ -115,6 +117,20 @@ size_t fileLog(const String& text, const String& path, bool appendDate) {
   PLOGN(message);
   size_t c = writeLine(path, message);
   return c;
+}
+
+bool trimLogFile(String fileName) {
+  if (SPIFFS.exists(fileName)) {
+    File file = SPIFFS.open(fileName, "r");
+    if (file.size() > 100 * 1024) {
+      String newName = fileName + ".old";
+      SPIFFS.remove(newName);
+      if (SPIFFS.rename(fileName.c_str(), newName.c_str())) {
+        return true;
+      }
+    }
+  }
+  return false;
 }
 
 size_t writeLine(const String& path, const String& line) {

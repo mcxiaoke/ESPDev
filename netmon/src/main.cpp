@@ -78,7 +78,7 @@ void checkDevice(LanDevice& device) {
     device.online = online;
     sendMessage(device.msgTitle(), device.msgDesp());
   }
-  fileLog("Checked " + device.toString() + " at " + timeString());
+  fileLog("[Monitor] " + device.toString() + " at " + timeString());
 }
 
 void checkAllPorts() {
@@ -97,8 +97,6 @@ void sendOnline() {
   sendMessage("LAN Monitor " + getUDID() + " Online",
               "IP: " + WiFi.localIP().toString());
 }
-
-void reboot() { compat::restart(); }
 
 void setupWiFi() {
   Serial.println("[WiFi] setupWiFi");
@@ -209,8 +207,11 @@ void setup() {
   Timer.setInterval(5 * 60 * 1000L, checkAllPorts, "checkPorts");
   // send online message every 12 hours
   Timer.setInterval(12 * 60 * 60 * 1000L, sendOnline, "sendOnline");
+  // trim log file every day
+  Timer.setInterval(
+      24 * 60 * 60 * 1000L, []() { trimLogFile(); }, "trim_log");
   // reboot device after 48 hours
-  Timer.setTimeout(48 * 60 * 60 * 1000L, reboot, "reboot");
+  Timer.setTimeout(48 * 60 * 60 * 1000L, compat::restart, "reboot");
   delay(1000);
   checkAllPorts();
 }
@@ -219,6 +220,6 @@ void loop() {
 #if defined(ESP8266)
   MDNS.update();
 #endif
-  // Timer.run();
+  Timer.run();
   otaUpdate.loop();
 }
