@@ -111,13 +111,16 @@ void ESPUpdateServer::handleUploadEnd(AsyncWebServerRequest* request) {
       Serial.flush();
     }
 
-    fileLog("[OTA] finished at " + dateTimeString());
+    fileLog("[OTA] successed at " + dateTimeString());
     writeFile(FIRMWARE_UPDATE_FILE, dateTimeString(), false);
     delay(200);
     _shouldRestart = true;
   } else {
     request->send(200, "text/html",
                   String(F("Update error: ")) + _updaterError + "\n");
+    delay(200);
+    fileLog("[OTA] failed at " + dateTimeString());
+    _shouldRestart = false;
   }
 }
 
@@ -159,7 +162,11 @@ void ESPUpdateServer::handleUpload(AsyncWebServerRequest* request,
 #endif
 
     if (cmd == CMD_FS) {
-      if (!Update.begin(compat::fsSize(), CMD_FS)) {
+#if defined(ESP8266)
+      close_all_fs();
+#endif
+      LOGN("====fsSize=", compat::flashSize());
+      if (!Update.begin(compat::flashSize(), CMD_FS)) {
         _setUpdaterError();
       }
     } else {

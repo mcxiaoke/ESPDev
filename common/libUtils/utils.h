@@ -38,6 +38,7 @@ std::vector<std::tuple<String, size_t>> listFiles(const char* dest = "/");
 std::vector<std::tuple<String, size_t>> listLogs();
 void fsCheck();
 String getUDID();
+String getHostName();
 String getMD5(uint8_t* data, uint16_t len);
 String getMD5(const char* data);
 String getMD5(const String& data);
@@ -46,7 +47,7 @@ String logFileName(const String& suffix = "");
 size_t fileLog(const String& text, const String& path = logFileName(),
                bool appendDate = true);
 size_t writeLine(const String& path, const String& line);
-size_t writeFile(const String& path, const String& content, bool append=true);
+size_t writeFile(const String& path, const String& content, bool append = true);
 String readFile(const String& path);
 
 bool hasValidTime();

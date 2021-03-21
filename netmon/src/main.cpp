@@ -1,5 +1,3 @@
-#define DEBUG_UPDATER Serial
-
 #include <Arduino.h>
 #include <ArduinoTimer.h>
 #include <ESPUpdateServer.h>
@@ -13,24 +11,28 @@
 #include "build.h"
 #include "private.h"
 
+#ifndef DEBUG_UPDATER
+#define DEBUG_UPDATER Serial
+#endif
+
 struct LanDevice {
-  const String name;
-  const String info;
-  const String host;
+  const char* name;
+  const char* info;
+  const char* host;
   const uint16_t port;
   bool online;
   unsigned long lastOnlineMs;
 
   String toString() const {
-    return name + "/" + host + ":" + port + " " +
+    return String(name) + "/" + String(host) + ":" + String(port) + " " +
            (online ? "Online" : "Offline");
   }
 
   String msgTitle() {
-    return "Device " + name + (online ? " Online" : " Offline");
+    return "Device " + String(name) + (online ? " Online" : " Offline");
   }
 
-  String msgDesp() { return "IP: " + host + " (" + info + ")"; }
+  String msgDesp() { return "IP: " + String(host) + " (" + String(info) + ")"; }
 };
 
 constexpr int led = LED_BUILTIN;
@@ -76,7 +78,7 @@ void checkDevice(LanDevice& device) {
     device.online = online;
     sendMessage(device.msgTitle(), device.msgDesp());
   }
-  PLOGNF("[%s] Checked %s", timeString(), device.toString());
+  fileLog("Checked " + device.toString() + " at " + timeString());
 }
 
 void checkAllPorts() {
@@ -96,7 +98,7 @@ void sendOnline() {
               "IP: " + WiFi.localIP().toString());
 }
 
-void reboot() { ESP.reset(); }
+void reboot() { compat::restart(); }
 
 void setupWiFi() {
   Serial.println("[WiFi] setupWiFi");
@@ -116,7 +118,7 @@ void setupWiFi() {
     }
   }
   if (!compat::isWiFiConnected()) {
-    ESP.reset();
+    compat::restart();
     return;
   }
   Serial.println("[WiFi] Connected.");
@@ -146,6 +148,12 @@ String getFilesHtml() {
   }
   html += "</ul>";
   return html;
+}
+
+void handleLogs(AsyncWebServerRequest* request) {
+  LOGN("handleLogs");
+  //   File file = SPIFFS.open(logFileName(), "r");
+  request->send(SPIFFS, logFileName(), MIME_TEXT_PLAIN);
 }
 
 void handleFiles(AsyncWebServerRequest* request) {
@@ -181,9 +189,10 @@ void setupServer() {
     request->send(200, "text/plain", content);
   });
   server.on("/files", handleFiles);
+  server.on("/logs", handleLogs);
   server.serveStatic("/", SPIFFS, "/").setDefaultFile("index.html");
   server.begin();
-  MDNS.begin(getUDID());
+  MDNS.begin(getHostName().c_str());
   MDNS.addService("http", "tcp", 80);
 }
 
@@ -210,6 +219,6 @@ void loop() {
 #if defined(ESP8266)
   MDNS.update();
 #endif
-  Timer.run();
+  // Timer.run();
   otaUpdate.loop();
 }

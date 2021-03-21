@@ -12,6 +12,7 @@
 #include <ESP8266httpUpdate.h>
 #include <ESP8266mDNS.h>
 #include <WiFiClientSecureBearSSL.h>
+#include <flash_hal.h>
 #elif defined(ESP32)
 #include <ESPmDNS.h>
 #include <HTTPClient.h>
@@ -41,13 +42,19 @@ inline void setHostname(const char* hostname) {
 #endif
 }
 
-inline size_t fsSize() {
+inline size_t flashSize() {
 #if defined(ESP8266)
-  FSInfo fs_info;
-  SPIFFS.info(fs_info);
-  return fs_info.totalBytes;
+  return ((size_t)&_FS_end - (size_t)&_FS_start);
 #elif defined(ESP32)
   return SPIFFS.totalBytes();
+#endif
+}
+
+inline void restart() {
+#if defined(ESP8266)
+  ESP.restart();
+#elif defined(ESP32)
+  ESP.restart();
 #endif
 }
 

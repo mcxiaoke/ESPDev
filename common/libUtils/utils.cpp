@@ -54,6 +54,15 @@ String getUDID() {
   return mac.substring(mac.length() / 2);
 }
 
+String getHostName() {
+#if defined(ESP32)
+  String hn = "ESP32";
+#elif defined(ESP8266)
+  String hn = "ESP8266";
+#endif
+  return hn + "-" + getUDID();
+}
+
 String getMD5(uint8_t* data, uint16_t len) {
   MD5Builder md5;
   md5.begin();
