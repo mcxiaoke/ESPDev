@@ -5,6 +5,7 @@
   <meta charset="UTF-8" />
   <title>ESP Web Update</title>
   <link rel="stylesheet" type="text/css" href="main.css" />
+  <script src="config.js"></script>
 </head>
 
 <body>
@@ -23,13 +24,6 @@
     <p class="output" id="progress" style="color: red;"></p>
   </div>
   <script>
-    var serverUrl = "";
-    if (window.location.href.indexOf("mcxiaoke.com") != -1) {
-      serverUrl = "http://pump.frps.mcxiaoke.com";
-    } else {
-      serverUrl = "http://192.168.1.116";
-    }
-    var baseUrl = "/";
     let ip = document.getElementById("server");
     let url = serverUrl || ip.value || window.location.origin;
     var checkApiRetries = 3;
@@ -41,7 +35,7 @@
         console.log("onload", e);
         console.log(xhr2.response);
         setTimeout(() => {
-          location.href = "/";
+          location.href = location.href.replace(/[^/]*$/, '');
         }, 1000);
       };
       let errorCallback = function (e) {
