@@ -47,7 +47,7 @@
         } else {
           console.log("check api error, giveup.");
           setTimeout(() => {
-            location.href = "/";
+            location.href = location.href.replace(/[^/]*$/, '');
           }, 3000);
         }
       };

@@ -1,5 +1,12 @@
 // const serverUrl = "http://192.168.1.140";
-var serverUrl = window.location["server-url"] || "";
+
+var serverUrl = "";
+if (window.location.href.indexOf("mcxiaoke.com") != -1) {
+  serverUrl = "http://pump.frps.mcxiaoke.com";
+} else {
+  serverUrl = "http://192.168.1.116";
+}
+
 var baseUrl = "/";
 
 var parseHTML = function (str) {

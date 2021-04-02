@@ -43,6 +43,6 @@ window.addEventListener("DOMContentLoaded", function (e) {
 
   document.getElementById("back-home").addEventListener("click", function (e) {
     // window.location.replace(location.replace(location.split("/").pop(), ""));
-    window.location.replace("/");
+    location.href = location.href.replace(/[^/]*$/, '');
   });
 });

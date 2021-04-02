@@ -28,7 +28,7 @@ function buildOutputDiv(d) {
   } else {
     nextRunAt = moment(now + nextRemains * 1000).format("MM-DD HH:mm:ss");
   }
-  let surl = serverUrl || window.location.origin;
+  let surl = serverUrl || window.location.href;
   let debugMode = d["debug"] == 1 ? "开发版" : "正式版";
   let dbClass = d["debug"] == 1 ? "danger" : "important";
   let tb = $("<table>").append(
