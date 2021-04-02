@@ -1,4 +1,5 @@
 var serverVersion = "";
+const TIME_OUT_MS = 5000;
 
 function newLine() {
   return document.createElement("p");
@@ -208,9 +209,23 @@ function buildFormDiv(d) {
   return buttonDiv;
 }
 
+function buildTitleDiv(debugMode = false) {
+  let div = document.createElement("div");
+  div.setAttribute("id", "title-div");
+  let t = document.createElement("h1");
+  if (debugMode) {
+    t.setAttribute("class", "danger");
+    t.textContent = "智能浇水器（开发版）";
+  } else {
+    t.textContent = "智能浇水器";
+  }
+  div.append(t);
+  return div;
+}
+
 function buildButtonDiv() {
   let buttonDiv = document.createElement("div");
-  buttonDiv.setAttribute("id", "button-div");
+  buttonDiv.setAttribute("id", "button-div-2");
 
   let btnRaw = document.createElement("button");
   btnRaw.textContent = "查看日志";
@@ -222,6 +237,33 @@ function buildButtonDiv() {
       "_blank"
     );
   };
+
+  let btnFiles = document.createElement("button");
+  btnFiles.textContent = "查看文件";
+  btnFiles.setAttribute("id", "btn-files");
+  btnFiles.setAttribute("class", "button-large");
+  btnFiles.onclick = (e) => (window.location.href = "files.html");
+
+  let btnOption = document.createElement("button");
+  btnOption.textContent = "配置修改";
+  btnOption.setAttribute("id", "btn-option");
+  btnOption.setAttribute("class", "button-large");
+  btnOption.onclick = (e) => (window.location.href = "option.html");
+
+  let btnOTA = document.createElement("button");
+  btnOTA.textContent = "系统更新";
+  btnOTA.setAttribute("id", "btn-ota");
+  btnOTA.setAttribute("class", "button-large");
+  btnOTA.onclick = (e) => (window.location.href = "update.html");
+
+  buttonDiv.append(btnRaw, btnFiles, newLine(), btnOption, btnOTA, newLine());
+
+  return buttonDiv;
+}
+
+function buildButtonDiv2() {
+  let buttonDiv = document.createElement("div");
+  buttonDiv.setAttribute("id", "button-div");
 
   let btnClear = document.createElement("button");
   btnClear.textContent = "清空日志";
@@ -246,44 +288,29 @@ function buildButtonDiv() {
     return false;
   };
 
-  let btnFiles = document.createElement("button");
-  btnFiles.textContent = "查看文件";
-  btnFiles.setAttribute("id", "btn-files");
-  btnFiles.setAttribute("class", "button-large");
-  btnFiles.onclick = (e) => (window.location.href = "files.html");
-
-  let btnOption = document.createElement("button");
-  btnOption.textContent = "配置修改";
-  btnOption.setAttribute("id", "btn-option");
-  btnOption.setAttribute("class", "button-large");
-  btnOption.onclick = (e) => (window.location.href = "option.html");
-
-  let btnOTA = document.createElement("button");
-  btnOTA.textContent = "系统更新";
-  btnOTA.setAttribute("id", "btn-ota");
-  btnOTA.setAttribute("class", "button-large");
-  btnOTA.onclick = (e) => (window.location.href = "update.html");
-
-  buttonDiv.append(btnRaw, btnFiles, newLine(), btnOption, btnOTA, newLine());
   return buttonDiv;
 }
 
 function handleError(firstTime) {
   if (firstTime) {
-    let outputDiv = $("<div>").attr("id", "output").attr("class", "output");
+    let outputDiv = $("<div>").attr("id", "error").attr("class", "output");
     outputDiv.append(
       $("<p>")
         .addClass("danger")
-        .text("请检查服务器配置: " + serverUrl)
+        .text("服务器离线，无法连接!!!"),
+      $("<p>")
+        .addClass("danger")
+        .text("请检查配置: " + serverUrl)
     );
-    $("#content").append(outputDiv, buildButtonDiv());
+    $("#content").append(outputDiv);
   }
 }
 
 function loadData(firstTime) {
   serverUrl = serverUrl || window.localStorage["server-url"] || "";
+  console.log("loadData from ", serverUrl);
   let xhr = new XMLHttpRequest();
-  xhr.timeout = 3000;
+  xhr.timeout = TIME_OUT_MS;
   xhr.ontimeout = function (e) {
     console.log("ontimeout");
     handleError(firstTime);
@@ -302,20 +329,9 @@ function loadData(firstTime) {
     if (xhr.status < 400) {
       let d = JSON.parse(xhr.responseText);
       console.log("Data:", d);
-
-      let c = document.getElementById("content");
-      let t = document.createElement("h1");
-      let debugMode = d["debug"] == 1;
-      if (debugMode) {
-        t.setAttribute("class", "danger");
-        t.textContent = "智能浇水器（开发版）";
-      } else {
-        t.textContent = "智能浇水器";
-      }
-      t.setAttribute("id", "pump-title");
       $("#content").html("");
       $("#content").append(
-        t,
+        buildTitleDiv(d["debug"] == 1),
         buildOutputDiv(d),
         buildFormDiv(d),
         buildButtonDiv()
@@ -330,6 +346,7 @@ function loadData(firstTime) {
       handleError(firstTime);
     }
   };
+  xhr.timeout = TIME_OUT_MS;
   xhr.open("GET", serverUrl + "/api/status");
   xhr.setRequestHeader("Accept", "application/json");
   xhr.send();
@@ -337,9 +354,12 @@ function loadData(firstTime) {
 }
 
 function onReady(e) {
+  $("#content").append(buildTitleDiv(false), buildButtonDiv());
   loadData(true);
   setInterval(function () {
     loadData(false);
-  }, 5000);
+  }, TIME_OUT_MS);
 }
+
+
 window.addEventListener("DOMContentLoaded", onReady);
