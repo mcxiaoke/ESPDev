@@ -223,7 +223,9 @@ void RestApi::jsonStatus(const JsonVariant& doc) {
   doc["last_reset"] = st->timerResetAt / 1000;
   doc["heap"] = ESP.getFreeHeap();
   doc["device"] = getUDID();
+#ifdef ESP8266
   doc["chip_id"] = ESP.getChipId();
+#endif
   doc["sketch"] = ESP.getSketchMD5().substring(0, 8);
 #ifdef APP_BUILD
   doc["version"] = APP_BUILD;

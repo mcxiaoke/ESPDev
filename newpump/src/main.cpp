@@ -1,12 +1,14 @@
+#include <build.h>
+#include <compat.h>
 #include <ACommand.h>
+#include <FileSerial.h>
+#include <UDPSerial.h>
 #include <ALogger.h>
 #include <Arduino.h>
 #include <ArduinoTimer.h>
 #include <ESPUpdateServer.h>
 #include <FileServer.h>
 #include <RelayUnit.h>
-#include <build.h>
-#include <compat.h>
 #include <rest.h>
 #ifdef USING_MQTT
 #include <mqtt.h>
@@ -575,17 +577,17 @@ String getStatus() {
 }
 
 void statusReport() {
-  LOGN("statusReport");
+  // LOGN("statusReport");
   sendMqttStatus(getStatus());
 }
 
 void handleFiles(AsyncWebServerRequest* request) {
-  LOGN("handleFiles");
+  // LOGN("handleFiles");
   request->send(200, MIME_TEXT_HTML, getFilesHtml());
 }
 
 void handleLogs(AsyncWebServerRequest* request) {
-  LOGN("handleLogs");
+  // LOGN("handleLogs");
   //   File file = SPIFFS.open(logFileName(), "r");
   request->send(SPIFFS, logFileName(), MIME_TEXT_PLAIN);
 }
@@ -660,11 +662,10 @@ void handleReset(AsyncWebServerRequest* request) {
   }
 }
 
-void handleRoot(AsyncWebServerRequest* request) {
-  LOGN("handleRoot");
-  // request->redirect("/index.html");
-  request->send(SPIFFS, "/index.html");
-  showESP();
+void handleSerial(AsyncWebServerRequest* request) {
+  // LOGN("handleSerial");
+  // request->send(SPIFFS, "/serial.log");
+  request->redirect("/serial.log");
 }
 
 void handleSettings(AsyncWebServerRequest* request) {
@@ -705,10 +706,10 @@ void handleHelp(AsyncWebServerRequest* request) {
 
 void handleWiFiGotIP() {
   if (!WiFi.isConnected()) {
-    LOG("+++");
+    // LOG("+++");
     return;
   }
-  LOGN("[WiFi] Connected to", ssid, ",IP:", WiFi.localIP().toString());
+  LOGNF("[WiFi] Connected to %s IP: %s", ssid, WiFi.localIP().toString());
   if (!wifiInitialized) {
     // on on setup stage
     wifiInitialized = true;
@@ -727,11 +728,13 @@ void handleWiFiGotIP() {
     Timer.deleteTimer(wifiInitTimerId);
     wifiInitTimerId = -1;
   }
+  UDPSerial.setup();
 }
 
 void handleWiFiLost() {
   // debugLog("[WiFi] Connection lost");
-  LOG("---");
+  // LOG("---");
+  // WiFi.reconnect();
 }
 
 #if defined(ESP8266)
@@ -746,11 +749,13 @@ void setupWiFi() {
   WiFi.mode(WIFI_STA);
   WiFi.setAutoConnect(true);
   WiFi.setAutoReconnect(true);
-  compat::setHostname(getUDID().c_str());
+  compat::setHostname(getHostName().c_str());
 
 #if defined(ESP8266)
   h0 = WiFi.onStationModeConnected(
-      [](const WiFiEventStationModeConnected& event) { LOG("///"); });
+      [](const WiFiEventStationModeConnected& event) {
+        LOGN("[WiFi] Connected");
+      });
   h1 = WiFi.onStationModeGotIP(
       [](const WiFiEventStationModeGotIP& event) { handleWiFiGotIP(); });
   h2 = WiFi.onStationModeDisconnected(
@@ -766,15 +771,13 @@ void setupWiFi() {
 
   WiFi.begin(ssid, password);
   PLOGF("[WiFi] ssid:%s, pass:%s\n", ssid, password);
-  LOG("[WiFi] Connecting");
+  LOGN("[WiFi] Connecting...");
   auto startMs = millis();
   // setup wifi timeout 120 seconds
-  while (WiFi.status() != WL_CONNECTED && (millis() - startMs) < 120 * 1000L) {
-    LOG(".");
+  while (!WiFi.isConnected() && (millis() - startMs) < 120 * 1000L) {
     delay(1000);
-    if (millis() / 1000 % 10 == 0) {
-      WiFi.reconnect();
-      LOGF("=%d=", millis() / 1000);
+    if (millis() / 1000 % 5 == 0) {
+      // WiFi.reconnect();
     }
   }
   if (!WiFi.isConnected()) {
@@ -792,7 +795,7 @@ void setupDate() {
   if (WiFi.isConnected()) {
     DateTime.setServer("ntp.aliyun.com");
     DateTime.setTimeZone("CST-8");
-    DateTime.begin();
+    DateTime.begin(30 * 1000L);
   }
 }
 
@@ -850,7 +853,8 @@ void setupServer() {
   if (MDNS.begin(getHostName().c_str())) {
     LOGN(F("[Server] MDNS responder started"));
   }
-  // server.on("/", handleRoot);
+  server.on("/", handleFiles);
+  server.on("/serial", handleSerial);
   server.on("/files", handleFiles);
   server.on("/logs", handleLogs);
   server.on("/help", handleHelp);
@@ -859,6 +863,8 @@ void setupServer() {
   setupUpdate();
 
   DefaultHeaders::Instance().addHeader("Access-Control-Allow-Origin", "*");
+  DefaultHeaders::Instance().addHeader("Access-Control-Allow-Methods",
+                                       "GET, POST, PUT, OPTIONS");
   DefaultHeaders::Instance().addHeader("Access-Control-Allow-Headers", "*");
   server.begin();
   MDNS.addService("http", "tcp", 80);
@@ -912,16 +918,27 @@ void setupPump() {
   });
 }
 
+void udpReport() {
+  if (!WiFi.isConnected()) {
+    return;
+  }
+  String s = getHostName();
+  s += " Online at ";
+  s += dateTimeString();
+  UDPSerial.println(s);
+}
+
 void setupTimers(bool reset) {
   LOGN("setupTimers");
   if (reset) {
     Timer.reset();
   }
   timerReset = millis();
-  displayTimerId = Timer.setInterval(1000, updateDisplay, "updateDisplay");
+  // displayTimerId = Timer.setInterval(1000, updateDisplay, "updateDisplay");
   Timer.setInterval(5 * 60 * 1000L, checkWiFi, "checkWiFi");
   // Timer.setInterval(statusInterval, statusReport, "statusReport");
   Timer.setTimeout(48 * 60 * 60 * 1000L, compat::restart, "reboot");
+  Timer.setInterval(30 * 1000L, udpReport, "udp_report");
   mqttTimer();
 }
 
@@ -983,16 +1000,17 @@ void checkModules() {
 
 void setup(void) {
   Serial.begin(115200);
-  Serial.println();
+  delay(100);
+  fsCheck();
+  FileSerial.setup();
+  setupWiFi();
   PLOGN("======Booting Begin======");
+  debugLog("==========================");
+  setupDate();
   pinMode(led, OUTPUT);
   showESP();
-  fsCheck();
-  delay(100);
-  setupDisplay();
-  setupWiFi();
-  setupDate();
-  debugLog("==========================");
+  // setupDisplay();
+  setupServer();
   debugLog("[Core] System started at " + timeString());
 #ifdef DEBUG
   fileLog(F("[Core] Debug Mode"));
@@ -1006,13 +1024,12 @@ void setup(void) {
 #endif
   debugLog(info);
   debugLog("[Core] Sketch:" + ESP.getSketchMD5());
-  setupTimers(false);
   setupCommands();
   setupPump();
   checkModules();
-  setupBlynk();
-  setupServer();
+  // setupBlynk();
   setupMqtt();
+  setupTimers(false);
   debugLog("[Date] NTP:" + DateTime.toISOString());
   debugLog("[WiFi] IP:" + WiFi.localIP().toString());
   PLOGF("[Core] Booting using time: %ds\n", millis() / 1000);
