@@ -56,7 +56,7 @@ constexpr int led = LED_BUILTIN;
 #else
 #define RUN_INTERVAL_DEFAULT 24 * 3600 * 1000UL
 #define RUN_DURATION_DEFAULT 120 * 1000UL
-#define STATUS_INTERVAL_DEFAULT 12 * 60 * 60 * 1000UL
+#define STATUS_INTERVAL_DEFAULT 48 * 60 * 60 * 1000UL
 #endif
 
 unsigned long statusInterval = STATUS_INTERVAL_DEFAULT;
@@ -730,7 +730,7 @@ void handleWiFiGotIP() {
 }
 
 void handleWiFiLost() {
-  debugLog("[WiFi] Connection lost");
+  // debugLog("[WiFi] Connection lost");
   LOG("---");
 }
 
@@ -768,8 +768,8 @@ void setupWiFi() {
   PLOGF("[WiFi] ssid:%s, pass:%s\n", ssid, password);
   LOG("[WiFi] Connecting");
   auto startMs = millis();
-  // setup wifi timeout 300 seconds
-  while (WiFi.status() != WL_CONNECTED && (millis() - startMs) < 300 * 1000L) {
+  // setup wifi timeout 120 seconds
+  while (WiFi.status() != WL_CONNECTED && (millis() - startMs) < 120 * 1000L) {
     LOG(".");
     delay(1000);
     if (millis() / 1000 % 10 == 0) {
@@ -850,7 +850,7 @@ void setupServer() {
   if (MDNS.begin(getHostName().c_str())) {
     LOGN(F("[Server] MDNS responder started"));
   }
-  server.on("/", handleRoot);
+  // server.on("/", handleRoot);
   server.on("/files", handleFiles);
   server.on("/logs", handleLogs);
   server.on("/help", handleHelp);
@@ -920,7 +920,7 @@ void setupTimers(bool reset) {
   timerReset = millis();
   displayTimerId = Timer.setInterval(1000, updateDisplay, "updateDisplay");
   Timer.setInterval(5 * 60 * 1000L, checkWiFi, "checkWiFi");
-  Timer.setInterval(statusInterval, statusReport, "statusReport");
+  // Timer.setInterval(statusInterval, statusReport, "statusReport");
   Timer.setTimeout(48 * 60 * 60 * 1000L, compat::restart, "reboot");
   mqttTimer();
 }
