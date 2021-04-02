@@ -10,6 +10,7 @@
 #include <WiFiUdp.h>
 #include <compat.h>
 #include <utils.h>
+#include <ALogger.h>
 
 #include <ext/utility.hpp>
 

@@ -44,7 +44,7 @@ MqttManager::MqttManager(const char* server, const int port,
                 std::placeholders::_2, std::placeholders::_3);
   _mqtt->setCallback(callback);
   _mqtt->setBufferSize(1024);
-  // _mqtt->setKeepAlive(60);
+  _mqtt->setKeepAlive(60);
   _lastOnlineMs = 0;
   _lastOfflineMs = 0;
   _silentMode = false;
@@ -96,6 +96,10 @@ string MqttManager::getSerialRxTopic() {
 }
 
 void MqttManager::sendStatus(const String& text) {
+  if (!_mqtt->connected()) {
+    LOGN("[MQTT] Not connected, cannot send.");
+    return;
+  }
   bool ret = sendMessage(getStatusTopic().c_str(), text.c_str());
   if (ret) {
     LOGF("[MQTT] status: [%s] (%d)\n", text.c_str(), text.length());
@@ -105,6 +109,10 @@ void MqttManager::sendStatus(const String& text) {
 }
 
 void MqttManager::sendLog(const String& text) {
+  if (!_mqtt->connected()) {
+    LOGN("[MQTT] Not connected, cannot send.");
+    return;
+  }
   bool ret = sendMessage(getLogTopic().c_str(), text.c_str());
   if (ret) {
     LOGF("[MQTT] log: [%s].\n", text.c_str());
@@ -114,6 +122,10 @@ void MqttManager::sendLog(const String& text) {
 }
 
 void MqttManager::sendSerial(const String& text) {
+  if (!_mqtt->connected()) {
+    LOGN("[MQTT] Not connected, cannot send.");
+    return;
+  }
   bool ret = sendMessage(getSerialTxTopic().c_str(), text.c_str());
   if (ret) {
     LOGN("[MQTT] serial sent successful.");
@@ -138,8 +150,7 @@ void MqttManager::connect() {
       sendOnline();
       initSubscribe();
     } else {
-      LOG("[MQTT] Connect failed, rc=");
-      LOGN(_mqtt->state());
+      LOGNF("[MQTT] Connect failed, rc=%d", _mqtt->state());
       delay(1000);
     }
   }

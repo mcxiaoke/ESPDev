@@ -63,10 +63,6 @@ void ESPUpdateServer::setup(AsyncWebServer* server, const String& path,
     handleUploadProgress(progress, total);
   });
 #endif
-
-  if (_serial_output) {
-    Serial.setDebugOutput(true);
-  }
 }
 
 void ESPUpdateServer::_setUpdaterError() {
@@ -90,7 +86,7 @@ void ESPUpdateServer::handleUpdatePage(AsyncWebServerRequest* request) {
 
 void ESPUpdateServer::handleUploadEnd(AsyncWebServerRequest* request) {
   if (!_authenticated) return request->requestAuthentication();
-  PLOGN("[OTA] Update End!");
+  Serial.println("[OTA] Update End!");
   delay(500);
   if (!Update.hasError()) {
     AsyncWebServerResponse* response;
@@ -108,7 +104,6 @@ void ESPUpdateServer::handleUploadEnd(AsyncWebServerRequest* request) {
     request->client()->close();
     if (_serial_output) {
       Serial.println("[OTA] update process finished");
-      Serial.flush();
     }
 
     fileLog("[OTA] successed at " + dateTimeString());
@@ -132,7 +127,6 @@ void ESPUpdateServer::handleUploadProgress(size_t progress, size_t total) {
     if (_serial_output) {
       Serial.printf("[OTA] Upload progress: %d%% (%d)\n",
                     (progress * 100) / total, progress);
-      // Serial.flush();
     }
   }
 }
@@ -165,7 +159,7 @@ void ESPUpdateServer::handleUpload(AsyncWebServerRequest* request,
 #if defined(ESP8266)
       close_all_fs();
 #endif
-      LOGN("====fsSize=", compat::flashSize());
+      // LOGN("====fsSize=", compat::flashSize());
       if (!Update.begin(compat::flashSize(), CMD_FS)) {
         _setUpdaterError();
       }
@@ -190,16 +184,16 @@ void ESPUpdateServer::handleUpload(AsyncWebServerRequest* request,
     Serial.println("[OTA] update process final stage");
     if (!Update.end(true)) {
       _setUpdaterError();
-      PLOGN("[OTA] update failed!");
+      Serial.println("[OTA] update failed!");
     } else {
-      PLOGN("[OTA] update success!");
+      Serial.println("[OTA] update success!");
     }
   }
 }
 
 void ESPUpdateServer::loop() {
   if (_shouldRestart) {
-    PLOGN("[OTA] update completed, now reboot.");
+    Serial.println("[OTA] update completed, now reboot.");
     _shouldRestart = false;
     delay(100);
     ESP.restart();

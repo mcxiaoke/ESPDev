@@ -22,7 +22,7 @@ std::vector<std::tuple<String, size_t>> listFiles(const char* dest) {
     File f = root.openNextFile();
     while (f) {
       // Serial.printf("[File] %s (%d bytes)\n", f.name(), f.size());
-      if (f.name().length() > 0 && f.size() > 0) {
+      if (strlen(f.name()) > 0 && f.size() > 0) {
         output.push_back(std::make_tuple(f.name(), f.size()));
       }
       f = root.openNextFile();
@@ -124,7 +124,7 @@ size_t fileLog(const String& text, const String& path, bool appendDate) {
     message += "] ";
   }
   message += text;
-  PLOGN(message);
+  PLOGN(text);
   size_t c = writeLine(path, message);
   return c;
 }

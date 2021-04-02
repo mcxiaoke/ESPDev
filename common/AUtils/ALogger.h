@@ -2,23 +2,33 @@
 #define ARDUINO_A_LOGGER_H
 
 #ifndef DEBUG_SERIAL
+#ifdef DEBUG
 #define DEBUG_SERIAL Serial
+#else
+#include <FileSerial.h>
+#define DEBUG_SERIAL FileSerial
+#endif
+#endif
+
+#ifndef DEBUG_SERIAL2
+#include <UDPSerial.h>
+#define DEBUG_SERIAL2 UDPSerial
 #endif
 
 #include "ext/format.hpp"
 
 // print logs only on debug mode
-#if defined(DEBUG) || defined(EANBLE_LOGGING)
+// #if defined(DEBUG) || defined(EANBLE_LOGGING)
 #define LOG(...) _log(__VA_ARGS__)
 #define LOGN(...) _logn(__VA_ARGS__)
 #define LOGF(...) _logf(__VA_ARGS__)
 #define LOGNF(...) _lognf(__VA_ARGS__)
-#else
-#define LOG(...)
-#define LOGN(...)
-#define LOGF(...)
-#define LOGNF(...)
-#endif
+// #else
+// #define LOG(...)
+// #define LOGN(...)
+// #define LOGF(...)
+// #define LOGNF(...)
+// #endif
 
 // print log on no condition
 #define PLOG(...) _log(__VA_ARGS__)
@@ -35,12 +45,22 @@
 
 template <typename Arg>
 void _log(Arg const& arg) {
+#ifdef DEBUG_SERIAL
   DEBUG_SERIAL.print(ext::format::ArgConvert(arg));
+#endif
+#ifdef DEBUG_SERIAL2
+  DEBUG_SERIAL2.print(ext::format::ArgConvert(arg));
+#endif
 }
 
 template <typename Arg>
 void _logn(Arg const& arg) {
+#ifdef DEBUG_SERIAL
   DEBUG_SERIAL.println(ext::format::ArgConvert(arg));
+#endif
+#ifdef DEBUG_SERIAL2
+  DEBUG_SERIAL2.println(ext::format::ArgConvert(arg));
+#endif
 }
 
 template <typename Head, typename... Args>

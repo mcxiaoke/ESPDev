@@ -59,7 +59,7 @@ bool FileServer::handle(AsyncWebServerRequest* request) {
   // path = prefix + ".min" + ext + ".gz";
   // if FileFS.exists
   if (FileFS.exists(path)) {
-    LOGF("[FileServer] Sending %s\n", path);
+    // LOGF("[FileServer] Sending %s\n", path);
 
     AsyncWebServerResponse* response =
         request->beginResponse(FileFS, path, contentType);
