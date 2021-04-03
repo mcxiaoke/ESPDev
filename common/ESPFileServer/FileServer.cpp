@@ -2,7 +2,7 @@
 
 bool FileServer::handle(AsyncWebServerRequest* request) {
   String path = request->url();
-  // Serial.println("[FileServer] Handling " + path);
+  // LOGN("[FileServer] Handling " + path);
   if (request->hasParam("delete")) {
     if (FileFS.exists(path)) {
       LOGF("[FileServer] Delete %s\n", path);
@@ -59,7 +59,7 @@ bool FileServer::handle(AsyncWebServerRequest* request) {
   // path = prefix + ".min" + ext + ".gz";
   // if FileFS.exists
   if (FileFS.exists(path)) {
-    // LOGF("[FileServer] Sending %s\n", path);
+    LOGF("[FileServer] Sending %s\n", path);
 
     AsyncWebServerResponse* response =
         request->beginResponse(FileFS, path, contentType);

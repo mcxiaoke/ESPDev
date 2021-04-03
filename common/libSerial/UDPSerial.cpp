@@ -3,17 +3,29 @@
 #define UDP_SERIAL_PORT 10000
 
 void UDPSerialClass::before() {
+  if (!conneted) {
+    return;
+  }
   IPAddress ip = WiFi.localIP();
   ip[3] = 255;
   udp.beginPacket(ip, UDP_SERIAL_PORT);
-  udp.write('$');
+  // udp.write('$');
 }
 
-void UDPSerialClass::end() { udp.endPacket(); }
+void UDPSerialClass::end() {
+  if (!conneted) {
+    return;
+  }
+  udp.endPacket();
+}
 
 void UDPSerialClass::setup() {
-  uint8_t ret = udp.begin(UDP_SERIAL_PORT);
-  conneted = ret == 1;
+  if (compat::isWiFiConnected()) {
+    uint8_t ret = udp.begin(UDP_SERIAL_PORT);
+    conneted = (ret == 1);
+  } else {
+    conneted = false;
+  }
 }
 
 int UDPSerialClass::available() { return true; }
@@ -80,27 +92,24 @@ size_t UDPSerialClass::print(unsigned long c) {
   return n;
 }
 
-size_t UDPSerialClass::print(const char* s) {
+size_t UDPSerialClass::print(const char* msg) {
   if (!conneted) {
     return 0;
   }
   this->before();
-
-  size_t n = strlen(s) + 1;
-  uint8_t* s2 = new uint8_t[n];
-  memcpy(s2, s, n);
-  size_t nw = udp.write(s2, n);
-  delete[] s2;
+#if defined(ESP8266)
+  size_t nw = udp.write(msg);
+#else
+  size_t nw = udp.write((const uint8_t*)msg, strlen_P(msg));
+#endif
   this->end();
   return nw;
 }
 size_t UDPSerialClass::println(const char* s) { return this->print(s); }
 
-size_t UDPSerialClass::print(const String& s) {
-  return this->print(buildMessage(s).c_str());
-}
+size_t UDPSerialClass::print(const String& s) { return this->print(s.c_str()); }
 size_t UDPSerialClass::println(const String& s) {
-  return this->println(buildMessage(s).c_str());
+  return this->print(s.c_str());
 }
 
 UDPSerialClass UDPSerial;

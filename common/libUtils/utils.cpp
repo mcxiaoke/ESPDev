@@ -43,19 +43,20 @@ void fsCheck() {
 #elif defined(ESP32)
   if (!FileFS.begin(true)) {
 #endif
-    PLOGN(F("[Core] File System failed."));
+    LOGN(F("[Core] File System failed."));
   } else {
-    PLOGN(F("[Core] File System ok."));
-#if defined(ESP8266)
-    FSInfo info;
-    FileFS.info(info);
-    PLOGNF("[Core] Free Space: %dK/%dK",
-           (info.totalBytes - info.usedBytes) / 1024, info.totalBytes / 1024);
-#elif defined(ESP32)
-    PLOGNF("[Core] Free Space: %dK/%dK",
-           (FileFS.totalBytes() - FileFS.usedBytes()) / 1024,
-           FileFS.totalBytes() / 1024);
-#endif
+    LOGN(F("[Core] File System ok."));
+    // #if defined(ESP8266)
+    //     FSInfo info;
+    //     FileFS.info(info);
+    //     LOGNF("[Core] Free Space: %dK/%dK",
+    //           (info.totalBytes - info.usedBytes) / 1024, info.totalBytes /
+    //           1024);
+    // #elif defined(ESP32)
+    //     LOGNF("[Core] Free Space: %dK/%dK",
+    //           (FileFS.totalBytes() - FileFS.usedBytes()) / 1024,
+    //           FileFS.totalBytes() / 1024);
+    // #endif
   }
 }
 
@@ -95,10 +96,10 @@ String getMD5(const String& data) { return getMD5(data.c_str()); }
 
 void showESP(const char* extra) {
 #if defined(ESP8266)
-  Serial.printf("[Core] Heap: %d/%d %s\n", ESP.getFreeContStack(),
-                ESP.getFreeHeap(), extra);
+  LOGF("[Core] Heap: %d/%d %s\n", ESP.getFreeContStack(), ESP.getFreeHeap(),
+       extra);
 #elif defined(ESP32)
-  Serial.printf("[Core] Heap: %d %s\n", ESP.getFreeHeap(), extra);
+  LOGF("[Core] Heap: %d %s\n", ESP.getFreeHeap(), extra);
 #endif
 }
 
@@ -119,12 +120,14 @@ size_t fileLog(const String& text, const String& path, bool appendDate) {
   message += "[D]";
 #endif
   if (appendDate) {
+    char buf[8];
+    sprintf(buf, "%08lu", millis());
     message += "[";
-    message += dateTimeString();
+    message += buf;
     message += "] ";
   }
   message += text;
-  PLOGN(text);
+  LOGN(text);
   size_t c = writeLine(path, message);
   return c;
 }

@@ -3,6 +3,7 @@
 
 #define FIRMWARE_UPDATE_FILE "/firmware_update.txt"
 
+#include <ALogger.h>
 #include <Arduino.h>
 #include <ArduinoTimer.h>
 #include <ESPAsyncWebServer.h>
@@ -10,7 +11,6 @@
 #include <WiFiUdp.h>
 #include <compat.h>
 #include <utils.h>
-#include <ALogger.h>
 
 #include <ext/utility.hpp>
 
@@ -47,7 +47,6 @@ class ESPUpdateServer {
   void _setUpdaterError();
 
  private:
-  bool _serial_output;
   bool _shouldRestart;
   AsyncWebServer* _server;
   String _username;

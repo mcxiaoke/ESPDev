@@ -33,8 +33,7 @@ static const char jsonResponse[] PROGMEM = "{\"code\":0,\"msg\":\"ok\"}";
 
 ESPUpdateServer::ESPUpdateServer(bool serial_debug, const String& username,
                                  const String& password)
-    : _serial_output(serial_debug),
-      _server(nullptr),
+    : _server(nullptr),
       _username(username),
       _password(password),
       _authenticated(false) {}
@@ -66,7 +65,7 @@ void ESPUpdateServer::setup(AsyncWebServer* server, const String& path,
 }
 
 void ESPUpdateServer::_setUpdaterError() {
-  if (_serial_output) Update.printError(Serial);
+  Update.printError(Serial);
   StreamString str;
   Update.printError(str);
   _updaterError = str;
@@ -86,7 +85,7 @@ void ESPUpdateServer::handleUpdatePage(AsyncWebServerRequest* request) {
 
 void ESPUpdateServer::handleUploadEnd(AsyncWebServerRequest* request) {
   if (!_authenticated) return request->requestAuthentication();
-  Serial.println("[OTA] Update End!");
+  PLOGN("[OTA] Update End!");
   delay(500);
   if (!Update.hasError()) {
     AsyncWebServerResponse* response;
@@ -102,13 +101,10 @@ void ESPUpdateServer::handleUploadEnd(AsyncWebServerRequest* request) {
     delay(500);
     request->client()->stop();
     request->client()->close();
-    if (_serial_output) {
-      Serial.println("[OTA] update process finished");
-    }
-
+    PLOGN("[OTA] update process finished");
     fileLog("[OTA] successed at " + dateTimeString());
-    writeFile(FIRMWARE_UPDATE_FILE, dateTimeString(), false);
     delay(500);
+    writeFile(FIRMWARE_UPDATE_FILE, dateTimeString(), false);
     _shouldRestart = true;
   } else {
     request->send(200, "text/html",
@@ -124,10 +120,8 @@ void ESPUpdateServer::handleUploadProgress(size_t progress, size_t total) {
   if (progress > nextChunk) {
     // progressMs = millis();
     nextChunk += 50 * 1024;
-    if (_serial_output) {
-      Serial.printf("[OTA] Upload progress: %d%% (%d)\n",
-                    (progress * 100) / total, progress);
-    }
+    PLOGF("[OTA] Upload progress: %d%% (%d)\n", (progress * 100) / total,
+          progress);
   }
 }
 
@@ -138,19 +132,18 @@ void ESPUpdateServer::handleUpload(AsyncWebServerRequest* request,
       (_username == emptyString || _password == emptyString ||
        request->authenticate(_username.c_str(), _password.c_str()));
   if (!_authenticated) {
-    if (_serial_output) Serial.printf("[OTA] Unauthenticated Update\n");
+    PLOGF("[OTA] Unauthenticated Update\n");
     return;
   }
   size_t binSize = request->contentLength();
   if (!index) {
-    Serial.println("[OTA] update process init stage");
+    PLOGN("[OTA] update process init stage");
     // fileLog("[OTA] updated from " + ESP.getSketchMD5());
     _updaterError = String();
     int cmd = (filename.indexOf("spiffs") > -1) ? CMD_FS : CMD_FLASH;
-    if (_serial_output) {
-      Serial.printf("[OTA] Update Firmware: %s\n", filename.c_str());
-      Serial.printf("[OTA] Update Type: %s\n", cmd == CMD_FS ? "FS" : "FLASH");
-    }
+    PLOGF("[OTA] Update Firmware: %s\n", filename.c_str());
+    PLOGF("[OTA] Update Type: %s\n", cmd == CMD_FS ? "FS" : "FLASH");
+
 #ifdef ESP8266
     Update.runAsync(true);
 #endif
@@ -159,7 +152,6 @@ void ESPUpdateServer::handleUpload(AsyncWebServerRequest* request,
 #if defined(ESP8266)
       close_all_fs();
 #endif
-      // LOGN("====fsSize=", compat::flashSize());
       if (!Update.begin(compat::flashSize(), CMD_FS)) {
         _setUpdaterError();
       }
@@ -181,21 +173,21 @@ void ESPUpdateServer::handleUpload(AsyncWebServerRequest* request,
     }
   }
   if (final) {
-    Serial.println("[OTA] update process final stage");
+    PLOGN("[OTA] update process final stage");
     if (!Update.end(true)) {
       _setUpdaterError();
-      Serial.println("[OTA] update failed!");
+      PLOGN("[OTA] update failed!");
     } else {
-      Serial.println("[OTA] update success!");
+      PLOGN("[OTA] update success!");
     }
   }
 }
 
 void ESPUpdateServer::loop() {
   if (_shouldRestart) {
-    Serial.println("[OTA] update completed, now reboot.");
+    LOGN("[OTA] update completed, now reboot.");
     _shouldRestart = false;
     delay(100);
-    ESP.restart();
+    compat::restart();
   }
 }

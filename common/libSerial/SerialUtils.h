@@ -4,14 +4,14 @@
 #include <Arduino.h>
 
 inline String buildMessage(const String s) {
-  // char buf[8];
-  // sprintf(buf, "%08lu", millis());
-  // String message = "";
-  // message += "[";
-  // message += buf;
-  // message += "] ";
-  // message += s;
-  return s;
+  char buf[8];
+  sprintf(buf, "%08lu", millis());
+  String message = "";
+  message += "[";
+  message += buf;
+  message += "] ";
+  message += s;
+  return message;
 }
 
 inline String buildMessage(const char* s) { return buildMessage(String(s)); }

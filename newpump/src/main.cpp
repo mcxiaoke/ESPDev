@@ -1,36 +1,7 @@
-#include <build.h>
-#include <compat.h>
-#include <ACommand.h>
-#include <FileSerial.h>
-#include <UDPSerial.h>
-#include <ALogger.h>
-#include <Arduino.h>
-#include <ArduinoTimer.h>
-#include <ESPUpdateServer.h>
-#include <FileServer.h>
 #include <RelayUnit.h>
+#include <build.h>
+#include <deps.h>
 #include <rest.h>
-#ifdef USING_MQTT
-#include <mqtt.h>
-#endif
-#ifdef USING_BLYNK
-#if defined(ESP8266)
-#include <BlynkSimpleEsp8266.h>
-#include <ESP8266WiFi.h>
-// #include <BlynkSimpleEsp8266_SSL.h>
-#elif defined(ESP32)
-#include <BlynkSimpleEsp32.h>
-#include <WiFi.h>
-#include <WiFiClient.h>
-// #include <WiFiClientSecure.h>
-// #include <BlynkSimpleEsp32_SSL.h>
-#endif
-#endif
-#ifdef USING_DISPLAY
-#include <display.h>
-#endif
-#include <net.h>
-#include <utils.h>
 
 using std::string;
 // https://stackoverflow.com/questions/5287566/constexpr-and-deprecated-conversion-warning
@@ -73,16 +44,9 @@ constexpr const char REBOOT_RESPONSE[] PROGMEM =
 constexpr const char MIME_TEXT_PLAIN[] PROGMEM = "text/plain";
 constexpr const char MIME_TEXT_HTML[] PROGMEM = "text/html";
 
-#ifdef USING_BLYNK
-WidgetTerminal terminal(V20);
-#endif
-
 AsyncWebServer server(80);
 RelayUnit pump;
 RestApi api(pump);
-#ifdef USING_DISPLAY
-Display display;
-#endif
 ESPUpdateServer otaUpdate(true);
 #ifdef USING_MQTT
 MqttManager mqttMgr(mqttServer, mqttPort, mqttUser, mqttPass);
@@ -90,7 +54,6 @@ MqttManager mqttMgr(mqttServer, mqttPort, mqttUser, mqttPass);
 
 void setupTimers(bool);
 void checkDate();
-void checkBlynk();
 void checkWiFi();
 String getStatus();
 void statusReport();
@@ -98,11 +61,6 @@ void handleCommand(const CommandParam& param);
 void sendMqttStatus(const String& msg);
 void sendMqttLog(const String& msg);
 bool mqttConnected();
-
-#ifdef USING_BLYNK
-void blynkSyncPinValue();
-void blynkSyncPinEnable();
-#endif
 
 String getFilesHtml() {
   auto items = listFiles();
@@ -130,73 +88,6 @@ String getFilesText() {
     text += " bytes)\n";
   }
   return text;
-}
-
-void displayBooting() {
-#ifdef USING_DISPLAY
-  display.u8g2->setFont(u8g2_font_profont15_tf);
-  display.u8g2->clearBuffer();
-  display.u8g2->setCursor(16, 20);
-  display.u8g2->print("Booting...");
-  display.u8g2->setCursor(16, 50);
-  display.u8g2->setFont(u8g2_font_profont29_tf);
-  display.u8g2->print(getUDID());
-  display.u8g2->sendBuffer();
-  display.u8g2->setFont(u8g2_font_profont12_tf);
-#endif
-}
-
-void updateDisplay() {
-#ifdef USING_DISPLAY
-  auto upSecs = millis() / 1000;
-
-  String s1 = dateTimeString();
-  String s2 = "";
-  auto mod10 = upSecs % 16;
-  if (mod10 < 8) {
-    s2 += "WIFI:";
-    s2 += WiFi.isConnected() ? "GOOD" : "BAD ";
-    s2 += " MQTT:";
-    s2 += mqttConnected() ? "GOOD" : "BAD ";
-  } else {
-    s2 += "PIN:";
-    s2 += (pump.pinValue() == HIGH) ? "ON " : "OF";
-    s2 += " UP:";
-    s2 += monoTime(upSecs);
-  }
-  bool running = (pump.pinValue() == HIGH);
-  String s3 = "";
-  if (running) {
-    s3 += "RUNNING";
-  } else {
-    if (!WiFi.isConnected()) {
-      s3 += "NO WIFI";
-    } else if (!DateTime.isTimeValid()) {
-      s3 += "NO TIME";
-    }
-#ifdef USING_MQTT
-    else if (!mqttConnected()) {
-      s3 += "NO MQTT";
-    }
-#endif
-    else {
-      auto remains =
-          pump.getStatus()->lastStart + pump.getConfig()->interval - millis();
-      s3 += monoTimeMs(remains);
-    }
-  }
-  //   yield();
-  display.u8g2->clearBuffer();
-  display.u8g2->setFont(u8g2_font_profont12_tf);
-  display.u8g2->setCursor(2, 16);
-  display.u8g2->print(s1);
-  display.u8g2->setCursor(2, 30);
-  display.u8g2->print(s2);
-  display.u8g2->setCursor(2, 56);
-  display.u8g2->setFont(u8g2_font_profont29_tf);
-  display.u8g2->print(s3);
-  display.u8g2->sendBuffer();
-#endif
 }
 
 ////////// MQTT Handlers Begin //////////
@@ -493,16 +384,7 @@ void checkDate() {
   }
 }
 
-void checkBlynk() {
-#ifdef USING_BLYNK
-  if (!Blynk.connected()) {
-    Blynk.connect();
-  }
-#endif
-}
-
 void checkWiFi() {
-  //   LOGF("[WiFi] checkWiFi at %lus\n", millis() / 1000);
   if (!WiFi.isConnected()) {
     WiFi.reconnect();
     debugLog(F("WiFi Reconnect"));
@@ -576,19 +458,13 @@ String getStatus() {
   return data;
 }
 
-void statusReport() {
-  // LOGN("statusReport");
-  sendMqttStatus(getStatus());
-}
+void statusReport() { sendMqttStatus(getStatus()); }
 
 void handleFiles(AsyncWebServerRequest* request) {
-  // LOGN("handleFiles");
   request->send(200, MIME_TEXT_HTML, getFilesHtml());
 }
 
 void handleLogs(AsyncWebServerRequest* request) {
-  // LOGN("handleLogs");
-  //   File file = SPIFFS.open(logFileName(), "r");
   request->send(SPIFFS, logFileName(), MIME_TEXT_PLAIN);
 }
 
@@ -663,8 +539,6 @@ void handleReset(AsyncWebServerRequest* request) {
 }
 
 void handleSerial(AsyncWebServerRequest* request) {
-  // LOGN("handleSerial");
-  // request->send(SPIFFS, "/serial.log");
   request->redirect("/serial.log");
 }
 
@@ -705,36 +579,13 @@ void handleHelp(AsyncWebServerRequest* request) {
 }
 
 void handleWiFiGotIP() {
-  if (!WiFi.isConnected()) {
-    // LOG("+++");
-    return;
-  }
   LOGNF("[WiFi] Connected to %s IP: %s", ssid, WiFi.localIP().toString());
-  if (!wifiInitialized) {
-    // on on setup stage
-    wifiInitialized = true;
-    LOGN("[WiFi] Initialized Got IP");
-    // Timer.setTimeout(
-    //     100,
-    //     []() {
-    //       LOGN("[WiFi] Check services");
-    //       checkDate();
-    //       checkMqtt();
-    //       checkBlynk();
-    //     },
-    //     "wifiAfter");
-  }
-  if (wifiInitTimerId >= 0) {
-    Timer.deleteTimer(wifiInitTimerId);
-    wifiInitTimerId = -1;
-  }
   UDPSerial.setup();
 }
 
 void handleWiFiLost() {
-  // debugLog("[WiFi] Connection lost");
-  // LOG("---");
-  // WiFi.reconnect();
+  WiFi.reconnect();
+  UDPSerial.setup();
 }
 
 #if defined(ESP8266)
@@ -782,9 +633,7 @@ void setupWiFi() {
   }
   if (!WiFi.isConnected()) {
     PLOGN(F("[WiFi] Connect failed, will restart"));
-    // WiFi.reconnect();
-    // wifiInitTimerId = Timer.setTimer(10 * 1000L, checkWiFi, 15, "wifiInit");
-    ESP.restart();
+    cmdReboot();
   }
   wifiInitialized = true;
   LOGF("[WiFi] Setup connection using %lus.\n", millis() / 1000);
@@ -881,36 +730,21 @@ void setupPump() {
         String msg = F("[Core] Pump Started");
         debugLog(msg);
         // sendMqttStatus(msg);
-#ifdef USING_BLYNK
-        blynkSyncPinValue();
-#endif
       } break;
       case RelayEvent::Stopped: {
         digitalWrite(led, LOW);
         String msg = F("[Core] Pump Stopped");
         debugLog(msg);
         // sendMqttStatus(msg);
-#ifdef USING_BLYNK
-        blynkSyncPinValue();
-#endif
       } break;
       case RelayEvent::Enabled: {
         debugLog(F("[Core] Pump enabled"));
-#ifdef USING_BLYNK
-        blynkSyncPinEnable();
-#endif
       } break;
       case RelayEvent::Disabled: {
         debugLog(F("[Core] Pump disabled"));
-#ifdef USING_BLYNK
-        blynkSyncPinEnable();
-#endif
       } break;
       case RelayEvent::ConfigChanged: {
         debugLog(F("[Core] Config changed"));
-#ifdef USING_BLYNK
-        blynkSyncPinEnable();
-#endif
       } break;
       default:
         break;
@@ -934,11 +768,9 @@ void setupTimers(bool reset) {
     Timer.reset();
   }
   timerReset = millis();
-  // displayTimerId = Timer.setInterval(1000, updateDisplay, "updateDisplay");
   Timer.setInterval(5 * 60 * 1000L, checkWiFi, "checkWiFi");
-  // Timer.setInterval(statusInterval, statusReport, "statusReport");
   Timer.setTimeout(48 * 60 * 60 * 1000L, compat::restart, "reboot");
-  Timer.setInterval(30 * 1000L, udpReport, "udp_report");
+  Timer.setInterval(60 * 1000L, udpReport, "udp_report");
   mqttTimer();
 }
 
@@ -967,20 +799,6 @@ void setupCommands() {
   CommandManager.addCommand("help", "show help", cmdHelp);
 }
 
-void setupDisplay() {
-#ifdef USING_DISPLAY
-  display.begin();
-  displayBooting();
-#endif
-}
-
-void setupBlynk() {
-#ifdef USING_BLYNK
-  //   Blynk.config(blynkAuth, blynkHost, blynkPort);
-  Blynk.config(blynkAuth);
-#endif
-}
-
 void checkModules() {
 #ifndef USING_MQTT
   PLOGN("[MQTT] MQTT Disabled");
@@ -988,29 +806,30 @@ void checkModules() {
 #ifndef EANBLE_LOGGING
   PLOGN("[Debug] Logging Disabled");
 #endif
-#ifndef USING_BLYNK
-  PLOGN("[Blynk] Blynk Disabled");
-#endif
 #ifdef DEBUG
   PLOGN("[Debug] Debug Mode");
-#else
-  PLOGN("[Debug] Release Mode");
 #endif
 }
 
 void setup(void) {
   Serial.begin(115200);
-  delay(100);
+  delay(200);
+  Serial.println();
+  Serial.println();
+  Serial.println("====== BOOT:BEGIN ======");
   fsCheck();
   FileSerial.setup();
+  delay(200);
   setupWiFi();
-  PLOGN("======Booting Begin======");
-  debugLog("==========================");
-  setupDate();
+  debugLog("======@@@ Booting Begin @@@======");
   pinMode(led, OUTPUT);
-  showESP();
-  // setupDisplay();
+  setupDate();
   setupServer();
+  setupMqtt();
+  setupCommands();
+  setupTimers(false);
+  setupPump();
+  checkModules();
   debugLog("[Core] System started at " + timeString());
 #ifdef DEBUG
   fileLog(F("[Core] Debug Mode"));
@@ -1023,29 +842,28 @@ void setup(void) {
   info += " (Debug Mode)";
 #endif
   debugLog(info);
-  debugLog("[Core] Sketch:" + ESP.getSketchMD5());
-  setupCommands();
-  setupPump();
-  checkModules();
-  // setupBlynk();
-  setupMqtt();
-  setupTimers(false);
+
   debugLog("[Date] NTP:" + DateTime.toISOString());
   debugLog("[WiFi] IP:" + WiFi.localIP().toString());
-  PLOGF("[Core] Booting using time: %ds\n", millis() / 1000);
-  PLOGN("======Booting Finished======");
+  debugLog("[WiFi] Host:" + getHostName());
+  debugLog("[Core] Sketch:" + ESP.getSketchMD5());
+  LOGF("[Core] Booting using time: %ds\n", millis() / 1000);
+  debugLog("======@@@ Booting Finished @@@======");
+  Serial.println(ESP.getSketchMD5());
+  Serial.println(dateTimeString());
+  Serial.println(getHostName());
+  Serial.println(WiFi.macAddress());
+  Serial.println(WiFi.localIP().toString());
+  Serial.println("====== BOOT:FINISHED ======");
 }
 
 void loop(void) {
+  otaUpdate.loop();
   pump.run();
   Timer.run();
   mqttLoop();
-  otaUpdate.loop();
 #if defined(ESP8266)
   MDNS.update();
-#endif
-#ifdef USING_BLYNK
-  Blynk.run();
 #endif
 }
 
@@ -1060,67 +878,3 @@ void handleCommand(const CommandParam& param) {
   };
   Timer.setTimeout(5, processFunc, "handleCommand");
 }
-
-#ifdef USING_BLYNK
-
-void blynkSyncPinValue() { Blynk.virtualWrite(V1, pump.pinValue()); }
-void blynkSyncPinEnable() {
-  Blynk.virtualWrite(V0, pump.isEnabled() ? HIGH : LOW);
-}
-
-void blynkSync() {
-  Blynk.virtualWrite(V0, pump.isEnabled() ? HIGH : LOW);
-  Blynk.virtualWrite(V1, pump.pinValue());
-  terminal.clear();
-}
-
-BLYNK_CONNECTED() {
-  LOGN("BLYNK_CONNECTED");
-  blynkSync();
-}
-
-BLYNK_APP_CONNECTED() { LOGN("BLYNK_APP_CONNECTED"); }
-
-BLYNK_APP_DISCONNECTED() { LOGN("BLYNK_APP_DISCONNECTED"); }
-
-BLYNK_DISCONNECTED() { LOGN("BLYNK_DISCONNECTED"); }
-
-BLYNK_READ(V0) {
-  // builtin led
-  Blynk.virtualWrite(V0, digitalRead(led));
-}
-
-BLYNK_WRITE(V0) {
-  // builtin led
-  int value = param.asInt();
-  LOGF("BLYNK_WRITE V0=%d\n", value);
-  if (value == 0) {
-    digitalWrite(led, LOW);
-  } else if (value == 1) {
-    digitalWrite(led, HIGH);
-  }
-}
-
-BLYNK_READ(V1) {
-  // pump switch
-  Blynk.virtualWrite(V1, pump.pinValue());
-}
-
-BLYNK_WRITE(V1) {
-  // pump switch
-  int value = param.asInt();
-  LOGF("BLYNK_WRITE V1=%d\n", value);
-  if (value == LOW) {
-    cmdStop();
-  } else if (value == HIGH) {
-    cmdStart();
-  }
-}
-
-BLYNK_WRITE(V2) {
-  // check status
-  cmdStatus();
-  terminal.flush();
-}
-
-#endif

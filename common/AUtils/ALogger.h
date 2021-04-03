@@ -45,21 +45,23 @@
 
 template <typename Arg>
 void _log(Arg const& arg) {
+  auto s = ext::format::ArgConvert(arg);
 #ifdef DEBUG_SERIAL
-  DEBUG_SERIAL.print(ext::format::ArgConvert(arg));
+  DEBUG_SERIAL.print(s);
 #endif
 #ifdef DEBUG_SERIAL2
-  DEBUG_SERIAL2.print(ext::format::ArgConvert(arg));
+  DEBUG_SERIAL2.print(s);
 #endif
 }
 
 template <typename Arg>
 void _logn(Arg const& arg) {
+  auto s = ext::format::ArgConvert(arg);
 #ifdef DEBUG_SERIAL
-  DEBUG_SERIAL.println(ext::format::ArgConvert(arg));
+  DEBUG_SERIAL.println(s);
 #endif
 #ifdef DEBUG_SERIAL2
-  DEBUG_SERIAL2.println(ext::format::ArgConvert(arg));
+  DEBUG_SERIAL2.println(s);
 #endif
 }
 

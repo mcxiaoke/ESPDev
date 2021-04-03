@@ -13,7 +13,7 @@ static void updateStatusOnSop(const std::shared_ptr<RelayStatus>& st) {
 }
 
 std::string RelayConfig::toString() const {
-  return ext::format::strFormat(
+  return ext::format::strFormat2(
       "RelayConfig(name=%s,pin=%d,interval=%lu,duration=%lu)", name, pin,
       interval, duration);
 }
@@ -55,9 +55,7 @@ void RelayUnit::begin(const RelayConfig& cfg) {
   LOGN(pStatus->toString().c_str());
 }
 
-void RelayUnit::run() {
-  timer.run();
-}
+void RelayUnit::run() { timer.run(); }
 
 bool RelayUnit::start() {
   if (isOn()) {
@@ -114,13 +112,9 @@ void RelayUnit::resetTimer() {
       timer.setInterval(pConfig->duration / 2 + 2000, checkFunc, "check");
 }
 
-bool RelayUnit::isOn() const {
-  return pinValue() == HIGH;
-}
+bool RelayUnit::isOn() const { return pinValue() == HIGH; }
 
-bool RelayUnit::isTimerEnabled() const {
-  return timer.isEnabled(runTimerId);
-}
+bool RelayUnit::isTimerEnabled() const { return timer.isEnabled(runTimerId); }
 
 void RelayUnit::setTimerEnabled(bool enable) {
   LOGF("RelayUnit::setEnabled:%s\n", enable ? "true" : "false");
@@ -141,17 +135,11 @@ void RelayUnit::setTimerEnabled(bool enable) {
   }
 }
 
-void RelayUnit::setCallback(CALLBACK_FUNC cb) {
-  callback = cb;
-}
+void RelayUnit::setCallback(CALLBACK_FUNC cb) { callback = cb; }
 
-uint8_t RelayUnit::pin() const {
-  return pConfig->pin;
-}
+uint8_t RelayUnit::pin() const { return pConfig->pin; }
 
-uint8_t RelayUnit::pinValue() const {
-  return digitalRead(pConfig->pin);
-}
+uint8_t RelayUnit::pinValue() const { return digitalRead(pConfig->pin); }
 
 int RelayUnit::updateConfig(const RelayConfig& config) {
   LOGF("RelayUnit::updateConfig, old:%s\n", pConfig->toString().c_str());
@@ -186,14 +174,8 @@ void RelayUnit::reset() {
   resetTimer();
 }
 
-std::shared_ptr<RelayConfig> RelayUnit::getConfig() const {
-  return pConfig;
-}
+std::shared_ptr<RelayConfig> RelayUnit::getConfig() const { return pConfig; }
 
-std::shared_ptr<RelayStatus> RelayUnit::getStatus() const {
-  return pStatus;
-}
+std::shared_ptr<RelayStatus> RelayUnit::getStatus() const { return pStatus; }
 
-TimerTask* RelayUnit::getRunTask() const {
-  return timer.getTask(runTimerId);
-}
+TimerTask* RelayUnit::getRunTask() const { return timer.getTask(runTimerId); }
