@@ -63,6 +63,12 @@ void _logn(Arg const& arg) {
 #endif
 }
 
+// must have this for zero args
+template <typename... Args>
+void _logn() {
+  _log('\n');
+}
+
 // accept multi args, like python print
 // template <typename Head, typename... Args>
 // void _log(Head const& head, Args const&... args) {
@@ -80,12 +86,6 @@ void _logn(Arg const& arg) {
 // template <typename... Args>
 // void _logn(Args const&... args) {
 //   _log(args...);
-//   _log('\n');
-// }
-
-// must have this for zero args
-// template <typename... Args>
-// void _logn() {
 //   _log('\n');
 // }
 
@@ -122,6 +122,9 @@ The number of characters written so far is stored in the pointed location.
 **/
 
 template <typename Arg>
+void _ulog() {}
+
+template <typename Arg>
 void _ulog(Arg const& arg) {
   auto s = ext::format::ArgConvert(arg);
   Serial.println(s);
@@ -132,6 +135,9 @@ template <typename... Args>
 void _ulogf(char const* const format, Args const&... args) {
   _ulog(ext::format::strFormat(format, args...));
 }
+
+template <typename Arg>
+void _flog() {}
 
 template <typename Arg>
 void _flog(Arg const& arg) {

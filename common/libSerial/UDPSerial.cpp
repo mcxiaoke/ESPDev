@@ -54,11 +54,12 @@ size_t UDPSerialClass::print(const char* msg) {
     return 0;
   }
   this->before();
-#if defined(ESP8266)
-  size_t nw = udp.write(msg);
-#else
-  size_t nw = udp.write((const uint8_t*)msg, strlen_P(msg));
-#endif
+  // #if defined(ESP8266)
+  //   size_t nw = udp.write(msg);
+  // #else
+  //   size_t nw = udp.write((const uint8_t*)msg, strlen_P(msg));
+  // #endif
+  size_t nw = udp.print(msg);
   this->end();
   return nw;
 }
@@ -86,7 +87,7 @@ void UDPSerialClass::run() {
     s += ":";
     s += udp.remotePort();
     s += ")";
-    this->print(s);
+    // this->print(s);
     this->handleCmd(incomingPacket);
     memset(incomingPacket, 0, UDP_BUFFER_SIZE + 1);
   }
