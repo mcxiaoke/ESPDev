@@ -651,10 +651,7 @@ void udpReport() {
   if (!WiFi.isConnected()) {
     return;
   }
-  String s = getHostName();
-  s += " Online at ";
-  s += dateTimeString();
-  UDPSerial.println(s);
+  UDPSerial.println(getHostName() + " Online");
 }
 
 void setupTimers(bool reset) {
@@ -665,7 +662,7 @@ void setupTimers(bool reset) {
   timerReset = millis();
   Timer.setInterval(5 * 60 * 1000L, checkWiFi, "checkWiFi");
   Timer.setTimeout(48 * 60 * 60 * 1000L, compat::restart, "reboot");
-  Timer.setInterval(60 * 1000L, udpReport, "udp_report");
+  Timer.setInterval(120 * 1000L, udpReport, "udp_report");
   mqttTimer();
 }
 

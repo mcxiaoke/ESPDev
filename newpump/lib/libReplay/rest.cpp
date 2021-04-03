@@ -7,7 +7,8 @@ static void filesToJson(const std::vector<std::tuple<String, size_t>>& vec,
                         const JsonVariant& doc) {
   JsonArray arr = doc.to<JsonArray>();
   for (auto& v : vec) {
-    LOGN("File:", std::get<0>(v), std::get<1>(v));
+    // LOGF("File %s (%ul kb)\n", std::get<0>(v).c_str(), std::get<1>(v) /
+    // 1000);
     JsonObject o = arr.createNestedObject();
     if (std::get<0>(v).length() > 0 && std::get<1>(v) > 0) {
       o["n"] = std::get<0>(v);
