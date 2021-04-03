@@ -2,13 +2,14 @@
 #define ESP_SERIAL_UTILS_HEADER
 
 #include <Arduino.h>
+#include <DateTime.h>
 
 inline String buildMessage(const String s) {
-  char buf[8];
-  sprintf(buf, "%08lu", millis());
+  char buf[9];
+  sprintf(buf, "%08lu", millis() / 1000);
   String message = "";
   message += "[";
-  message += buf;
+  message += DateTime.toString();
   message += "] ";
   message += s;
   return message;

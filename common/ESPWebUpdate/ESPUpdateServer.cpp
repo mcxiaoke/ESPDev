@@ -85,7 +85,7 @@ void ESPUpdateServer::handleUpdatePage(AsyncWebServerRequest* request) {
 
 void ESPUpdateServer::handleUploadEnd(AsyncWebServerRequest* request) {
   if (!_authenticated) return request->requestAuthentication();
-  PLOGN("[OTA] Update End!");
+  LOGN("[OTA] Update End!");
   delay(500);
   if (!Update.hasError()) {
     AsyncWebServerResponse* response;
@@ -101,7 +101,7 @@ void ESPUpdateServer::handleUploadEnd(AsyncWebServerRequest* request) {
     delay(500);
     request->client()->stop();
     request->client()->close();
-    PLOGN("[OTA] update process finished");
+    LOGN("[OTA] update process finished");
     fileLog("[OTA] successed at " + dateTimeString());
     delay(500);
     writeFile(FIRMWARE_UPDATE_FILE, dateTimeString(), false);
@@ -120,8 +120,8 @@ void ESPUpdateServer::handleUploadProgress(size_t progress, size_t total) {
   if (progress > nextChunk) {
     // progressMs = millis();
     nextChunk += 50 * 1024;
-    PLOGF("[OTA] Upload progress: %d%% (%d)\n", (progress * 100) / total,
-          progress);
+    LOGF("[OTA] Upload progress: %d%% (%d)\n", (progress * 100) / total,
+         progress);
   }
 }
 
@@ -132,17 +132,17 @@ void ESPUpdateServer::handleUpload(AsyncWebServerRequest* request,
       (_username == emptyString || _password == emptyString ||
        request->authenticate(_username.c_str(), _password.c_str()));
   if (!_authenticated) {
-    PLOGF("[OTA] Unauthenticated Update\n");
+    LOGF("[OTA] Unauthenticated Update\n");
     return;
   }
   size_t binSize = request->contentLength();
   if (!index) {
-    PLOGN("[OTA] update process init stage");
+    LOGN("[OTA] update process init stage");
     // fileLog("[OTA] updated from " + ESP.getSketchMD5());
     _updaterError = String();
     int cmd = (filename.indexOf("spiffs") > -1) ? CMD_FS : CMD_FLASH;
-    PLOGF("[OTA] Update Firmware: %s\n", filename.c_str());
-    PLOGF("[OTA] Update Type: %s\n", cmd == CMD_FS ? "FS" : "FLASH");
+    LOGF("[OTA] Update Firmware: %s\n", filename.c_str());
+    LOGF("[OTA] Update Type: %s\n", cmd == CMD_FS ? "FS" : "FLASH");
 
 #ifdef ESP8266
     Update.runAsync(true);
@@ -173,12 +173,12 @@ void ESPUpdateServer::handleUpload(AsyncWebServerRequest* request,
     }
   }
   if (final) {
-    PLOGN("[OTA] update process final stage");
+    LOGN("[OTA] update process final stage");
     if (!Update.end(true)) {
       _setUpdaterError();
-      PLOGN("[OTA] update failed!");
+      LOGN("[OTA] update failed!");
     } else {
-      PLOGN("[OTA] update success!");
+      LOGN("[OTA] update success!");
     }
   }
 }

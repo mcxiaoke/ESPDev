@@ -46,13 +46,13 @@ RelayUnit::RelayUnit(const RelayConfig& cfg)
 }
 
 void RelayUnit::begin(const RelayConfig& cfg) {
-  LOGN("RelayUnit::begin");
+  // LOGN("RelayUnit::begin");
   pinMode(cfg.pin, OUTPUT);
   pConfig = std::make_shared<RelayConfig>(cfg);
   pStatus->setupAt = millis();
   reset();
-  LOGN(pConfig->toString().c_str());
-  LOGN(pStatus->toString().c_str());
+  // LOGN(pConfig->toString().c_str());
+  // LOGN(pStatus->toString().c_str());
 }
 
 void RelayUnit::run() { timer.run(); }
@@ -100,7 +100,7 @@ void RelayUnit::check() {
 }
 
 void RelayUnit::resetTimer() {
-  LOGN("RelayUnit::resetTimer");
+  // LOGN("RelayUnit::resetTimer");
   timer.reset();
   pStatus->reset();
   auto startFunc = std::bind(&RelayUnit::start, this);
@@ -169,7 +169,7 @@ int RelayUnit::updateConfig(const RelayConfig& config) {
 }
 
 void RelayUnit::reset() {
-  LOGN("RelayUnit::reset");
+  // LOGN("RelayUnit::reset");
   stop();
   resetTimer();
 }

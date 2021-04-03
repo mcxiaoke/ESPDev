@@ -120,10 +120,10 @@ size_t fileLog(const String& text, const String& path, bool appendDate) {
   message += "[D]";
 #endif
   if (appendDate) {
-    char buf[8];
-    sprintf(buf, "%08lu", millis());
+    // char buf[8];
+    // sprintf(buf, "%08lu", millis());
     message += "[";
-    message += buf;
+    message += dateTimeString();
     message += "] ";
   }
   message += text;

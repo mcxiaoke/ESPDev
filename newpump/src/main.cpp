@@ -14,10 +14,6 @@ constexpr const char* mqttUser = MQTT_USER;
 constexpr const char* mqttPass = MQTT_PASS;
 constexpr int mqttPort = MQTT_PORT;
 
-constexpr const char* blynkAuth = BLYNK_AUTH;
-constexpr const char* blynkHost = BLYNK_HOST;
-constexpr int blynkPort = BLYNK_PORT;
-
 constexpr const char* buildTime = APP_BUILD;
 constexpr const char* buildRev = APP_REVISION;
 constexpr int led = LED_BUILTIN;
@@ -31,11 +27,8 @@ constexpr int led = LED_BUILTIN;
 #endif
 
 unsigned long timerReset = 0;
-
-bool wifiInitialized;
-int wifiInitTimerId = -1;
-int mqttTimerId = -1, statusTimerId = -1;
-int displayTimerId = -1;
+unsigned long startMillis = 0;
+int mqttTimerId = -1;
 constexpr const char REBOOT_RESPONSE[] PROGMEM =
     "<META http-equiv=\"refresh\" content=\"15;URL=/\">Rebooting...\n";
 constexpr const char MIME_TEXT_PLAIN[] PROGMEM = "text/plain";
@@ -50,7 +43,6 @@ MqttManager mqttMgr(mqttServer, mqttPort, mqttUser, mqttPass);
 #endif
 
 void setupTimers(bool);
-void checkDate();
 void checkWiFi();
 String getStatus();
 void statusReport();
@@ -188,11 +180,10 @@ void cmdClear(const CommandParam& param = CommandParam::INVALID) {
 
 void cmdDelete(const CommandParam& param = CommandParam::INVALID) {
   auto args = param.args;
-  LOGN("cmdDelete");
   if (args.size() < 2) {
     return;
   }
-  LOGN("cmdDelete file:", args[1]);
+  LOGF("cmdDelete file:%s\n", args[1]);
   auto fileName = String(args[1].c_str());
   SPIFFS.remove(fileName);
   String s = "File ";
@@ -285,15 +276,6 @@ void cmdNotFound(const CommandParam& param = CommandParam::INVALID) {
 }
 
 /////////// Command Handlers End ///////////
-
-void checkDate() {
-  if (!DateTime.isTimeValid()) {
-    if (WiFi.isConnected()) {
-      LOGN("[System] checkDate");
-      DateTime.begin();
-    }
-  }
-}
 
 void checkWiFi() {
   if (!WiFi.isConnected()) {
@@ -475,7 +457,7 @@ void handleHelp(AsyncWebServerRequest* request) {
 }
 
 void handleWiFiGotIP() {
-  LOGNF("[WiFi] Connected to %s IP: %s", ssid, WiFi.localIP().toString());
+  LOGF("[WiFi] Connected to %s IP: %s\n", ssid, WiFi.localIP().toString());
   UDPSerial.setup();
 }
 
@@ -500,7 +482,7 @@ void setupWiFi() {
 #if defined(ESP8266)
   h0 = WiFi.onStationModeConnected(
       [](const WiFiEventStationModeConnected& event) {
-        LOGN("[WiFi] Connected");
+        // LOGN("[WiFi] Connected");
       });
   h1 = WiFi.onStationModeGotIP(
       [](const WiFiEventStationModeGotIP& event) { handleWiFiGotIP(); });
@@ -516,22 +498,22 @@ void setupWiFi() {
 #endif
 
   WiFi.begin(ssid, password);
-  PLOGF("[WiFi] ssid:%s, pass:%s\n", ssid, password);
+  LOGF("[WiFi] ssid:%s, pass:%s\n", ssid, password);
   LOGN("[WiFi] Connecting...");
   auto startMs = millis();
   // setup wifi timeout 120 seconds
   while (!WiFi.isConnected() && (millis() - startMs) < 120 * 1000L) {
     delay(1000);
     if (millis() / 1000 % 5 == 0) {
-      // WiFi.reconnect();
+      LOGN("[WiFi] Waiting connection...");
     }
   }
   if (!WiFi.isConnected()) {
-    PLOGN(F("[WiFi] Connect failed, will restart"));
+    LOGN(F("[WiFi] Connect failed, will restart"));
     cmdReboot();
   }
-  wifiInitialized = true;
-  LOGF("[WiFi] Setup connection using %lus.\n", millis() / 1000);
+  startMillis = millis();
+  LOGF("[WiFi] Setup connection using %lus.\n", startMillis / 1000);
 }
 
 void setupDate() {
@@ -539,8 +521,15 @@ void setupDate() {
   if (WiFi.isConnected()) {
     DateTime.setServer("ntp.aliyun.com");
     DateTime.setTimeZone("CST-8");
-    DateTime.begin(30 * 1000L);
+    DateTime.begin();
   }
+  if (!DateTime.isTimeValid()) {
+    LOGN(F("[Date] NTP Sync failed."));
+  } else {
+    LOGF("[Date] NTP Sync using %lus.\n", (millis() - startMillis) / 1000);
+    LOGF("[Date] Now %s\n", DateTime.toString());
+  }
+  startMillis = millis();
 }
 
 void setupApi() { api.setup(&server); }
@@ -612,7 +601,7 @@ void setupServer() {
   DefaultHeaders::Instance().addHeader("Access-Control-Allow-Headers", "*");
   server.begin();
   MDNS.addService("http", "tcp", 80);
-  PLOGN(F("[Server] HTTP server started"));
+  LOGN(F("[Server] HTTP server started"));
 }
 
 void setupPump() {
@@ -658,19 +647,19 @@ void udpReport() {
 }
 
 void setupTimers(bool reset) {
-  LOGN("setupTimers");
+  // LOGN("setupTimers");
   if (reset) {
     Timer.reset();
   }
   timerReset = millis();
   Timer.setInterval(5 * 60 * 1000L, checkWiFi, "checkWiFi");
   Timer.setTimeout(48 * 60 * 60 * 1000L, compat::restart, "reboot");
-  Timer.setInterval(120 * 1000L, udpReport, "udp_report");
+  Timer.setInterval(30 * 1000L, udpReport, "udp_report");
   mqttTimer();
 }
 
 void setupCommands() {
-  LOGN("setupCommands");
+  // LOGN("setupCommands");
   //   CommandManager.setDefaultHandler(cmdNotFound);
   CommandManager.addCommand("clear", "clear current log", cmdClear);
   CommandManager.addCommand("reboot", "device reboot", cmdReboot);
@@ -693,13 +682,13 @@ void setupCommands() {
 
 void checkModules() {
 #ifndef USING_MQTT
-  PLOGN("[MQTT] MQTT Disabled");
+  LOGN("[MQTT] MQTT Disabled");
 #endif
 #ifndef EANBLE_LOGGING
-  PLOGN("[Debug] Logging Disabled");
+  LOGN("[Debug] Logging Disabled");
 #endif
 #ifdef DEBUG
-  PLOGN("[Debug] Debug Mode");
+  LOGN("[Debug] Debug Mode");
 #endif
 }
 
@@ -712,10 +701,11 @@ void setup(void) {
   fsCheck();
   FileSerial.setup();
   delay(200);
+  debugLog("--------------------");
   setupWiFi();
+  setupDate();
   debugLog("======@@@ Booting Begin @@@======");
   pinMode(led, OUTPUT);
-  setupDate();
   setupServer();
   setupMqtt();
   setupCommands();
@@ -723,9 +713,6 @@ void setup(void) {
   setupPump();
   checkModules();
   debugLog("[Core] System started at " + timeString());
-#ifdef DEBUG
-  fileLog(F("[Core] Debug Mode"));
-#endif
   String info = "[Core] ";
   info += buildTime;
   info += "-";
@@ -734,11 +721,10 @@ void setup(void) {
   info += " (Debug Mode)";
 #endif
   debugLog(info);
-
-  debugLog("[Date] NTP:" + DateTime.toISOString());
-  debugLog("[WiFi] IP:" + WiFi.localIP().toString());
-  debugLog("[WiFi] Host:" + getHostName());
   debugLog("[Core] Sketch:" + ESP.getSketchMD5());
+  LOGN("[Date] NTP:" + DateTime.toISOString());
+  LOGN("[WiFi] IP:" + WiFi.localIP().toString());
+  LOGN("[WiFi] Host:" + getHostName());
   LOGF("[Core] Booting using time: %ds\n", millis() / 1000);
   debugLog("======@@@ Booting Finished @@@======");
   Serial.println(ESP.getSketchMD5());

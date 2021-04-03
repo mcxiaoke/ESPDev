@@ -37,7 +37,7 @@ static String getCompleteUrl(AsyncWebServerRequest* r) {
 }
 
 static void showUrlWithArgs(AsyncWebServerRequest* r) {
-  LOGNF("[RestApi] %s: %s", r->methodToString(), getCompleteUrl(r));
+  LOGF("[RestApi] %s: %s\n", r->methodToString(), getCompleteUrl(r));
 }
 
 static void showHeaders(AsyncWebServerRequest* r) {
@@ -45,7 +45,7 @@ static void showHeaders(AsyncWebServerRequest* r) {
   int headers = r->headers();
   for (int i = 0; i < headers; i++) {
     auto h = r->getHeader(i);
-    LOGNF("[RestApi][HEADER] %s: %s", h->name(), h->value());
+    LOGF("[RestApi][HEADER] %s: %s\n", h->name(), h->value());
   }
 }
 
@@ -147,7 +147,7 @@ void RestApi::handleControl(AsyncWebServerRequest* r) {
   } else {
     cmd = pa->value();
   }
-  LOGNF("RestApi::handleControl: cmd=[%s]", cmd);
+  LOGF("[RestApi] handleControl: cmd=[%s]\n", cmd);
   if (cmd == emptyString) {
     auto res = errorResponse(
         -4, "Missing Parameter: [cmd] or Header: [Command]", getCompleteUrl(r));
@@ -180,7 +180,7 @@ void RestApi::handleControl(AsyncWebServerRequest* r) {
 }
 
 void RestApi::jsonControl(const JsonVariant& doc, const String& arguments) {
-  LOGN("RestApi::jsonControl", arguments);
+  LOGF("[RestApi] jsonControl args:%s\n", arguments);
   // format: url?args=cmd,arg1,arg2,arg3
   std::string args(arguments.c_str());
   if (ext::string::trim(args).empty()) {

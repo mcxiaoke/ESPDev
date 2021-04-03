@@ -149,8 +149,7 @@ void MqttManager::connect() {
       sendOnline();
       initSubscribe();
     } else {
-      LOGNF("[MQTT] Connect failed, rc=%d", _mqtt->state());
-      delay(1000);
+      LOGF("[MQTT] Connect failed, rc=%d\n", _mqtt->state());
     }
   }
 }

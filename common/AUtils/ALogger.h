@@ -1,17 +1,18 @@
 #ifndef ARDUINO_A_LOGGER_H
 #define ARDUINO_A_LOGGER_H
 
+#include <FileSerial.h>
+#include <UDPSerial.h>
+
 #ifndef DEBUG_SERIAL
 #ifdef DEBUG
 #define DEBUG_SERIAL Serial
 #else
-#include <FileSerial.h>
 #define DEBUG_SERIAL FileSerial
 #endif
 #endif
 
 #ifndef DEBUG_SERIAL2
-#include <UDPSerial.h>
 #define DEBUG_SERIAL2 UDPSerial
 #endif
 
@@ -22,19 +23,16 @@
 #define LOG(...) _log(__VA_ARGS__)
 #define LOGN(...) _logn(__VA_ARGS__)
 #define LOGF(...) _logf(__VA_ARGS__)
-#define LOGNF(...) _lognf(__VA_ARGS__)
+#define ULOG(...) _ulog(__VA_ARGS__)
+#define ULOGF(...) _ulogf(__VA_ARGS__)
+#define FLOG(...) _flog(__VA_ARGS__)
+#define FLOGF(...) _flogf(__VA_ARGS__)
 // #else
 // #define LOG(...)
 // #define LOGN(...)
 // #define LOGF(...)
 // #define LOGNF(...)
 // #endif
-
-// print log on no condition
-#define PLOG(...) _log(__VA_ARGS__)
-#define PLOGN(...) _logn(__VA_ARGS__)
-#define PLOGF(...) _logf(__VA_ARGS__)
-#define PLOGNF(...) _lognf(__VA_ARGS__)
 
 // https://pabloariasal.github.io/2018/06/26/std-variant/
 // https://www.ibm.com/support/knowledgecenter/en/SSLTBW_2.4.0/com.ibm.zos.v2r4.cbclx01/variadic_templates.htm
@@ -65,39 +63,35 @@ void _logn(Arg const& arg) {
 #endif
 }
 
-template <typename Head, typename... Args>
-void _log(Head const& head, Args const&... args) {
-  int size = sizeof...(args);
-  _log(head);
-  if (size == 0) {
-    return;
-  } else {
-    _log(" ");
-  }
-  _log(args...);
-}
+// accept multi args, like python print
+// template <typename Head, typename... Args>
+// void _log(Head const& head, Args const&... args) {
+//   int size = sizeof...(args);
+//   _log(head);
+//   if (size == 0) {
+//     return;
+//   } else {
+//     _log(" ");
+//   }
+//   _log(args...);
+// }
 
 // accept multi args, like python print
-template <typename... Args>
-void _logn(Args const&... args) {
-  _log(args...);
-  _log('\n');
-}
+// template <typename... Args>
+// void _logn(Args const&... args) {
+//   _log(args...);
+//   _log('\n');
+// }
 
 // must have this for zero args
-template <typename... Args>
-void _logn() {
-  _log('\n');
-}
+// template <typename... Args>
+// void _logn() {
+//   _log('\n');
+// }
 
 template <typename... Args>
 void _logf(char const* const format, Args const&... args) {
   _log(ext::format::strFormat(format, args...));
-}
-
-template <typename... Args>
-void _lognf(char const* const format, Args const&... args) {
-  _logn(ext::format::strFormat(format, args...));
 }
 
 /**
@@ -126,5 +120,27 @@ The number of characters written so far is stored in the pointed location.
 %
 
 **/
+
+template <typename Arg>
+void _ulog(Arg const& arg) {
+  auto s = ext::format::ArgConvert(arg);
+  UDPSerial.println(s);
+}
+
+template <typename... Args>
+void _ulogf(char const* const format, Args const&... args) {
+  _ulog(ext::format::strFormat(format, args...));
+}
+
+template <typename Arg>
+void _flog(Arg const& arg) {
+  auto s = ext::format::ArgConvert(arg);
+  FileSerial.println(s);
+}
+
+template <typename... Args>
+void _flogf(char const* const format, Args const&... args) {
+  _flog(ext::format::strFormat(format, args...));
+}
 
 #endif

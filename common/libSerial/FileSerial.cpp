@@ -11,8 +11,9 @@ File FileSerialClass::ensureFile() {
 void FileSerialClass::setup() {
   this->end();
   // FileFS.remove(FILE_SERIAL_NAME);
-  File f = FileFS.open(this->path, "w");
-  f.write('\n');
+  File f = FileFS.open(this->path, "a");
+  // f.write('\n');
+  f.write("\n\n\n");
   f.close();
 }
 
