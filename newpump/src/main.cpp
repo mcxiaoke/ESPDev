@@ -471,8 +471,10 @@ void handleLogs(AsyncWebServerRequest* request) {
 void handleStart(AsyncWebServerRequest* request) {
   LOGN("handleStart");
   if (request->hasParam("do", false)) {
-    request->send(200, MIME_TEXT_PLAIN, "ok");
     cmdStart();
+    // request->send(200, MIME_TEXT_PLAIN, "ok");
+    request->redirect("/api/simple");
+
   } else {
     request->send(200, MIME_TEXT_PLAIN, "ignore");
   }
@@ -481,8 +483,9 @@ void handleStart(AsyncWebServerRequest* request) {
 void handleStop(AsyncWebServerRequest* request) {
   LOGN("handleStop");
   if (request->hasParam("do", false)) {
-    request->send(200, MIME_TEXT_PLAIN, "ok");
     cmdStop();
+    // request->send(200, MIME_TEXT_PLAIN, "ok");
+    request->redirect("/api/simple");
   } else {
     request->send(200, MIME_TEXT_PLAIN, "ignore");
   }

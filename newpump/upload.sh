@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+unset http_proxy
+unset https_proxy
+unset all_proxy
+
 BIN_FILE=".pio/build/nodemcuv2-release/firmware.bin"
 FS_FILE=".pio/build/nodemcuv2-release/spiffs.bin"
 echo "===================="

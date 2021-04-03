@@ -187,7 +187,7 @@ void ESPUpdateServer::loop() {
   if (_shouldRestart) {
     LOGN("[OTA] update completed, now reboot.");
     _shouldRestart = false;
-    delay(100);
+    delay(200);
     compat::restart();
   }
 }

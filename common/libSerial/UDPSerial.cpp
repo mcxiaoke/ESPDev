@@ -33,67 +33,21 @@ int UDPSerialClass::available() { return true; }
 int UDPSerialClass::peek() { return 1; }
 int UDPSerialClass::read() { return 1; }
 void UDPSerialClass::flush() {}
-size_t UDPSerialClass::write(uint8_t c) {
-  if (!conneted) {
-    return 0;
-  }
-  this->before();
-  udp.write(c);
-  this->end();
-  return sizeof(uint8_t);
-  ;
-}
-size_t UDPSerialClass::print(char c) {
-  if (!conneted) {
-    return 0;
-  }
-  this->before();
-  udp.write(c);
-  this->end();
-  return sizeof(char);
-  ;
-}
-size_t UDPSerialClass::print(int c) {
-  if (!conneted) {
-    return 0;
-  }
-  this->before();
-  udp.write(c);
-  this->end();
-  return sizeof(int);
-  ;
-}
-size_t UDPSerialClass::print(unsigned int c) {
-  if (!conneted) {
-    return 0;
-  }
-  this->before();
-  udp.write(c);
-  this->end();
-  return sizeof(unsigned int);
-  ;
-}
-size_t UDPSerialClass::print(long c) {
-  if (!conneted) {
-    return 0;
-  }
-  this->before();
-  udp.write(c);
-  this->end();
-  return sizeof(long);
-}
-size_t UDPSerialClass::print(unsigned long c) {
-  if (!conneted) {
-    return 0;
-  }
-  this->before();
-  size_t n = udp.write(c);
-  this->end();
-  return n;
-}
+size_t UDPSerialClass::write(uint8_t c) { return 0; }
+size_t UDPSerialClass::print(char c) { return 0; }
+size_t UDPSerialClass::print(int c) { return 0; }
+size_t UDPSerialClass::print(unsigned int c) { return 0; }
+size_t UDPSerialClass::print(long c) { return 0; }
+size_t UDPSerialClass::print(unsigned long c) { return 0; }
 
 size_t UDPSerialClass::print(const char* msg) {
   if (!conneted) {
+    return 0;
+  }
+  if (!msg) {
+    return 0;
+  }
+  if (strlen(msg) < 3) {
     return 0;
   }
   this->before();

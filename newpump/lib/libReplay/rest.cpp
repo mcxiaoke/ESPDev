@@ -111,6 +111,12 @@ void RestApi::setup(AsyncWebServer* server) {
     r->send(buildResponse(
         std::bind(&RestApi::jsonTask, this, std::placeholders::_1)));
   });
+  server->on(
+      "/api/simple", HTTP_GET | HTTP_POST, [&](AsyncWebServerRequest* r) {
+        showUrlWithArgs(r);
+        r->send(buildResponse(
+            std::bind(&RestApi::jsonSimple, this, std::placeholders::_1)));
+      });
   server->on("/api/logs", HTTP_GET | HTTP_POST, [&](AsyncWebServerRequest* r) {
     showUrlWithArgs(r);
     r->send(buildResponse(
@@ -261,6 +267,18 @@ void RestApi::jsonTask(const JsonVariant& doc) {
   doc["prev"] = t->prevMillis / 1000;
   doc["up_time"] = millis() / 1000;
   doc["time"] = DateTime.now();
+}
+
+void RestApi::jsonSimple(const JsonVariant& doc) {
+  auto st = pump.getStatus();
+  doc["pin"] = pump.pin();
+  doc["on"] = pump.isOn();
+  doc["up_time"] = millis() / 1000;
+  doc["last_start"] = st->lastStart / 1000;
+  doc["last_stop"] = st->lastStop / 1000;
+  doc["last_reset"] = st->timerResetAt / 1000;
+  doc["last_elapsed"] = st->lastElapsed / 1000;
+  doc["total_elapsed"] = st->totalElapsed / 1000;
 }
 
 void RestApi::jsonLogs(const JsonVariant& json) {
