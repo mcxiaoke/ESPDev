@@ -651,7 +651,10 @@ void udpReport() {
   if (!WiFi.isConnected()) {
     return;
   }
-  UDPSerial.println(getHostName() + " Online");
+  String s = getHostName();
+  s += " Online Uptime: ";
+  s += humanTimeMs(millis());
+  UDPSerial.println(s);
 }
 
 void setupTimers(bool reset) {
@@ -748,6 +751,7 @@ void setup(void) {
 
 void loop(void) {
   otaUpdate.loop();
+  UDPSerial.run();
   pump.run();
   Timer.run();
   mqttLoop();

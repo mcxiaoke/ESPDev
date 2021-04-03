@@ -2,6 +2,7 @@
 #define ESP_UDP_SERIAL_HEADER
 
 #include <compat.h>
+
 #include "SerialUtils.h"
 
 class UDPSerialClass : public Stream {
@@ -26,10 +27,12 @@ class UDPSerialClass : public Stream {
   size_t println(const char* s);
   size_t print(const String& s);
   size_t println(const String& s);
+  void run();
 
  protected:
   WiFiUDP udp;
   bool conneted;
+  void handleCmd(const char* cmd);
 };
 
 extern UDPSerialClass UDPSerial;  // define in cpp
