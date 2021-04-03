@@ -76,7 +76,7 @@ void ESPUpdateServer::handleUpdatePage(AsyncWebServerRequest* request) {
   if (_username != emptyString && _password != emptyString &&
       !request->authenticate(_username.c_str(), _password.c_str()))
     return request->requestAuthentication();
-  if (false && FileFS.exists("/update.html")) {
+  if (FileFS.exists("/update.html")) {
     request->send(FileFS, "/update.html");
   } else {
     request->send_P(200, PSTR("text/html"), serverIndex);
@@ -187,7 +187,7 @@ void ESPUpdateServer::loop() {
   if (_shouldRestart) {
     LOGN("[OTA] update completed, now reboot.");
     _shouldRestart = false;
-    delay(200);
+    delay(500);
     compat::restart();
   }
 }

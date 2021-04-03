@@ -25,14 +25,11 @@ constexpr int led = LED_BUILTIN;
 #ifdef DEBUG
 #define RUN_INTERVAL_DEFAULT 10 * 60 * 1000UL
 #define RUN_DURATION_DEFAULT 18 * 1000UL
-#define STATUS_INTERVAL_DEFAULT 60 * 60 * 1000UL
 #else
 #define RUN_INTERVAL_DEFAULT 24 * 3600 * 1000UL
-#define RUN_DURATION_DEFAULT 120 * 1000UL
-#define STATUS_INTERVAL_DEFAULT 48 * 60 * 60 * 1000UL
+#define RUN_DURATION_DEFAULT 60 * 1000UL
 #endif
 
-unsigned long statusInterval = STATUS_INTERVAL_DEFAULT;
 unsigned long timerReset = 0;
 
 bool wifiInitialized;
@@ -259,56 +256,6 @@ uint8_t parseValue(const string& extra) {
   return atoi(extra.c_str());
 }
 
-void cmdSettings(const CommandParam& param = CommandParam::INVALID) {
-  auto args = param.args;
-  LOGN("cmdSettings");
-  if (args.size() < 1) {
-    return;
-  }
-  uint8_t pin = 0;
-  unsigned long interval = 0;
-  unsigned long duration = 0;
-  auto oldStatusInterval = statusInterval;
-  // in seconds
-  for (auto const& arg : args) {
-    auto kv = ext::string::split(arg, "=");
-    if (kv.size() == 2) {
-      LOGF("Entry: %s=%s\n", kv[0].c_str(), kv[1].c_str());
-      if (kv[0] == "pump_pin" || kv[0] == "pump") {
-        pin = parsePin(kv[1]);
-      } else if (kv[0] == "run_interval" || kv[0] == "runi") {
-        interval = parseLong(kv[1]) * 1000UL;
-      } else if (kv[0] == "run_duration" || kv[0] == "rund") {
-        duration = parseLong(kv[1]) * 1000L;
-      } else if (kv[0] == "status_interval" || kv[0] == "stsi") {
-        statusInterval = parseLong(kv[1]) * 1000L;
-      } else {
-        String log = "[Settings] Invalid Entry: ";
-        log += kv[0].c_str();
-        debugLog(log);
-        return;
-      }
-    }
-  }
-
-  LOGF("cmdSettings pin=%lu,interval=%lu,duration=%lu\n", pin, interval,
-       duration);
-
-  if (pin == 0 && interval == 0 && duration == 0) {
-    debugLog("[Settings] Invalid Value");
-    return;
-  }
-
-  int changed = pump.updateConfig({"newPump", pin, interval, duration});
-  if (changed > 0) {
-    debugLog("[Settings] Config changed");
-  }
-  if (statusInterval != oldStatusInterval) {
-    debugLog("[Settings] Changed, reset timers");
-    setupTimers(true);
-  }
-}
-
 void cmdIOSet(const CommandParam& param = CommandParam::INVALID) {
   auto args = param.args;
   LOGN("cmdIOSet");
@@ -325,42 +272,6 @@ void cmdIOSet(const CommandParam& param = CommandParam::INVALID) {
     sendMqttLog(F("Invalid Value"));
     return;
   }
-}
-
-void cmdIOSetHigh(const CommandParam& param = CommandParam::INVALID) {
-  auto args = param.args;
-  LOGN("cmdIOSetHigh");
-  if (args.size() < 1) {
-    return;
-  }
-  uint8_t pin = parsePin(args[0]);
-  if (pin > (uint8_t)0x80) {
-    sendMqttLog("Invalid Pin");
-    return;
-  }
-  pinMode(pin, OUTPUT);
-  digitalWrite(pin, HIGH);
-  String msg = F("cmdIOSetHigh for Pin ");
-  msg += pin;
-  debugLog(msg);
-}
-
-void cmdIOSetLow(const CommandParam& param = CommandParam::INVALID) {
-  auto args = param.args;
-  LOGN("cmdIOSetLow");
-  if (args.size() < 1) {
-    return;
-  }
-  uint8_t pin = parsePin(args[0]);
-  if (pin > (uint8_t)0x80) {
-    sendMqttLog("Invalid Pin");
-    return;
-  }
-  pinMode(pin, OUTPUT);
-  digitalWrite(pin, LOW);
-  String msg = F("cmdIOSetLow for Pin ");
-  msg += pin;
-  debugLog(msg);
 }
 
 void cmdHelp(const CommandParam& param = CommandParam::INVALID) {
@@ -418,8 +329,6 @@ String getStatus() {
   data += humanTimeMs(cfg->interval);
   data += "\nRun Duration: ";
   data += humanTimeMs(cfg->duration);
-  data += "\nStatus Interval: ";
-  data += humanTimeMs(statusInterval);
 #if defined(ESP8266)
   data += "\nFree Stack: ";
   data += ESP.getFreeContStack();
@@ -545,22 +454,6 @@ void handleSerial(AsyncWebServerRequest* request) {
   request->redirect("/serial.log");
 }
 
-void handleSettings(AsyncWebServerRequest* request) {
-  vector<string> args;
-  for (size_t i = 0U; i < request->params(); i++) {
-    auto p = request->getParam(i);
-    LOGF("handleSettings %s=%s\n", p->name().c_str(), p->value().c_str());
-    string arg(p->value().c_str());
-    arg += "=";
-    arg += p->value().c_str();
-    args.push_back(arg);
-  }
-  if (args.size() > 0) {
-    const CommandParam param{"settings", args};
-    cmdSettings(param);
-  }
-}
-
 void handleIOSet(AsyncWebServerRequest* request) {
   vector<string> args;
   for (size_t i = 0U; i < request->params(); i++) {
@@ -587,8 +480,7 @@ void handleWiFiGotIP() {
 }
 
 void handleWiFiLost() {
-  WiFi.reconnect();
-  UDPSerial.setup();
+  // WiFi.reconnect();
 }
 
 #if defined(ESP8266)
@@ -705,7 +597,7 @@ void setupServer() {
   if (MDNS.begin(getHostName().c_str())) {
     LOGN(F("[Server] MDNS responder started"));
   }
-  server.on("/", handleFiles);
+  server.serveStatic("/", SPIFFS, "/").setDefaultFile("index.html");
   server.on("/serial", handleSerial);
   server.on("/files", handleFiles);
   server.on("/logs", handleLogs);
@@ -794,10 +686,7 @@ void setupCommands() {
   CommandManager.addCommand("logs", "show device logs", cmdLogs);
   CommandManager.addCommand("delete", "delete the file", cmdDelete);
   CommandManager.addCommand("files", "show device files", cmdFiles);
-  CommandManager.addCommand("settings", "settings k1=v1 k2=v2", cmdSettings);
   CommandManager.addCommand("ioset", "gpio set [pin] [value]", cmdIOSet);
-  CommandManager.addCommand("ioset1", "gpio set 1 for [pin]", cmdIOSetHigh);
-  CommandManager.addCommand("ioset0", "gpio set 0 for [pin]", cmdIOSetLow);
   CommandManager.addCommand("list", "show commands", cmdHelp);
   CommandManager.addCommand("help", "show help", cmdHelp);
 }

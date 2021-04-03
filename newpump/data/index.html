@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pump Web</title>
+    <style type="text/css">
+        .content {
+            max-width: 720px;
+            margin: auto;
+        }
+
+        .output {
+            font-size: 80%;
+            line-height: 80%;
+            margin: 1em;
+        }
+
+        .important {
+            color: blue;
+        }
+
+        .danger {
+            color: red;
+        }
+
+        .title {
+            font-size: 110%;
+            font-weight: 500;
+        }
+
+        .button-large {
+            font-size: 120%;
+            font-weight: 500;
+            min-width: 8em;
+            min-height: 3em;
+        }
+
+        button {
+            margin-top: 1em;
+            margin-bottom: 1em;
+        }
+
+        td {
+            padding: 4px;
+        }
+
+        form {
+            display: inline-block;
+        }
+
+        textarea {
+            width: 100%;
+        }
+    </style>
+</head>
+
+<body>
+
+
+    <div class="content">
+        <h1>浇水器</h1>
+
+        <div class="actions">
+
+            <div class="output" id="info">
+                <p>空闲中</p>
+            </div>
+
+            <button id="switch" class="button-large" data-state="off">启动</button>
+
+            <div>
+                <ul>
+                    <li><a href="/files">Files</a></li>
+                    <li><a href="/logs">Logs</a></li>
+                    <li><a href="/serial">Serial</a></li>
+                    <li><a href="/update">Update</a></li>
+                </ul>
+            </div>
+
+        </div>
+
+
+    </div>
+
+    <script>
+        const apiUrl = "http://192.168.1.116";
+        const TIME_OUT_MS = 5000;
+        var lastStart = 0;
+        var lastCheckId = 0;
+        function updateButton(isOn, d) {
+            let b = document.getElementById("switch");
+            // console.log(b.getAttribute("data-state"));
+            b.textContent = isOn ? "停止" : "启动";
+            b.setAttribute("data-state", isOn ? "on" : "off");
+            let info = document.getElementById("info");
+            info.innerHTML = isOn ? "<p>正在运行</p>" : "<p>空闲中</p>";
+        }
+
+        function startOrStop(action) {
+            console.log("startOrStop action =", action);
+            let xhr = new XMLHttpRequest();
+            xhr.timeout = TIME_OUT_MS;
+            // xhr.ontimeout = function (e) {
+            //     console.log("ontimeout");
+            // };
+            // xhr.onerror = function (e) {
+            //     console.log("onerror");
+            // };
+            // xhr.onloadend = function (e) {
+            //     console.log("onloadend");
+            // };
+            xhr.onload = function (e) {
+                console.log("onload:", xhr.status, xhr.statusText);
+                if (xhr.status < 400) {
+                    let d = JSON.parse(xhr.responseText);
+                    console.log("response:", d);
+                    updateButton(d["on"]);
+                    if (action == "start") {
+                        lastStart = new Date().getTime();
+                        lastCheckId = setInterval(function () {
+                            checkState();
+                        }, TIME_OUT_MS);
+                    } else {
+                        clearInterval(lastCheckId);
+                        lastStart = 0;
+                    }
+                }
+                checkState();
+            };
+            xhr.timeout = TIME_OUT_MS;
+            xhr.open("GET", apiUrl + "/api/control?token=pump&args=" + ((action == "stop") ? "stop" : "start"));
+            xhr.setRequestHeader("Accept", "application/json");
+            xhr.send();
+            return false;
+        }
+
+        function checkState() {
+            console.log("checkState from ", apiUrl);
+            let xhr = new XMLHttpRequest();
+            xhr.timeout = TIME_OUT_MS;
+            // xhr.ontimeout = function (e) {
+            //     console.log("ontimeout");
+            // };
+            // xhr.onerror = function (e) {
+            //     console.log("onerror");
+            // };
+            // xhr.onloadend = function (e) {
+            //     console.log("onloadend");
+            // };
+            xhr.onload = function (e) {
+                console.log("onload:", xhr.status, xhr.statusText);
+                if (xhr.status < 400) {
+                    let d = JSON.parse(xhr.responseText);
+                    console.log("response:", d);
+                    updateButton(d["on"], d);
+                }
+            };
+            xhr.timeout = TIME_OUT_MS;
+            xhr.open("GET", apiUrl + "/api/simple");
+            xhr.setRequestHeader("Accept", "application/json");
+            xhr.send();
+            return false;
+        }
+
+
+        function onReady(e) {
+            let b = document.getElementById("switch");
+            b.onclick = function (e) {
+                let a = b.getAttribute("data-state");
+                if (a == "off") {
+                    startOrStop("start");
+                } else if (a == "on") {
+                    startOrStop("stop");
+                }
+            }
+            checkState();
+        }
+        window.addEventListener("DOMContentLoaded", onReady);
+    </script>
+
+</body>
+
+</html>
