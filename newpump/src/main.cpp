@@ -432,8 +432,14 @@ void handleReset(AsyncWebServerRequest* request) {
   }
 }
 
+void handleRoot(AsyncWebServerRequest* request) {
+  request->send(SPIFFS, "/index.html");
+  // request->redirect("/index.html");
+}
+
 void handleSerial(AsyncWebServerRequest* request) {
-  request->redirect("/serial.log");
+  request->send(SPIFFS, "/serial.log", "text/plain");
+  // request->redirect("/serial.log");
 }
 
 void handleIOSet(AsyncWebServerRequest* request) {
@@ -562,7 +568,7 @@ void handleNotFound(AsyncWebServerRequest* request) {
     request->send(200);
     return;
   }
-  LOGN("handleNotFound " + request->url());
+  ULOG("handleNotFound " + request->url());
   if (request->url().startsWith("/api/")) {
     DynamicJsonDocument doc(128);
     doc["code"] = 404;
@@ -586,7 +592,7 @@ void setupServer() {
   if (MDNS.begin(getHostName().c_str())) {
     LOGN(F("[Server] MDNS responder started"));
   }
-  server.serveStatic("/", SPIFFS, "/").setDefaultFile("index.html");
+  server.on("/", handleRoot);
   server.on("/serial", handleSerial);
   server.on("/files", handleFiles);
   server.on("/logs", handleLogs);
@@ -596,8 +602,8 @@ void setupServer() {
   setupUpdate();
 
   DefaultHeaders::Instance().addHeader("Access-Control-Allow-Origin", "*");
-  DefaultHeaders::Instance().addHeader("Access-Control-Allow-Methods",
-                                       "GET, POST, PUT, OPTIONS");
+  // DefaultHeaders::Instance().addHeader("Access-Control-Allow-Methods",
+  //                                      "GET, POST, PUT, OPTIONS");
   DefaultHeaders::Instance().addHeader("Access-Control-Allow-Headers", "*");
   server.begin();
   MDNS.addService("http", "tcp", 80);
@@ -749,7 +755,7 @@ void loop(void) {
 void handleCommand(const CommandParam& param) {
   auto processFunc = [param] {
     yield();
-    LOG("[CMD] handleCommand ");
+    LOGN("[CMD] handleCommand");
     // LOGN(param.toString().c_str());
     if (!CommandManager.handle(param)) {
       LOGN("[CMD] Unknown command");

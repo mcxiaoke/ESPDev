@@ -24,7 +24,7 @@ function loadData(e) {
             loadData();
           };
           var fd = new FormData();
-          fd.append("file_path", name);
+          // fd.append("file_path", name);
           ar.open(
             "POST",
             serverUrl +

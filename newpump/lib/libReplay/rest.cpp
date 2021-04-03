@@ -37,7 +37,7 @@ static String getCompleteUrl(AsyncWebServerRequest* r) {
 }
 
 static void showUrlWithArgs(AsyncWebServerRequest* r) {
-  LOGF("[RestApi] %s: %s\n", r->methodToString(), getCompleteUrl(r));
+  ULOGF("[RestApi] %s: %s\n", r->methodToString(), getCompleteUrl(r));
 }
 
 static void showHeaders(AsyncWebServerRequest* r) {
@@ -147,7 +147,7 @@ void RestApi::handleControl(AsyncWebServerRequest* r) {
   } else {
     cmd = pa->value();
   }
-  LOGF("[RestApi] handleControl: cmd=[%s]\n", cmd);
+  LOGF("[RestApi] handleControl: url=[%s]\n", r->url());
   if (cmd == emptyString) {
     auto res = errorResponse(
         -4, "Missing Parameter: [cmd] or Header: [Command]", getCompleteUrl(r));

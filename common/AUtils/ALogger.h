@@ -20,7 +20,7 @@
 
 // print logs only on debug mode
 // #if defined(DEBUG) || defined(EANBLE_LOGGING)
-#define LOG(...) _log(__VA_ARGS__)
+// #define LOG(...) _log(__VA_ARGS__)
 #define LOGN(...) _logn(__VA_ARGS__)
 #define LOGF(...) _logf(__VA_ARGS__)
 #define ULOG(...) _ulog(__VA_ARGS__)
@@ -124,6 +124,7 @@ The number of characters written so far is stored in the pointed location.
 template <typename Arg>
 void _ulog(Arg const& arg) {
   auto s = ext::format::ArgConvert(arg);
+  Serial.println(s);
   UDPSerial.println(s);
 }
 
@@ -135,6 +136,7 @@ void _ulogf(char const* const format, Args const&... args) {
 template <typename Arg>
 void _flog(Arg const& arg) {
   auto s = ext::format::ArgConvert(arg);
+  Serial.println(s);
   FileSerial.println(s);
 }
 

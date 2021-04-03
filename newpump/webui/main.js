@@ -34,71 +34,34 @@ function buildOutputDiv(d) {
   let dbClass = d["debug"] == 1 ? "danger" : "important";
   let tb = $("<table>").append(
     $("<tr>")
-      .attr("id", "p-head")
+      .attr("class", "p-head")
       .append($("<td>").text("远程服务: "), $("<td>").text(surl)),
     $("<tr>")
-      .attr("id", "p-sketch")
-      .append($("<td>").text("固件指纹: "), $("<td>").text(d["sketch"])),
-    $("<tr>")
-      .attr("id", "p-head")
-      .append($("<td>").text("系统版本: "), $("<td>").text(d["revision"]))
-      .append(
-        $("<td>").text("系统状态: "),
-        $("<td>").addClass(dbClass).text(debugMode)
-      ),
-    $("<tr>")
-      .attr("id", "p-status")
+      .attr("class", "p-head")
       .append(
         $("<td>").text("开机时刻: "),
-        $("<td>").text(moment.unix(d["boot_time"]).format("MM-DD HH:mm:ss")),
-        $("<td>").text("运行状态: "),
-        $("<td>")
-          .addClass("important")
-          .text(d["on"] ? "正在浇水" : "空闲")
-      ),
+        $("<td>").text(moment.unix(d["boot_time"]).format("YYYY-MM-DD HH:mm:ss"))),
     $("<tr>")
-      .attr("id", "p-global")
-      .append(
-        $("<td>").text("开机时间: "),
-        $("<td>").text(humanElapsed(d["up_time"])),
-        $("<td>").text("空闲内存: "),
-        $("<td>").text(d["heap"])
-      ),
+      .attr("class", "p-head")
+      .append($("<td>").text("系统版本: "), $("<td>").text(d["revision"])),
+    $("<tr>")
+      .attr("class", "p-sketch")
+      .append($("<td>").text("固件指纹: "), $("<td>").text(d["sketch"])),
 
     $("<tr>")
-      .attr("id", "p-task")
+      .attr("class", "p-head")
       .append(
-        $("<td>").text("浇水间隔: "),
-        $("<td>").addClass("important").text(humanElapsed(d["interval"])),
-        $("<td>").text("浇水时长: "),
-        $("<td>").addClass("important").text(humanElapsed(d["duration"]))
+        $("<td>").text("每次持续时间: "),
+        $("<td>").addClass("important").text(d["duration"] + "秒")
       ),
     $("<tr>")
-      .attr("id", "p-last")
+      .attr("class", "p-status")
       .append(
-        $("<td>").text("上次浇水: "),
-        $("<td>").text(lastRunAt),
-        $("<td>").text("上次时长: "),
-        $("<td>").text(d["last_elapsed"] + "s")
-      ),
-    $("<tr>")
-      .attr("id", "p-next")
-      .append(
-        $("<td>").text("下次浇水: "),
-        $("<td>").addClass("important").text(nextRunAt),
-        $("<td>").text("总共时长: "),
-        $("<td>").text(d["total_elapsed"] + "s")
-      ),
-    $("<tr>")
-      .attr("id", "p-time")
-      .append(
-        $("<td>").addClass("important").text("定时浇水: "),
+        $("<td>").text("当前系统状态: "),
         $("<td>")
-          .addClass("danger")
-          .text(d["enabled"] ? "已启用" : "已禁用"),
-        $("<td>").text("定时剩余: "),
-        $("<td>").addClass("important").text(humanElapsed(nextRemains))
-      )
+          .addClass("important")
+          .text(d["on"] ? "正在浇水" : "空闲"),
+      ),
   );
 
   let o = $("<div>").attr("id", "output").attr("class", "output");
@@ -131,46 +94,46 @@ function buildFormDiv(d) {
     return true;
   };
 
-  let btnSwitch = document.createElement("button");
-  btnSwitch.textContent = d["enabled"] ? "禁用定时" : "启用定时";
-  btnSwitch.setAttribute("id", "btn-switch");
-  btnSwitch.setAttribute("class", "important button-large");
-  btnSwitch.onclick = function (e) {
-    xhr = new XMLHttpRequest();
-    xhr.onload = function () {
-      console.log("switch button.");
-      loadData(false);
-    };
-    xhr.open(
-      "POST",
-      serverUrl +
-      "/api/control?token=pump&args=" +
-      (d["enabled"] ? "off" : "on")
-    );
-    xhr.send();
-    return true;
-  };
+  // let btnSwitch = document.createElement("button");
+  // btnSwitch.textContent = d["enabled"] ? "禁用定时" : "启用定时";
+  // btnSwitch.setAttribute("id", "btn-switch");
+  // btnSwitch.setAttribute("class", "important button-large");
+  // btnSwitch.onclick = function (e) {
+  //   xhr = new XMLHttpRequest();
+  //   xhr.onload = function () {
+  //     console.log("switch button.");
+  //     loadData(false);
+  //   };
+  //   xhr.open(
+  //     "POST",
+  //     serverUrl +
+  //     "/api/control?token=pump&args=" +
+  //     (d["enabled"] ? "off" : "on")
+  //   );
+  //   xhr.send();
+  //   return true;
+  // };
 
-  let btnTimer = document.createElement("button");
-  btnTimer.textContent = "重置定时";
-  btnTimer.setAttribute("id", "btn-timer");
-  btnTimer.setAttribute("class", "danger button-large");
-  btnTimer.onclick = function (e) {
-    // e.preventDefault();
-    let cf = confirm("确定重置定时器吗?");
-    if (cf) {
-      xhr = new XMLHttpRequest();
-      xhr.onload = function () {
-        console.log("timer reset.");
-        // location.reload(true);
-        loadData(false);
-      };
-      xhr.open("POST", serverUrl + "/api/control?token=pump&args=reset");
-      xhr.send();
-      return true;
-    }
-    return false;
-  };
+  // let btnTimer = document.createElement("button");
+  // btnTimer.textContent = "重置定时";
+  // btnTimer.setAttribute("id", "btn-timer");
+  // btnTimer.setAttribute("class", "danger button-large");
+  // btnTimer.onclick = function (e) {
+  //   // e.preventDefault();
+  //   let cf = confirm("确定重置定时器吗?");
+  //   if (cf) {
+  //     xhr = new XMLHttpRequest();
+  //     xhr.onload = function () {
+  //       console.log("timer reset.");
+  //       // location.reload(true);
+  //       loadData(false);
+  //     };
+  //     xhr.open("POST", serverUrl + "/api/control?token=pump&args=reset");
+  //     xhr.send();
+  //     return true;
+  //   }
+  //   return false;
+  // };
 
   let btnReboot = document.createElement("button");
   btnReboot.textContent = "重启机器";
@@ -202,9 +165,9 @@ function buildFormDiv(d) {
     btnPump,
     btnReboot,
     newLine(),
-    btnTimer,
-    btnSwitch,
-    newLine()
+    // btnTimer,
+    // btnSwitch,
+    // newLine()
   );
   return buttonDiv;
 }
@@ -228,12 +191,12 @@ function buildButtonDiv() {
   buttonDiv.setAttribute("id", "button-div-2");
 
   let btnRaw = document.createElement("button");
-  btnRaw.textContent = "查看日志";
+  btnRaw.textContent = "系统日志";
   btnRaw.setAttribute("id", "btn-raw");
   btnRaw.setAttribute("class", "button-large");
   btnRaw.onclick = (e) => {
     window.open(
-      serverUrl + "/logs",
+      serverUrl + "/serial",
       "_blank"
     );
   };
@@ -242,7 +205,12 @@ function buildButtonDiv() {
   btnFiles.textContent = "查看文件";
   btnFiles.setAttribute("id", "btn-files");
   btnFiles.setAttribute("class", "button-large");
-  btnFiles.onclick = (e) => (window.location.href = "files.html");
+  // btnFiles.onclick = (e) => (window.location.href = "files.html");
+  btnFiles.onclick = (e) => {
+    window.open("files.html",
+      "_blank"
+    );
+  };
 
   let btnOption = document.createElement("button");
   btnOption.textContent = "配置修改";
