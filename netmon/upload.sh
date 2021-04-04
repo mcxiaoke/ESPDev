@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+unset http_proxy
+unset https_proxy
+unset all_proxy
 BIN_FILE=".pio/build/esp8266/firmware.bin"
 FS_FILE=".pio/build/esp8266/spiffs.bin"
 echo "===================="

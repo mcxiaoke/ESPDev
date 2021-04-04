@@ -44,7 +44,7 @@ MqttManager::MqttManager(const char* server, const int port,
                 std::placeholders::_2, std::placeholders::_3);
   _mqtt->setCallback(callback);
   _mqtt->setBufferSize(1024);
-  _mqtt->setKeepAlive(60);
+  _mqtt->setKeepAlive(CUSTOM_MQTT_KEEPALIVE);
   _lastOnlineMs = 0;
   _lastOfflineMs = 0;
   _silentMode = false;
@@ -178,7 +178,7 @@ void MqttManager::check() {
       mqttFileLog(msg);
     }
   } else {
-    // LOGN("[MQTT] Connection is stable");
+    ULOG("[MQTT] Connection is OK!");
     // mqttPing();
   }
 }

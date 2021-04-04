@@ -113,7 +113,8 @@ void checkMqtt() {
 
 void mqttTimer() {
 #ifdef USING_MQTT
-  Timer.setInterval((MQTT_KEEPALIVE * 10 - 5) * 1000L, checkMqtt, "checkMqtt");
+  Timer.setInterval((CUSTOM_MQTT_KEEPALIVE * 5 - 5) * 1000L, checkMqtt,
+                    "checkMqtt");
 #endif
 }
 
@@ -280,7 +281,9 @@ void cmdNotFound(const CommandParam& param = CommandParam::INVALID) {
 void checkWiFi() {
   if (!WiFi.isConnected()) {
     WiFi.reconnect();
-    debugLog(F("WiFi Reconnect"));
+    debugLog(F("[WiFi] WiFi Reconnecting"));
+  } else {
+    ULOG("[WiFi] Connection is OK!");
   }
 }
 
@@ -478,7 +481,7 @@ wifi_event_id_t h0, h1, h2;
 #endif
 
 void setupWiFi() {
-  LOGN("setupWiFi");
+  // LOGN("[Setup] setupWiFi");
   digitalWrite(led, LOW);
   WiFi.mode(WIFI_STA);
   WiFi.setAutoConnect(true);
@@ -504,44 +507,55 @@ void setupWiFi() {
 #endif
 
   WiFi.begin(ssid, password);
-  LOGF("[WiFi] ssid:%s, pass:%s\n", ssid, password);
-  LOGN("[WiFi] Connecting...");
+  LOGF("[Setup] WiFi Connecting with (%s:%s)\n", ssid, password);
   auto startMs = millis();
-  // setup wifi timeout 120 seconds
-  while (!WiFi.isConnected() && (millis() - startMs) < 120 * 1000L) {
+  // setup wifi timeout 60 seconds
+  while (!WiFi.isConnected() && (millis() - startMs) < 60 * 1000L) {
     delay(1000);
-    if (millis() / 1000 % 5 == 0) {
-      LOGN("[WiFi] Waiting connection...");
+    if (millis() / 1000 % 10 == 0) {
+      LOGF("[Setup] WiFi Connecting... (%uls)\n", millis() / 1000);
     }
   }
   if (!WiFi.isConnected()) {
-    LOGN(F("[WiFi] Connect failed, will restart"));
+    LOGN(F("[Setup] WiFi connect failed, will reboot"));
     cmdReboot();
+    return;
   }
   startMillis = millis();
-  LOGF("[WiFi] Setup connection using %lus.\n", startMillis / 1000);
+  LOGF("[Setup] WiFi setup using %lus.\n", startMillis / 1000);
 }
 
 void setupDate() {
-  LOGN("setupDate");
   if (WiFi.isConnected()) {
-    DateTime.setServer("ntp.aliyun.com");
+    LOGN("[Setup] setupDate using ntp server1");
     DateTime.setTimeZone("CST-8");
-    DateTime.begin();
+    DateTime.setServer("cn.ntp.org.cn");
+    DateTime.begin(10 * 1000L);
   }
   if (!DateTime.isTimeValid()) {
-    LOGN(F("[Date] NTP Sync failed."));
-  } else {
-    LOGF("[Date] NTP Sync using %lus.\n", (millis() - startMillis) / 1000);
-    LOGF("[Date] Now %s\n", DateTime.toString());
+    LOGN("[Setup] setupDate using ntp server2");
+    DateTime.setServer("time.pool.aliyun.com");
+    DateTime.begin(10 * 1000L);
   }
+  if (!DateTime.isTimeValid()) {
+    LOGN("[Setup] setupDate using ntp server3");
+    DateTime.setServer("ntp.ntsc.ac.cn");
+    DateTime.begin(10 * 1000L);
+  }
+  if (!DateTime.isTimeValid()) {
+    LOGN(F("[Setup] Time sync failed, will reboot"));
+    cmdReboot();
+    return;
+  }
+  LOGF("[Setup] Time sync using %lus.\n", (millis() - startMillis) / 1000);
+  LOGF("[Setup] Now time is %s\n", DateTime.toString());
   startMillis = millis();
 }
 
 void setupApi() { api.setup(&server); }
 
 void setupUpdate() {
-  LOGN("setupUpdate");
+  // LOGN("setupUpdate");
   otaUpdate.setup(&server);
 }
 
@@ -588,9 +602,9 @@ void handleNotFound(AsyncWebServerRequest* request) {
 }
 
 void setupServer() {
-  LOGN("setupServer");
+  // LOGN("[Setup] setupServer");
   if (MDNS.begin(getHostName().c_str())) {
-    LOGN(F("[Server] MDNS responder started"));
+    LOGN(F("[Setup] MDNS responder started"));
   }
   server.on("/", handleRoot);
   server.on("/serial", handleSerial);
@@ -607,10 +621,11 @@ void setupServer() {
   DefaultHeaders::Instance().addHeader("Access-Control-Allow-Headers", "*");
   server.begin();
   MDNS.addService("http", "tcp", 80);
-  LOGN(F("[Server] HTTP server started"));
+  LOGN(F("[Setup] HTTP server started"));
 }
 
 void setupPump() {
+  // LOGN("[Setup] setupPump at PIN 13");
   // default pin nodemcu D5, nodemcu-32s 13
   pump.begin({"pump", 13, RUN_INTERVAL_DEFAULT, RUN_DURATION_DEFAULT});
   pump.setCallback([](const RelayEvent evt, int reason) {
@@ -647,8 +662,9 @@ void udpReport() {
     return;
   }
   String s = getHostName();
-  s += " Online Uptime: ";
+  s += " Online (";
   s += humanTimeMs(millis());
+  s += ")";
   UDPSerial.println(s);
 }
 
@@ -659,8 +675,8 @@ void setupTimers(bool reset) {
   }
   timerReset = millis();
   Timer.setInterval(5 * 60 * 1000L, checkWiFi, "checkWiFi");
-  Timer.setTimeout(48 * 60 * 60 * 1000L, compat::restart, "reboot");
-  Timer.setInterval(30 * 1000L, udpReport, "udp_report");
+  // Timer.setTimeout(48 * 60 * 60 * 1000L, compat::restart, "reboot");
+  Timer.setInterval(60 * 1000L, udpReport, "udp_report");
   mqttTimer();
 }
 
@@ -688,13 +704,13 @@ void setupCommands() {
 
 void checkModules() {
 #ifndef USING_MQTT
-  LOGN("[MQTT] MQTT Disabled");
+  LOGN("[Module] MQTT Disabled");
 #endif
 #ifndef EANBLE_LOGGING
-  LOGN("[Debug] Logging Disabled");
+  LOGN("[Module] Logging Disabled");
 #endif
 #ifdef DEBUG
-  LOGN("[Debug] Debug Mode");
+  LOGN("[Module] Debug Mode");
 #endif
 }
 
@@ -703,11 +719,10 @@ void setup(void) {
   delay(200);
   Serial.println();
   Serial.println();
-  Serial.println("====== BOOT:BEGIN ======");
+  Serial.println("====== SETUP:BEGIN ======");
   fsCheck();
   FileSerial.setup();
   delay(200);
-  debugLog("--------------------");
   setupWiFi();
   setupDate();
   debugLog("======@@@ Booting Begin @@@======");
@@ -718,8 +733,8 @@ void setup(void) {
   setupTimers(false);
   setupPump();
   checkModules();
-  debugLog("[Core] System started at " + timeString());
-  String info = "[Core] ";
+  debugLog("[Setup] System Started at " + timeString());
+  String info = "[Setup] Firmware Version: ";
   info += buildTime;
   info += "-";
   info += buildRev;
@@ -727,18 +742,18 @@ void setup(void) {
   info += " (Debug Mode)";
 #endif
   debugLog(info);
-  debugLog("[Core] Sketch:" + ESP.getSketchMD5());
-  LOGN("[Date] NTP:" + DateTime.toISOString());
-  LOGN("[WiFi] IP:" + WiFi.localIP().toString());
-  LOGN("[WiFi] Host:" + getHostName());
-  LOGF("[Core] Booting using time: %ds\n", millis() / 1000);
+  debugLog("[Setup] Sketch: " + ESP.getSketchMD5());
+  LOGN("[Setup] Current Time: " + DateTime.toISOString());
+  LOGN("[Setup] WiFi IP: " + WiFi.localIP().toString());
+  LOGN("[Setup] WiFi Host: " + getHostName());
+  LOGF("[Setup] Booting using time: %ds\n", millis() / 1000);
   debugLog("======@@@ Booting Finished @@@======");
   Serial.println(ESP.getSketchMD5());
   Serial.println(dateTimeString());
   Serial.println(getHostName());
   Serial.println(WiFi.macAddress());
   Serial.println(WiFi.localIP().toString());
-  Serial.println("====== BOOT:FINISHED ======");
+  Serial.println("====== SETUP:FINISHED ======");
 }
 
 void loop(void) {

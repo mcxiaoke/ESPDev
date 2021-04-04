@@ -80,7 +80,7 @@ static bool shouldSkipCmd(const char* cmd) {
 RestApi::RestApi(const RelayUnit& p) : pump(p) {}
 
 void RestApi::setup(AsyncWebServer* server) {
-  LOGN("RestApi::setup()");
+  // LOGN("[RestApi] setup()");
   auto names = CommandManager.getCommandNames();
   for (auto name : names) {
     if (!shouldSkipCmd(name.c_str())) {

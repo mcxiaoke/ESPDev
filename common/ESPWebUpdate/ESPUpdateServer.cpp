@@ -120,7 +120,7 @@ void ESPUpdateServer::handleUploadProgress(size_t progress, size_t total) {
   if (progress > nextChunk) {
     // progressMs = millis();
     nextChunk += 50 * 1024;
-    LOGF("[OTA] Upload progress: %d%% (%d)\n", (progress * 100) / total,
+    ULOGF("[OTA] Upload progress: %d%% (%d)\n", (progress * 100) / total,
          progress);
   }
 }

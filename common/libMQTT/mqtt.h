@@ -6,6 +6,8 @@
 #include <PubSubClient.h>
 #include <utils.h>
 
+#define CUSTOM_MQTT_KEEPALIVE 60
+
 using std::string;
 
 using MQTT_CALLBACK_FUNC = std::function<void(char*, uint8_t*, unsigned int)>;

@@ -1,8 +1,11 @@
+#include <ALogger.h>
 #include <Arduino.h>
 #include <ArduinoTimer.h>
 #include <ESPUpdateServer.h>
+#include <FileSerial.h>
 #include <FileServer.h>
 #include <SPIFFSEditor.h>
+#include <UDPSerial.h>
 #include <compat.h>
 #include <mqtt.h>
 #include <net.h>
@@ -97,7 +100,7 @@ void sendOnline() {
 }
 
 void setupWiFi() {
-  Serial.println("[WiFi] setupWiFi");
+  ULOG("[WiFi] setupWiFi");
   pinMode(led, OUTPUT);
   digitalWrite(led, HIGH);
   WiFi.mode(WIFI_STA);
@@ -105,7 +108,7 @@ void setupWiFi() {
   WiFi.setAutoConnect(true);
   WiFi.setAutoReconnect(true);
   WiFi.begin(WIFI_SSID, WIFI_PASS);
-  Serial.println("[WiFi] Connecting...");
+  ULOG("[WiFi] Connecting...");
   while (WiFi.status() != WL_CONNECTED) {
     blinkLED();
     delay(200);
@@ -117,8 +120,9 @@ void setupWiFi() {
     compat::restart();
     return;
   }
-  Serial.println("[WiFi] Connected.");
-  Serial.println(WiFi.localIP().toString());
+  UDPSerial.setup();
+  ULOG("[WiFi] Connected.");
+  ULOG(WiFi.localIP().toString());
   digitalWrite(led, LOW);
   sendOnline();
 }
@@ -127,7 +131,7 @@ void setupDate() {
   DateTime.setServer("ntp.aliyun.com");
   DateTime.setTimeZone("CST-8");
   DateTime.begin();
-  Serial.println(DateTime.toISOString());
+  ULOG(DateTime.toISOString());
 }
 
 String getFilesHtml() {
@@ -213,8 +217,9 @@ void setupServer() {
 void setup() {
   Serial.begin(115200);
   Serial.setDebugOutput(true);
-  Serial.println();
+  LOGN();
   fsCheck();
+  FileSerial.setup();
   setupWiFi();
   setupDate();
   setupServer();
