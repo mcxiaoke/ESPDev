@@ -1,5 +1,33 @@
 #include "mqtt.h"
 
+static String stateToString(int state) {
+  switch (state) {
+    case MQTT_CONNECTION_TIMEOUT:
+      return "MQTT_CONNECTION_TIMEOUT";
+    case MQTT_CONNECTION_LOST:
+      return "MQTT_CONNECTION_LOST";
+    case MQTT_CONNECT_FAILED:
+      return "MQTT_CONNECT_FAILED";
+    case MQTT_DISCONNECTED:
+      return "MQTT_DISCONNECTED";
+    case MQTT_CONNECTED:
+      return "MQTT_CONNECTED";
+    case MQTT_CONNECT_BAD_PROTOCOL:
+      return "MQTT_CONNECT_BAD_PROTOCOL";
+    case MQTT_CONNECT_BAD_CLIENT_ID:
+      return "MQTT_CONNECT_BAD_CLIENT_ID";
+    case MQTT_CONNECT_UNAVAILABLE:
+      return "MQTT_CONNECT_UNAVAILABLE";
+    case MQTT_CONNECT_BAD_CREDENTIALS:
+      return "MQTT_CONNECT_BAD_CREDENTIALS";
+    case MQTT_CONNECT_UNAUTHORIZED:
+      return "MQTT_CONNECT_UNAUTHORIZED";
+    default:
+      return "MQTTT_UNKNOWN";
+      break;
+  }
+}
+
 static string getDeviceId() {
   string mac(WiFi.macAddress().c_str());
   mac = ext::string::replace_all(mac, ":", "");
@@ -18,10 +46,6 @@ static String getOfflineMsg() {
   msg += "/Offline ";
   msg += WiFi.localIP().toString();
   return msg;
-}
-
-static void mqttFileLog(const String& text) {
-  fileLog(text, logFileName(), true);
 }
 
 // fix c++ linker undefined reference
@@ -144,14 +168,16 @@ void MqttManager::connect() {
     if (_mqtt->connect(getClientId().c_str(), getUser().c_str(),
                        getPass().c_str(), TOPIC_DEVICE_ONLINE, MQTTQOS0, true,
                        getOfflineMsg().c_str())) {
-      mqttFileLog("[MQTT] Connected to " + String(_server));
+      LOGF("[MQTT] Connected to %s\n", _server);
       sendMessage(TOPIC_DEVICE_ONLINE, getOnlineMsg().c_str());
       sendOnline();
       initSubscribe();
+      break;
     } else {
       LOGF("[MQTT] Connect failed, rc=%d\n", _mqtt->state());
     }
   }
+  _lastState = _mqtt->state();
 }
 
 void MqttManager::check() {
@@ -169,18 +195,17 @@ void MqttManager::check() {
     if (_mqtt->connect(getClientId().c_str(), getUser().c_str(),
                        getPass().c_str(), getStatusTopic().c_str(), MQTTQOS0,
                        true, "Offline")) {
-      mqttFileLog("[MQTT] Reconnected");
+      LOGN("[MQTT] Reconnected");
       sendOnline();
       initSubscribe();
     } else {
-      String msg = "[MQTT] Reconnect failed, rc=";
-      msg += _mqtt->state();
-      mqttFileLog(msg);
+      LOGF("[MQTT] Reconnect failed, rc=%d", _mqtt->state());
     }
   } else {
-    // ULOG("[MQTT] Connection is OK!");
+    ULOG("[MQTT] Connection is OK!");
     // mqttPing();
   }
+  _lastState = _mqtt->state();
 }
 
 void MqttManager::begin(CMD_HANDLER_FUNC handler) {
@@ -205,9 +230,13 @@ void MqttManager::loop() {
   if (ms - _lastLoopCallMs > 1000L) {
     _lastLoopCallMs = ms;
     _mqtt->loop();
+    if (_mqtt->state() != _lastState) {
+      _lastState = _mqtt->state();
+      handleStateChange(_lastState);
+    }
   }
 
-  if (ms - _lastCheckMs > (CUSTOM_MQTT_KEEPALIVE - 5) * 1000L) {
+  if (ms - _lastCheckMs > (CUSTOM_MQTT_KEEPALIVE * 10 - 5) * 1000L) {
     _lastCheckMs = ms;
     check();
   }
@@ -216,7 +245,7 @@ void MqttManager::loop() {
 void MqttManager::mute(bool silent) { _silentMode = silent; }
 
 void MqttManager::handleStateChange(int state) {
-  LOGF("[MQTT] State changed to %d\n", state);
+  ULOGF("[MQTT] State changed to %s\n", stateToString(state));
 }
 
 void MqttManager::handleMessage(const char* _topic, const uint8_t* _payload,
@@ -239,9 +268,7 @@ void MqttManager::handleMessage(const char* _topic, const uint8_t* _payload,
     // message = "/online";
   }
 
-  mqttFileLog(ext::format::strFormat("[MQTT][%s] %s (%u)", topic.c_str(),
-                                     message, _length)
-                  .c_str());
+  LOGF("[MQTT][%s] %s (%u)", topic.c_str(), message, _length);
 
   // replace newline for log print
   message = ext::string::replace_all(message, "\n", " ");
@@ -279,9 +306,9 @@ void MqttManager::sendOnline() {
   bool ret =
       sendMessage(getStatusTopic().c_str(), getOnlineMsg().c_str(), true);
   if (!ret) {
-    LOGN("[MQTT] online sent failed.");
+    // LOGN("[MQTT] online sent failed.");
   } else {
-    LOGN("[MQTT] online sent successfully.");
+    // LOGN("[MQTT] online sent successfully.");
   }
 }
 

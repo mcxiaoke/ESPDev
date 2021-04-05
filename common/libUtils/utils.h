@@ -44,9 +44,6 @@ String getMD5(const char* data);
 String getMD5(const String& data);
 void showESP(const char* extra = "");
 String logFileName(const String& suffix = "");
-size_t fileLog(const String& text, const String& path = logFileName(),
-               bool appendDate = true);
-bool trimLogFile(String fileName = logFileName());
 size_t writeLine(const String& path, const String& line);
 size_t writeFile(const String& path, const String& content, bool append = true);
 String readFile(const String& path);

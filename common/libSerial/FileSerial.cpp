@@ -12,7 +12,7 @@ void FileSerialClass::setup() {
   this->end();
   // FileFS.remove(FILE_SERIAL_NAME);
   File f = FileFS.open(this->path, "a");
-  f.print("\n\n\n");
+  f.print("\n");
   f.close();
 }
 

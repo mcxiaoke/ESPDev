@@ -45,7 +45,7 @@ void fsCheck() {
 #endif
     LOGN(F("[Core] File System failed."));
   } else {
-    LOGN(F("[Core] File System ok."));
+    LOGN(F("[Core] File System OK."));
     // #if defined(ESP8266)
     //     FSInfo info;
     //     FileFS.info(info);
@@ -112,38 +112,6 @@ String logFileName(const String& suffix) {
   }
   fileName += ".txt";
   return fileName;
-}
-
-size_t fileLog(const String& text, const String& path, bool appendDate) {
-  String message = "";
-#ifdef DEBUG
-  message += "[D]";
-#endif
-  if (appendDate) {
-    // char buf[8];
-    // sprintf(buf, "%08lu", millis());
-    message += "[";
-    message += dateTimeString();
-    message += "] ";
-  }
-  message += text;
-  LOGN(text);
-  size_t c = writeLine(path, message);
-  return c;
-}
-
-bool trimLogFile(String fileName) {
-  if (FileFS.exists(fileName)) {
-    File file = FileFS.open(fileName, "r");
-    if (file.size() > 100 * 1024) {
-      String newName = fileName + ".old";
-      FileFS.remove(newName);
-      if (FileFS.rename(fileName.c_str(), newName.c_str())) {
-        return true;
-      }
-    }
-  }
-  return false;
 }
 
 size_t writeLine(const String& path, const String& line) {

@@ -42,6 +42,7 @@ class MqttManager {
   const char* _username;
   const char* _password;
   bool _silentMode;
+  int _lastState;
   unsigned long _lastOnlineMs;
   unsigned long _lastOfflineMs;
   unsigned long _lastCheckMs;

@@ -94,7 +94,7 @@ void RelayUnit::check() {
   //   LOGN("RelayUnit::check");
   if (isOn() && pStatus->lastStart > 0 &&
       (millis() - pStatus->lastStart) / 1000 >= pConfig->duration) {
-    fileLog(F("Stopped by watchdog"));
+    LOGN(F("Stopped by watchdog"));
     stop();
   }
 }

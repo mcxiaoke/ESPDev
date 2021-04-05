@@ -81,20 +81,11 @@ String getFilesText() {
 
 ////////// MQTT Handlers Begin //////////
 
-size_t debugLog(const String text) {
-#ifndef DEBUG
-#ifdef USING_MQTT
-  sendMqttLog(text);
-#endif
-#endif
-  return fileLog(text);
-}
-
 void setupMqtt() {
 #ifdef USING_MQTT
   mqttMgr.begin(handleCommand);
 #else
-  debugLog("MQTT Disabled");
+  LOGN("MQTT Disabled");
 #endif
 }
 
@@ -139,7 +130,7 @@ bool mqttConnected() {
 ////////// Command Handlers Begin //////////
 
 void cmdReboot(const CommandParam& param = CommandParam::INVALID) {
-  debugLog(F("[Core] Reboot now"));
+  LOGN(F("[Core] Reboot now"));
   sendMqttLog("System will reboot now");
   Timer.setTimeout(
       1000, []() { ESP.restart(); }, "cmdReboot");
@@ -169,7 +160,7 @@ void cmdStop(const CommandParam& param = CommandParam::INVALID) {
 
 void cmdClear(const CommandParam& param = CommandParam::INVALID) {
   SPIFFS.remove(logFileName());
-  debugLog(F("Logs cleared"));
+  LOGN(F("Logs cleared"));
 }
 
 void cmdDelete(const CommandParam& param = CommandParam::INVALID) {
@@ -183,7 +174,7 @@ void cmdDelete(const CommandParam& param = CommandParam::INVALID) {
   String s = "File ";
   s += fileName;
   s += " deleted.";
-  debugLog(s);
+  LOGN(s);
 }
 
 void cmdFiles(const CommandParam& param = CommandParam::INVALID) {
@@ -274,7 +265,7 @@ void cmdNotFound(const CommandParam& param = CommandParam::INVALID) {
 void checkWiFi() {
   if (!WiFi.isConnected()) {
     WiFi.reconnect();
-    debugLog(F("[WiFi] WiFi Reconnecting"));
+    LOGN(F("[WiFi] WiFi Reconnecting"));
   } else {
     // ULOG("[WiFi] Connection is OK!");
   }
@@ -473,8 +464,8 @@ WiFiEventHandler h0, h1, h2;
 wifi_event_id_t h0, h1, h2;
 #endif
 
-void setupWiFi() {
-  // LOGN("[Setup] setupWiFi");
+bool setupWiFi() {
+  Serial.println("setupWiFi");
   digitalWrite(led, LOW);
   WiFi.mode(WIFI_STA);
   WiFi.setAutoConnect(true);
@@ -500,31 +491,34 @@ void setupWiFi() {
 #endif
 
   WiFi.begin(ssid, password);
-  LOGF("[Setup] WiFi Connecting with (%s:%s)\n", ssid, password);
+  LOGF("[Setup] Connecting to WiFi:%s (%s)\n", ssid, password);
   auto startMs = millis();
   // setup wifi timeout 60 seconds
   while (!WiFi.isConnected() && (millis() - startMs) < 60 * 1000L) {
     delay(1000);
     if (millis() / 1000 % 10 == 0) {
-      LOGF("[Setup] WiFi Connecting... (%uls)\n", millis() / 1000);
+      LOGF("[Setup] WiFi Connecting... (%d)\n", WiFi.status());
     }
   }
   if (!WiFi.isConnected()) {
     LOGN(F("[Setup] WiFi connect failed, will reboot"));
-    cmdReboot();
-    return;
+  } else {
+    startMillis = millis();
+    LOGF("[Setup] WiFi setup using %lus.\n", startMillis / 1000);
   }
-  startMillis = millis();
-  LOGF("[Setup] WiFi setup using %lus.\n", startMillis / 1000);
+  return WiFi.isConnected();
 }
 
-void setupDate() {
-  if (WiFi.isConnected()) {
-    LOGN("[Setup] setupDate using ntp server1");
-    DateTime.setTimeZone("CST-8");
-    DateTime.setServer("cn.ntp.org.cn");
-    DateTime.begin(10 * 1000L);
+bool setupDate() {
+  Serial.println("setupDate");
+  if (!WiFi.isConnected()) {
+    return false;
   }
+  LOGN("[Setup] setupDate using ntp server1");
+  DateTime.setTimeZone("CST-8");
+  DateTime.setServer("cn.ntp.org.cn");
+  DateTime.begin(10 * 1000L);
+
   if (!DateTime.isTimeValid()) {
     LOGN("[Setup] setupDate using ntp server2");
     DateTime.setServer("time.pool.aliyun.com");
@@ -537,18 +531,20 @@ void setupDate() {
   }
   if (!DateTime.isTimeValid()) {
     LOGN(F("[Setup] Time sync failed, will reboot"));
-    cmdReboot();
-    return;
+  } else {
+    LOGF("[Setup] Time sync using %lus.\n", (millis() - startMillis) / 1000);
+    startMillis = millis();
   }
-  LOGF("[Setup] Time sync using %lus.\n", (millis() - startMillis) / 1000);
-  LOGF("[Setup] Now time is %s\n", DateTime.toString());
-  startMillis = millis();
+  return DateTime.isTimeValid();
 }
 
-void setupApi() { api.setup(&server); }
+void setupApi() {
+  Serial.println("setupApi");
+  api.setup(&server);
+}
 
 void setupUpdate() {
-  // LOGN("setupUpdate");
+  Serial.println("setupUpdate");
   otaUpdate.setup(&server);
 }
 
@@ -595,7 +591,7 @@ void handleNotFound(AsyncWebServerRequest* request) {
 }
 
 void setupServer() {
-  // LOGN("[Setup] setupServer");
+  Serial.println("setupServer");
   if (MDNS.begin(getHostName().c_str())) {
     LOGN(F("[Setup] MDNS responder started"));
   }
@@ -618,7 +614,7 @@ void setupServer() {
 }
 
 void setupPump() {
-  // LOGN("[Setup] setupPump at PIN 13");
+  Serial.println("setupPump at PIN 13");
   // default pin nodemcu D5, nodemcu-32s 13
   pump.begin({"pump", 13, RUN_INTERVAL_DEFAULT, RUN_DURATION_DEFAULT});
   pump.setCallback([](const RelayEvent evt, int reason) {
@@ -626,23 +622,23 @@ void setupPump() {
       case RelayEvent::Started: {
         digitalWrite(led, HIGH);
         String msg = F("[Core] Pump Started");
-        debugLog(msg);
+        LOGN(msg);
         // sendMqttStatus(msg);
       } break;
       case RelayEvent::Stopped: {
         digitalWrite(led, LOW);
         String msg = F("[Core] Pump Stopped");
-        debugLog(msg);
+        LOGN(msg);
         // sendMqttStatus(msg);
       } break;
       case RelayEvent::Enabled: {
-        debugLog(F("[Core] Pump enabled"));
+        LOGN(F("[Core] Pump enabled"));
       } break;
       case RelayEvent::Disabled: {
-        debugLog(F("[Core] Pump disabled"));
+        LOGN(F("[Core] Pump disabled"));
       } break;
       case RelayEvent::ConfigChanged: {
-        debugLog(F("[Core] Config changed"));
+        LOGN(F("[Core] Config changed"));
       } break;
       default:
         break;
@@ -662,7 +658,7 @@ void udpReport() {
 }
 
 void setupTimers(bool reset) {
-  // LOGN("setupTimers");
+  Serial.println("setupTimers");
   if (reset) {
     Timer.reset();
   }
@@ -673,7 +669,7 @@ void setupTimers(bool reset) {
 }
 
 void setupCommands() {
-  // LOGN("setupCommands");
+  Serial.println("setupCommands");
   //   CommandManager.setDefaultHandler(cmdNotFound);
   CommandManager.addCommand("clear", "clear current log", cmdClear);
   CommandManager.addCommand("reboot", "device reboot", cmdReboot);
@@ -694,52 +690,48 @@ void setupCommands() {
   CommandManager.addCommand("help", "show help", cmdHelp);
 }
 
-void checkModules() {
-#ifndef USING_MQTT
-  LOGN("[Module] MQTT Disabled");
-#endif
-#ifndef EANBLE_LOGGING
-  LOGN("[Module] Logging Disabled");
-#endif
-#ifdef DEBUG
-  LOGN("[Module] Debug Mode");
-#endif
-}
-
 void setup(void) {
   Serial.begin(115200);
   delay(200);
   Serial.println();
   Serial.println();
   Serial.println("====== SETUP:BEGIN ======");
+  Serial.println("FILE SYSTEM CHECK");
   fsCheck();
   FileSerial.setup();
   delay(200);
-  setupWiFi();
-  setupDate();
-  debugLog("======@@@ Booting Begin @@@======");
+  bool done = setupWiFi();
+  if (!done) {
+    ESP.restart();
+    return;
+  }
+  done = setupDate();
+  if (!done) {
+    ESP.restart();
+    return;
+  }
+  LOGN("======@@@ Booting Begin @@@======");
   pinMode(led, OUTPUT);
   setupServer();
   setupMqtt();
   setupCommands();
   setupTimers(false);
   setupPump();
-  checkModules();
-  debugLog("[Setup] System Started at " + timeString());
-  String info = "[Setup] Firmware Version: ";
+  LOGN("[Setup] System Started at " + timeString());
+  String info = "[Setup] Version: ";
   info += buildTime;
   info += "-";
   info += buildRev;
 #ifdef DEBUG
-  info += " (Debug Mode)";
+  info += " (Debug)";
 #endif
-  debugLog(info);
-  debugLog("[Setup] Sketch: " + ESP.getSketchMD5());
-  LOGN("[Setup] Current Time: " + DateTime.toISOString());
+  LOGN(info);
+  LOGN("[Setup] Sketch: " + ESP.getSketchMD5());
+  LOGN("[Setup] Date: " + DateTime.toISOString());
   LOGN("[Setup] WiFi IP: " + WiFi.localIP().toString());
   LOGN("[Setup] WiFi Host: " + getHostName());
   LOGF("[Setup] Booting using time: %ds\n", millis() / 1000);
-  debugLog("======@@@ Booting Finished @@@======");
+  LOGN("======@@@ Booting Finished @@@======");
   Serial.println(ESP.getSketchMD5());
   Serial.println(dateTimeString());
   Serial.println(getHostName());
