@@ -111,13 +111,6 @@ void checkMqtt() {
 #endif
 }
 
-void mqttTimer() {
-#ifdef USING_MQTT
-  Timer.setInterval((CUSTOM_MQTT_KEEPALIVE * 5 - 5) * 1000L, checkMqtt,
-                    "checkMqtt");
-#endif
-}
-
 void sendMqttStatus(const String& msg) {
 #ifdef USING_MQTT
   mqttMgr.sendStatus(msg);
@@ -283,7 +276,7 @@ void checkWiFi() {
     WiFi.reconnect();
     debugLog(F("[WiFi] WiFi Reconnecting"));
   } else {
-    ULOG("[WiFi] Connection is OK!");
+    // ULOG("[WiFi] Connection is OK!");
   }
 }
 
@@ -677,7 +670,6 @@ void setupTimers(bool reset) {
   Timer.setInterval(5 * 60 * 1000L, checkWiFi, "checkWiFi");
   // Timer.setTimeout(48 * 60 * 60 * 1000L, compat::restart, "reboot");
   Timer.setInterval(60 * 1000L, udpReport, "udp_report");
-  mqttTimer();
 }
 
 void setupCommands() {

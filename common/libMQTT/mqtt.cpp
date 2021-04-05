@@ -178,23 +178,38 @@ void MqttManager::check() {
       mqttFileLog(msg);
     }
   } else {
-    ULOG("[MQTT] Connection is OK!");
+    // ULOG("[MQTT] Connection is OK!");
     // mqttPing();
   }
 }
 
 void MqttManager::begin(CMD_HANDLER_FUNC handler) {
+  _lastCheckMs = millis();
   _handler = handler;
   if (!_silentMode) {
     connect();
   } else {
     LOGN(F("[MQTT] Silent Mode, don't connect"));
   }
+  // https://stackoverflow.com/questions/7582546
+  // std::function<void(void)> f = std::bind(&Foo::doSomething, this);
+  // using namespace std::placeholders;
+  // std::function<void(int,int)> f = std::bind(&Foo::doSomethingArgs, this,
+  // std::placeholders::_1, std::placeholders::_2);
+  // auto func = std::bind(&MqttManager::check, this);
+  // Timer.setInterval((CUSTOM_MQTT_KEEPALIVE - 5) * 1000L, func, "mqtt_check");
 }
 
 void MqttManager::loop() {
-  if (!_silentMode) {
+  auto ms = millis();
+  if (ms - _lastLoopCallMs > 1000L) {
+    _lastLoopCallMs = ms;
     _mqtt->loop();
+  }
+
+  if (ms - _lastCheckMs > (CUSTOM_MQTT_KEEPALIVE - 5) * 1000L) {
+    _lastCheckMs = ms;
+    check();
   }
 }
 

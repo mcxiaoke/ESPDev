@@ -6,7 +6,7 @@
 #include <PubSubClient.h>
 #include <utils.h>
 
-#define CUSTOM_MQTT_KEEPALIVE 60
+#define CUSTOM_MQTT_KEEPALIVE 30
 
 using std::string;
 
@@ -44,6 +44,8 @@ class MqttManager {
   bool _silentMode;
   unsigned long _lastOnlineMs;
   unsigned long _lastOfflineMs;
+  unsigned long _lastCheckMs;
+  unsigned long _lastLoopCallMs;
   WiFiClient _client;
   PubSubClient* _mqtt;
   CMD_HANDLER_FUNC _handler;
