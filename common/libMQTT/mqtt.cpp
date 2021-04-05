@@ -245,7 +245,7 @@ void MqttManager::loop() {
 void MqttManager::mute(bool silent) { _silentMode = silent; }
 
 void MqttManager::handleStateChange(int state) {
-  ULOGF("[MQTT] State changed to %s\n", stateToString(state));
+  LOGF("[MQTT] State changed to %s\n", stateToString(state));
 }
 
 void MqttManager::handleMessage(const char* _topic, const uint8_t* _payload,

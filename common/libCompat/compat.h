@@ -12,7 +12,6 @@
 #include <ESP8266httpUpdate.h>
 #include <ESP8266mDNS.h>
 #include <WiFiClientSecureBearSSL.h>
-#include <WiFiUdp.h>
 #include <flash_hal.h>
 #elif defined(ESP32)
 #include <ESPmDNS.h>
