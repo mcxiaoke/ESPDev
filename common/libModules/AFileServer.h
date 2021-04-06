@@ -10,10 +10,10 @@
 
 constexpr const char MIME_TEXT_PLAIN[] PROGMEM = "text/plain";
 constexpr const char MIME_TEXT_HTML[] PROGMEM = "text/html";
+// {"code":404,"msg":"resource not found","uri":"/api/notfound"}
 
 class AFileServerClass {
  public:
-  void setup(AsyncWebServer* server);
   bool handle(AsyncWebServerRequest* request);
   bool begin() { return true; };
   void loop(){};

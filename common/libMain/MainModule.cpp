@@ -6,6 +6,7 @@ AWebServer webServer(80);
 MQTTManager mqtt(MQTT_SERVER, MQTT_PORT, MQTT_USER, MQTT_PASS);
 
 bool _required_setup_wifi() {
+  Serial.println("_required_setup_wifi");
   AWiFi.onWiFiReady([]() { Serial.println("WiFi Ready"); });
   AWiFi.onWiFiLost([]() { Serial.println("WiFi Lost"); });
   AWiFi.setCredentials(WIFI_SSID, WIFI_PASS);
@@ -13,7 +14,7 @@ bool _required_setup_wifi() {
 }
 
 bool _required_setup_date() {
-  Serial.println("setupDate");
+  Serial.println("_required_setup_date");
   if (!WiFi.isConnected()) {
     return false;
   }
@@ -53,6 +54,7 @@ void _required_before_setup() {
 }
 
 void _required_after_setup() {
+  Serial.println("_required_after_setup");
   LOGF("[Setup] Host: %s (%s)\n", compat::getHostName(),
        WiFi.localIP().toString());
   LOGN("[Setup] Sketch: " + ESP.getSketchMD5());
@@ -64,6 +66,7 @@ void _required_after_setup() {
 
 void setup() {
   _required_before_setup();
+  showESP("beforeWiFi");
   beforeWiFi();
   bool ret = _required_setup_wifi();
   if (!ret) {
@@ -71,6 +74,7 @@ void setup() {
     compat::restart();
     return;
   }
+  showESP("beforeDate");
   ret = _required_setup_date();
   if (!ret) {
     LOGN("[ERROR] Date Sync failed, will reboot.");
@@ -78,10 +82,13 @@ void setup() {
     return;
   }
   ALogger.begin();
+  showESP("beforeServer");
   beforeServer();
   webServer.begin();
+  showESP("beforeMQTT");
   mqtt.begin();
   setupLast();
+  showESP("beforeLast");
   _required_after_setup();
 }
 

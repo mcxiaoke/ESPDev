@@ -1,33 +1,5 @@
 #include "AFileServer.h"
 
-static String getFilesHtml() {
-  auto items = listFiles();
-  String html = "<ul>";
-  for (auto const& i : items) {
-    html += "<li><a href='";
-    html += std::get<0>(i);
-    html += "' target='_blank' >";
-    html += std::get<0>(i);
-    html += " (";
-    html += std::get<1>(i);
-    html += " bytes)</a></li>\n";
-  }
-  html += "</ul>";
-  return html;
-}
-
-void AFileServerClass::setup(AsyncWebServer* server) {
-  server->rewrite("/s", "/serial");
-  server->on("/serial", [](AsyncWebServerRequest* request) {
-    request->send(FileFS, "/serial.log", "text/plain");
-  });
-  server->on("/files", [](AsyncWebServerRequest* request) {
-    request->send(200, MIME_TEXT_HTML, getFilesHtml());
-  });
-  server->onNotFound(
-      [](AsyncWebServerRequest* request) { AFileServer.handle(request); });
-}
-
 bool AFileServerClass::handle(AsyncWebServerRequest* request) {
   String path = request->url();
   // LOGN("[FileServer] Handling " + path);

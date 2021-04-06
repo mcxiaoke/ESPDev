@@ -44,6 +44,9 @@ size_t AUDPLogger::print(long c) { return 0; }
 size_t AUDPLogger::print(unsigned long c) { return 0; }
 
 size_t AUDPLogger::print(const char* msg) {
+  if (!WiFi.isConnected()) {
+    return 0;
+  }
   if (!conneted) {
     return 0;
   }
@@ -59,6 +62,9 @@ size_t AUDPLogger::print(const char* msg) {
   return nw;
 }
 size_t AUDPLogger::println(const char* s) {
+  if (!WiFi.isConnected()) {
+    return 0;
+  }
   if (!conneted) {
     return 0;
   }
@@ -81,23 +87,23 @@ void AUDPLogger::loop() {
   if (!conneted) {
     return;
   }
-  int size = udp.parsePacket();
-  if (size > 0) {
-    int n = udp.read(incomingPacket, UDP_BUFFER_SIZE);
-    if (n > 0) {
-      incomingPacket[n] = 0;
-    }
-    String s = "Received: '";
-    s += incomingPacket;
-    s += "' (";
-    s += udp.remoteIP().toString();
-    s += ":";
-    s += udp.remotePort();
-    s += ")";
-    // this->print(s);
-    this->handleCmd(incomingPacket);
-    memset(incomingPacket, 0, UDP_BUFFER_SIZE + 1);
-  }
+  // int size = udp.parsePacket();
+  // if (size > 0) {
+  //   int n = udp.read(incomingPacket, UDP_BUFFER_SIZE);
+  //   if (n > 0) {
+  //     incomingPacket[n] = 0;
+  //   }
+  //   String s = "Received: '";
+  //   s += incomingPacket;
+  //   s += "' (";
+  //   s += udp.remoteIP().toString();
+  //   s += ":";
+  //   s += udp.remotePort();
+  //   s += ")";
+  //   // this->print(s);
+  //   this->handleCmd(incomingPacket);
+  //   memset(incomingPacket, 0, UDP_BUFFER_SIZE + 1);
+  // }
 }
 void AUDPLogger::handleCmd(const char* cmd) {
   if (cmd[0] != '/') {

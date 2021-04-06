@@ -81,8 +81,8 @@ void ASimpleTimer::loop() {
 
       if (debugMode || task->debug) {
         Serial.printf(
-            "[Timer-%s][%s][%d] num=%d max=%d int=%lu prev=%lu cur=%lu\n", name,
-            task->name.c_str(), task->id, task->numRuns, task->maxNumRuns,
+            "[Timer-%s][%s][%d] num=%d max=%d int=%lu prev=%lu cur=%lu run\n",
+            name, task->name.c_str(), task->id, task->numRuns, task->maxNumRuns,
             task->interval / 1000, task->prevMillis / 1000,
             current_millis / 1000);
       }
@@ -253,4 +253,4 @@ String ASimpleTimer::getDescription(int taskId) const {
   return "";
 }
 
-ASimpleTimer Timer;
+ASimpleTimer Timer{"default"};

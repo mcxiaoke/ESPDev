@@ -9,6 +9,7 @@
 #include <Arduino.h>
 #include <MQTTManager.h>
 #include <private.h>
+#include <tools.h>
 
 extern AWebServer webServer;
 extern MQTTManager mqtt;

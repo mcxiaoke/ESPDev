@@ -188,9 +188,9 @@ unsigned char h2int(char c) {
 
 void showESP(const char* extra) {
 #if defined(ESP8266)
-  // LOGF("[Core] Heap: %d/%d %s\n", ESP.getFreeContStack(), ESP.getFreeHeap(),
-  //  extra);
+  Serial.printf("[Core] Heap: %d/%d %s\n", ESP.getFreeContStack(),
+                ESP.getFreeHeap(), extra);
 #elif defined(ESP32)
-  // LOGF("[Core] Heap: %d %s\n", ESP.getFreeHeap(), extra);
+  Serial.printf("[Core] Heap: %d %s\n", ESP.getFreeHeap(), extra);
 #endif
 }

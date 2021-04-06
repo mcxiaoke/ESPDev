@@ -202,7 +202,7 @@ void MQTTManager::check() {
       LOGF("[MQTT] Reconnect failed, rc=%d", _mqtt->state());
     }
   } else {
-    ULOG("[MQTT] Connection is OK!");
+    ULOGN("[MQTT] Connection is OK!");
     // mqttPing();
   }
   _lastState = _mqtt->state();
@@ -252,9 +252,13 @@ void MQTTManager::handleStateChange(int state) {
 
 void MQTTManager::handleMessage(const char* _topic, const uint8_t* _payload,
                                 const unsigned int _length) {
-  yield();
-  string topic(_topic);
-  string message(_payload, _payload + _length);
+  Serial.println(_topic);
+  Serial.println((char*)_payload);
+  Serial.flush();
+  string topic("hello");
+  string message("world");
+  // string topic(_topic);
+  // string message(_payload, _payload + _length);
   if (strcmp("test", _topic) == 0) {
     LOGF("[MQTT] Test message: %s\n", message.c_str());
     sendMessage("test/resp", message.c_str());

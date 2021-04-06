@@ -8,10 +8,10 @@
 // print logs only on debug mode
 // #if defined(DEBUG) || defined(EANBLE_LOGGING)
 // #define LOG(...) _log(__VA_ARGS__)
-#define LOG(...) _log(__VA_ARGS__)
+// #define LOG(...) _log(__VA_ARGS__)
 #define LOGN(...) _logn(__VA_ARGS__)
 #define LOGF(...) _logf(__VA_ARGS__)
-#define ULOG(...) _ulog(__VA_ARGS__)
+#define ULOGN(...) _ulog(__VA_ARGS__)
 #define ULOGF(...) _ulogf(__VA_ARGS__)
 // #else
 // #define LOG(...)

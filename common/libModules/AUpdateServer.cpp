@@ -68,7 +68,7 @@ void AUpdateServerClass::handleUpdatePage(AsyncWebServerRequest* request) {
 
 void AUpdateServerClass::handleUploadEnd(AsyncWebServerRequest* request) {
   if (!_authenticated) return request->requestAuthentication();
-  ULOG("[OTA] Update End!");
+  ULOGN("[OTA] Update End!");
   delay(500);
   if (!Update.hasError()) {
     AsyncWebServerResponse* response;
@@ -118,7 +118,7 @@ void AUpdateServerClass::handleUpload(AsyncWebServerRequest* request,
     return;
   }
   if (!index) {
-    ULOG("[OTA] Update process INIT STAGE");
+    ULOGN("[OTA] Update process INIT STAGE");
     LOGN("[OTA] Update Old: " + ESP.getSketchMD5());
     _updaterError = String();
     int cmd = (filename.indexOf("spiffs") > -1) ? CMD_FS : CMD_FLASH;
@@ -155,7 +155,7 @@ void AUpdateServerClass::handleUpload(AsyncWebServerRequest* request,
     }
   }
   if (final) {
-    ULOG("[OTA] Update process FINAL STAGE");
+    ULOGN("[OTA] Update process FINAL STAGE");
     if (!Update.end(true)) {
       _setUpdaterError();
       LOGN("[OTA] Update Failed!");
@@ -166,6 +166,7 @@ void AUpdateServerClass::handleUpload(AsyncWebServerRequest* request,
 }
 
 bool AUpdateServerClass::begin() {
+  _server->rewrite("/u", "/update");
   _server->on(_path.c_str(), HTTP_GET, [&](AsyncWebServerRequest* request) {
     handleUpdatePage(request);
   });

@@ -8,6 +8,9 @@
 #define FILE_SERIAL_NAME "/serial.log"
 
 class AFileLogger : public Stream {
+ private:
+  unsigned int _lastCloseMs;
+
  public:
   AFileLogger();
   ~AFileLogger();

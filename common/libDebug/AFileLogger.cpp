@@ -1,24 +1,29 @@
 #include "AFileLogger.h"
 
 File AFileLogger::ensureFile() {
-  if (!this->fp.available()) {
-    this->fp.close();
+  if (!this->fp.isFile()) {
+    Serial.println("=== Reopen file ===");
     this->fp = FileFS.open(this->path, "a");
   }
   return this->fp;
 }
 
 void AFileLogger::setup() {
-  this->end();
-  // FileFS.remove(FILE_SERIAL_NAME);
-  File f = FileFS.open(this->path, "a");
-  f.print("\n");
-  f.close();
+  ensureFile();
+  this->fp.print("\n");
+  this->fp.flush();
 }
 
 void AFileLogger::end() {
-  if (this->fp) {
-    this->fp.close();
+  auto now = millis();
+  if (now - _lastCloseMs > 10 * 1000L) {
+    _lastCloseMs = now;
+    if (this->fp) {
+      this->fp.close();
+      Serial.println("=== Close file === " + this->fp);
+    }
+  } else {
+    this->fp.flush();
   }
 };
 
