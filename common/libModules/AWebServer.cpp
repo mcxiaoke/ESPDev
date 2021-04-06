@@ -4,6 +4,8 @@ AWebServer::AWebServer(uint16_t _port) : port(_port), server(_port) {}
 
 AWebServer::~AWebServer() {}
 
+void AWebServer::setup(AWebServerFunc func) { func(&server); }
+
 bool AWebServer::begin() {
   server.on("/", [](AsyncWebServerRequest* request) {
     request->send(200, MIME_TEXT_PLAIN, compat::getHostName());

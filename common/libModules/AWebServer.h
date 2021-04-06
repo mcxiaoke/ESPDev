@@ -7,6 +7,11 @@
 #include <ESPAsyncWebServer.h>
 #include <compat.h>
 
+class AWebServer;
+
+// typedef void (*AWebServerFunc)(AsyncWebServer* server);
+typedef std::function<void(AsyncWebServer* server)> AWebServerFunc;
+
 class AWebServer : AModuleInterface {
  private:
   uint16_t port;
@@ -15,7 +20,9 @@ class AWebServer : AModuleInterface {
  public:
   AWebServer(uint16_t port);
   ~AWebServer();
+  AsyncWebServer getServer() { return server; };
   const char* getModuleName() { return "AWebServer"; };
+  void setup(AWebServerFunc func);
   bool begin();
   void loop();
 };

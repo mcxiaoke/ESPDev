@@ -39,9 +39,9 @@ void checkFileSystem() {
 #elif defined(ESP32)
   if (!FileFS.begin(true)) {
 #endif
-    // Serial.println(F("[Core] File System failed."));
+    Serial.println("[Core] File System failed.");
   } else {
-    // Serial.println(F("[Core] File System OK."));
+    Serial.println("[Core] File System OK.");
     // #if defined(ESP8266)
     //     FSInfo info;
     //     FileFS.info(info);
