@@ -4,6 +4,7 @@
 #define ARDUINOJSON_ENABLE_STD_STRING 1
 
 #include <ACommand.h>
+#include <AFileUtils.h>
 #include <ALogger.h>
 #include <ArduinoJson.h>
 #include <AsyncJson.h>
@@ -11,8 +12,10 @@
 #include <ESPAsyncWebServer.h>
 #include <RelayUnit.h>
 #include <build.h>
+#include <compat.h>
 
 #include <algorithm>
+#include <memory>
 #include <tuple>
 
 using RestResponse = std::tuple<int, String>;
@@ -26,7 +29,7 @@ class ResetHandler : AsyncWebHandler {
 class RestApi {
  public:
   RestApi(const RelayUnit& p);
-  void setup(AsyncWebServer* server);
+  void setup(std::shared_ptr<AsyncWebServer> server);
   void handleControl(AsyncWebServerRequest* r);
   void jsonControl(const JsonVariant& json, const String& arguments);
   void jsonHelp(const JsonVariant& json);

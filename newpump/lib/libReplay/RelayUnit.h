@@ -1,10 +1,9 @@
 #ifndef ESP_DEV_RELAY_UNIT
 #define ESP_DEV_RELAY_UNIT
 
-#include <ALogger.h>
-#include <ArduinoTimer.h>
+#include <ADebug.h>
+#include <ATimer.h>
 #include <compat.h>
-#include <utils.h>
 
 #include <ext/string.hpp>
 #include <memory>
@@ -59,7 +58,7 @@ class RelayUnit {
  private:
   std::shared_ptr<RelayConfig> pConfig;
   std::shared_ptr<RelayStatus> pStatus;
-  ArduinoTimer timer{"replay"};
+  ASimpleTimer rTimer{"replay"};
   int runTimerId = -1;
   int checkTimerId = -1;
   int stopTimerId = -1;

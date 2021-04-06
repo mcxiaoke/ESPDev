@@ -79,14 +79,14 @@ static bool shouldSkipCmd(const char* cmd) {
 
 RestApi::RestApi(const RelayUnit& p) : pump(p) {}
 
-void RestApi::setup(AsyncWebServer* server) {
-  // LOGN("[RestApi] setup()");
+void RestApi::setup(std::shared_ptr<AsyncWebServer> server) {
+  ULOGN("[RestApi] setup()");
   auto names = CommandManager.getCommandNames();
   for (auto name : names) {
     if (!shouldSkipCmd(name.c_str())) {
       auto f = "/api/" + name;
       auto t = "/api/control?cmd=" + name;
-      //   LOGN("RestApi::addRewrite", f, t);
+      ULOGF("RestApi::addRewrite %s->%s\n", f, t);
       server->addRewrite(new AsyncWebRewrite(f.c_str(), t.c_str()));
     }
   }
@@ -229,7 +229,7 @@ void RestApi::jsonStatus(const JsonVariant& doc) {
   doc["last_stop"] = st->lastStop / 1000;
   doc["last_reset"] = st->timerResetAt / 1000;
   doc["heap"] = ESP.getFreeHeap();
-  doc["device"] = getUDID();
+  doc["device"] = compat::getHostName();
 #ifdef ESP8266
   doc["chip_id"] = ESP.getChipId();
 #endif
@@ -249,7 +249,7 @@ void RestApi::jsonStatus(const JsonVariant& doc) {
   jsonTask(task);
 }
 void RestApi::jsonNetwork(const JsonVariant& doc) {
-  doc["device"] = getUDID();
+  doc["device"] = compat::getHostName();
   doc["mac"] = WiFi.macAddress();
   doc["ip"] = WiFi.localIP().toString();
   doc["ssid"] = WiFi.SSID();
@@ -283,7 +283,7 @@ void RestApi::jsonSimple(const JsonVariant& doc) {
 }
 
 void RestApi::jsonLogs(const JsonVariant& json) {
-  filesToJson(listLogs(), json);
+  filesToJson(listFiles("/logs"), json);
 }
 void RestApi::jsonFiles(const JsonVariant& json) {
   filesToJson(listFiles(), json);

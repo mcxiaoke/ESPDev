@@ -1,22 +1,9 @@
+#include <Arduino.h>
+#include <MainModule.h>
 #include <RelayUnit.h>
 #include <build.h>
-#include <deps.h>
 #include <rest.h>
-
-using std::string;
-// https://stackoverflow.com/questions/5287566/constexpr-and-deprecated-conversion-warning
-
-constexpr const char* ssid = WIFI_SSID;
-constexpr const char* password = WIFI_PASS;
-
-constexpr const char* mqttServer = MQTT_SERVER;
-constexpr const char* mqttUser = MQTT_USER;
-constexpr const char* mqttPass = MQTT_PASS;
-constexpr int mqttPort = MQTT_PORT;
-
-constexpr const char* buildTime = APP_BUILD;
-constexpr const char* buildRev = APP_REVISION;
-constexpr int led = LED_BUILTIN;
+#include <tools.h>
 
 #ifdef DEBUG
 #define RUN_INTERVAL_DEFAULT 10 * 60 * 1000UL
@@ -26,46 +13,20 @@ constexpr int led = LED_BUILTIN;
 #define RUN_DURATION_DEFAULT 60 * 1000UL
 #endif
 
-unsigned long timerReset = 0;
-unsigned long startMillis = 0;
-int mqttTimerId = -1;
+constexpr const char* buildTime = APP_BUILD;
+constexpr const char* buildRev = APP_REVISION;
+constexpr int led = LED_BUILTIN;
+
 constexpr const char REBOOT_RESPONSE[] PROGMEM =
     "<META http-equiv=\"refresh\" content=\"15;URL=/\">Rebooting...\n";
-constexpr const char MIME_TEXT_PLAIN[] PROGMEM = "text/plain";
-constexpr const char MIME_TEXT_HTML[] PROGMEM = "text/html";
 
-AsyncWebServer server(80);
 RelayUnit pump;
 RestApi api(pump);
-ESPUpdateServer otaUpdate(true);
-#ifdef USING_MQTT
-MqttManager mqttMgr(mqttServer, mqttPort, mqttUser, mqttPass);
-#endif
 
-void setupTimers(bool);
-void checkWiFi();
 String getStatus();
 void statusReport();
+void udpReport();
 void handleCommand(const CommandParam& param);
-void sendMqttStatus(const String& msg);
-void sendMqttLog(const String& msg);
-bool mqttConnected();
-
-String getFilesHtml() {
-  auto items = listFiles();
-  String html = "<ul>";
-  for (auto const& i : items) {
-    html += "<li><a href='";
-    html += std::get<0>(i);
-    html += "' target='_blank' >";
-    html += std::get<0>(i);
-    html += " (";
-    html += std::get<1>(i);
-    html += " bytes)</a></li>\n";
-  }
-  html += "</ul>";
-  return html;
-}
 
 String getFilesText() {
   auto items = listFiles();
@@ -79,53 +40,17 @@ String getFilesText() {
   return text;
 }
 
-////////// MQTT Handlers Begin //////////
-
-void setupMqtt() {
-#ifdef USING_MQTT
-  mqttMgr.begin(handleCommand);
-#else
-  LOGN("MQTT Disabled");
-#endif
-}
-
-void mqttLoop() {
-#ifdef USING_MQTT
-  mqttMgr.loop();
-#endif
-}
-
-void checkMqtt() {
-#ifdef USING_MQTT
-  //   LOGN("checkMqtt");
-  mqttMgr.check();
-#endif
-}
-
 void sendMqttStatus(const String& msg) {
 #ifdef USING_MQTT
-  mqttMgr.sendStatus(msg);
-#ifdef USING_BLYNK
-  terminal.println(msg);
-  terminal.flush();
-#endif
+  mqtt.sendStatus(msg);
 #endif
 }
 
 void sendMqttLog(const String& msg) {
 #ifdef USING_MQTT
-  mqttMgr.sendLog(msg);
+  mqtt.sendLog(msg);
 #endif
 }
-
-bool mqttConnected() {
-#ifdef USING_MQTT
-  return mqttMgr.isConnected();
-#else
-  return false;
-#endif
-}
-/////////// MQTT Handlers End ///////////
 
 ////////// Command Handlers Begin //////////
 
@@ -159,7 +84,7 @@ void cmdStop(const CommandParam& param = CommandParam::INVALID) {
 }
 
 void cmdClear(const CommandParam& param = CommandParam::INVALID) {
-  SPIFFS.remove(logFileName());
+  FileFS.remove("/serial.log");
   LOGN(F("Logs cleared"));
 }
 
@@ -186,7 +111,7 @@ void cmdLogs(const CommandParam& param = CommandParam::INVALID) {
   LOGN("cmdLogs");
   String logText = F("Go to http://");
   logText += WiFi.localIP().toString();
-  logText += logFileName();
+  logText += "/serial.log";
   sendMqttStatus(logText);
 }
 
@@ -199,7 +124,7 @@ void cmdWiFi(const CommandParam& param = CommandParam::INVALID) {
   LOGN("cmdWiFi");
   String data = "";
   data += "Device: ";
-  data += getUDID();
+  data += compat::getUDID();
   data += "\nMac: ";
   data += WiFi.macAddress();
   data += "\nIP: ";
@@ -262,22 +187,14 @@ void cmdNotFound(const CommandParam& param = CommandParam::INVALID) {
 
 /////////// Command Handlers End ///////////
 
-void checkWiFi() {
-  if (!WiFi.isConnected()) {
-    WiFi.reconnect();
-    LOGN(F("[WiFi] WiFi Reconnecting"));
-  } else {
-    // ULOG("[WiFi] Connection is OK!");
-  }
-}
-
 String getStatus() {
+  auto now = DateTime.getTime();
   auto ts = millis();
   auto cfg = pump.getConfig();
   auto st = pump.getStatus();
   String data = "";
   data += "Device: ";
-  data += getUDID();
+  data += compat::getUDID();
   data += "\nVersion: ";
   data += buildTime;
   data += "-";
@@ -288,7 +205,7 @@ String getStatus() {
   data += (pump.pinValue() == HIGH) ? "Running" : "Idle";
   data += "\nMQTT Status: ";
 #ifdef USING_MQTT
-  data += mqttMgr.isConnected() ? "Connected" : "Disconnected";
+  data += mqtt.isConnected() ? "Connected" : "Disconnected";
 #else
   data += "Disabled";
 #endif
@@ -309,16 +226,16 @@ String getStatus() {
   data += "s\nTotal Elapsed: ";
   data += st->totalElapsed / 1000;
   data += "s\nSystem Boot: ";
-  data += formatDateTime(getTimestamp() - ts / 1000);
+  data += formatDateTime(DateTime.getBootTime());
   if (st->lastStart > 0) {
     data += "\nLast Start: ";
-    data += formatDateTime(getTimestamp() - (ts - st->lastStart) / 1000);
+    data += formatDateTime(now - (ts - st->lastStart) / 1000);
   } else {
     data += "\nLast Start: N/A";
   }
   if (st->lastStop > 0) {
     data += "\nLast Stop: ";
-    data += formatDateTime(getTimestamp() - (ts - st->lastStop) / 1000);
+    data += formatDateTime(now - (ts - st->lastStop) / 1000);
   } else {
     data += "\nLast Stop: N/A";
   }
@@ -327,24 +244,14 @@ String getStatus() {
     data += "N/A";
   } else {
     auto remains = st->lastStart + cfg->interval - ts;
-    data += formatDateTime(getTimestamp() + remains / 1000);
+    data += formatDateTime(now + remains / 1000);
   }
   data += "\nTimer Status: ";
   data += pump.isTimerEnabled() ? "Enabled" : "Disabled";
-  data += "\nTimer Reset: ";
-  data += formatDateTime(getTimestamp() - (ts - timerReset) / 1000);
   return data;
 }
 
 void statusReport() { sendMqttStatus(getStatus()); }
-
-void handleFiles(AsyncWebServerRequest* request) {
-  request->send(200, MIME_TEXT_HTML, getFilesHtml());
-}
-
-void handleLogs(AsyncWebServerRequest* request) {
-  request->send(SPIFFS, logFileName(), MIME_TEXT_PLAIN);
-}
 
 void handleStart(AsyncWebServerRequest* request) {
   LOGN("handleStart");
@@ -449,105 +356,6 @@ void handleHelp(AsyncWebServerRequest* request) {
   request->send(200, MIME_TEXT_PLAIN, CommandManager.getHelpDoc());
 }
 
-void handleWiFiGotIP() {
-  LOGF("[WiFi] Connected to %s IP: %s\n", ssid, WiFi.localIP().toString());
-  UDPSerial.setup();
-}
-
-void handleWiFiLost() {
-  // WiFi.reconnect();
-}
-
-#if defined(ESP8266)
-WiFiEventHandler h0, h1, h2;
-#elif defined(ESP32)
-wifi_event_id_t h0, h1, h2;
-#endif
-
-bool setupWiFi() {
-  Serial.println("setupWiFi");
-  digitalWrite(led, LOW);
-  WiFi.mode(WIFI_STA);
-  WiFi.setAutoConnect(true);
-  WiFi.setAutoReconnect(true);
-  compat::setHostname(getHostName().c_str());
-
-#if defined(ESP8266)
-  h0 = WiFi.onStationModeConnected(
-      [](const WiFiEventStationModeConnected& event) {
-        // LOGN("[WiFi] Connected");
-      });
-  h1 = WiFi.onStationModeGotIP(
-      [](const WiFiEventStationModeGotIP& event) { handleWiFiGotIP(); });
-  h2 = WiFi.onStationModeDisconnected(
-      [](const WiFiEventStationModeDisconnected& event) { handleWiFiLost(); });
-#elif defined(ESP32)
-  h1 = WiFi.onEvent(
-      [](WiFiEvent_t event, WiFiEventInfo_t info) { handleWiFiGotIP(); },
-      WiFiEvent_t::SYSTEM_EVENT_STA_GOT_IP);
-  h2 = WiFi.onEvent(
-      [](WiFiEvent_t event, WiFiEventInfo_t info) { handleWiFiLost(); },
-      WiFiEvent_t::SYSTEM_EVENT_STA_DISCONNECTED);
-#endif
-
-  WiFi.begin(ssid, password);
-  LOGF("[Setup] Connecting to WiFi:%s (%s)\n", ssid, password);
-  auto startMs = millis();
-  // setup wifi timeout 60 seconds
-  while (!WiFi.isConnected() && (millis() - startMs) < 60 * 1000L) {
-    delay(1000);
-    if (millis() / 1000 % 10 == 0) {
-      LOGF("[Setup] WiFi Connecting... (%d)\n", WiFi.status());
-    }
-  }
-  if (!WiFi.isConnected()) {
-    LOGN(F("[Setup] WiFi connect failed, will reboot"));
-  } else {
-    startMillis = millis();
-    LOGF("[Setup] WiFi setup using %lus.\n", startMillis / 1000);
-  }
-  return WiFi.isConnected();
-}
-
-bool setupDate() {
-  Serial.println("setupDate");
-  if (!WiFi.isConnected()) {
-    return false;
-  }
-  LOGN("[Setup] setupDate using ntp server1");
-  DateTime.setTimeZone("CST-8");
-  DateTime.setServer("cn.ntp.org.cn");
-  DateTime.begin(10 * 1000L);
-
-  if (!DateTime.isTimeValid()) {
-    LOGN("[Setup] setupDate using ntp server2");
-    DateTime.setServer("time.pool.aliyun.com");
-    DateTime.begin(10 * 1000L);
-  }
-  if (!DateTime.isTimeValid()) {
-    LOGN("[Setup] setupDate using ntp server3");
-    DateTime.setServer("ntp.ntsc.ac.cn");
-    DateTime.begin(10 * 1000L);
-  }
-  if (!DateTime.isTimeValid()) {
-    LOGN(F("[Setup] Time sync failed, will reboot"));
-  } else {
-    LOGF("[Setup] Time sync using %lus.\n", (millis() - startMillis) / 1000);
-    startMillis = millis();
-  }
-  return DateTime.isTimeValid();
-}
-
-void setupApi() {
-  Serial.println("setupApi");
-  api.setup(&server);
-}
-
-void setupUpdate() {
-  Serial.println("setupUpdate");
-  otaUpdate.setup(&server);
-}
-
 void handleControl(AsyncWebServerRequest* request) {
   String text = "";
   for (size_t i = 0U; i < request->params(); i++) {
@@ -564,53 +372,6 @@ void handleControl(AsyncWebServerRequest* request) {
     handleCommand(CommandParam::from(s));
   }
   request->send(200, MIME_TEXT_PLAIN, "ok");
-}
-
-void handleNotFound(AsyncWebServerRequest* request) {
-  if (request->method() == HTTP_OPTIONS) {
-    request->send(200);
-    return;
-  }
-  ULOG("handleNotFound " + request->url());
-  if (request->url().startsWith("/api/")) {
-    DynamicJsonDocument doc(128);
-    doc["code"] = 404;
-    doc["msg"] = "resource not found";
-    doc["uri"] = request->url();
-    String s = "";
-    serializeJson(doc, s);
-    request->send(404, JSON_MIMETYPE, s);
-    return;
-  }
-  if (!FileServer::handle(request)) {
-    String data = F("ERROR: NOT FOUND\nURI: ");
-    data += request->url();
-    data += "\n";
-    request->send(404, MIME_TEXT_PLAIN, data);
-  }
-}
-
-void setupServer() {
-  Serial.println("setupServer");
-  if (MDNS.begin(getHostName().c_str())) {
-    LOGN(F("[Setup] MDNS responder started"));
-  }
-  server.on("/", handleRoot);
-  server.on("/serial", handleSerial);
-  server.on("/files", handleFiles);
-  server.on("/logs", handleLogs);
-  server.on("/help", handleHelp);
-  server.onNotFound(handleNotFound);
-  setupApi();
-  setupUpdate();
-
-  DefaultHeaders::Instance().addHeader("Access-Control-Allow-Origin", "*");
-  // DefaultHeaders::Instance().addHeader("Access-Control-Allow-Methods",
-  //                                      "GET, POST, PUT, OPTIONS");
-  DefaultHeaders::Instance().addHeader("Access-Control-Allow-Headers", "*");
-  server.begin();
-  MDNS.addService("http", "tcp", 80);
-  LOGN(F("[Setup] HTTP server started"));
 }
 
 void setupPump() {
@@ -646,26 +407,16 @@ void setupPump() {
   });
 }
 
-void udpReport() {
-  if (!WiFi.isConnected()) {
-    return;
-  }
-  String s = getHostName();
-  s += " Online (";
-  s += humanTimeMs(millis());
-  s += ")";
-  UDPSerial.println(s);
-}
-
-void setupTimers(bool reset) {
-  Serial.println("setupTimers");
-  if (reset) {
-    Timer.reset();
-  }
-  timerReset = millis();
-  Timer.setInterval(5 * 60 * 1000L, checkWiFi, "checkWiFi");
-  // Timer.setTimeout(48 * 60 * 60 * 1000L, compat::restart, "reboot");
-  Timer.setInterval(60 * 1000L, udpReport, "udp_report");
+void handleCommand(const CommandParam& param) {
+  auto processFunc = [param] {
+    yield();
+    LOGN("[CMD] handleCommand");
+    // LOGN(param.toString().c_str());
+    if (!CommandManager.handle(param)) {
+      LOGN("[CMD] Unknown command");
+    }
+  };
+  Timer.setTimeout(5, processFunc, "handleCommand");
 }
 
 void setupCommands() {
@@ -690,75 +441,47 @@ void setupCommands() {
   CommandManager.addCommand("help", "show help", cmdHelp);
 }
 
-void setup(void) {
-  Serial.begin(115200);
-  delay(200);
-  Serial.println();
-  Serial.println();
-  Serial.println("====== SETUP:BEGIN ======");
-  Serial.println("FILE SYSTEM CHECK");
-  fsCheck();
-  FileSerial.setup();
-  delay(200);
-  bool done = setupWiFi();
-  if (!done) {
-    ESP.restart();
+void checkWiFi() {
+  if (!WiFi.isConnected()) {
+    WiFi.reconnect();
+    LOGN(F("[WiFi] WiFi Reconnecting"));
+  } else {
+    ULOGN("[WiFi] Connection is OK!");
+  }
+}
+
+void udpReport() {
+  if (!WiFi.isConnected()) {
     return;
   }
-  done = setupDate();
-  if (!done) {
-    ESP.restart();
-    return;
-  }
-  LOGN("======@@@ Booting Begin @@@======");
+  ULOGF("%s Online (%s)", compat::getHostName(), humanTimeMs(millis()));
+}
+
+void setupTimers() {
+  Serial.println("setupTimers");
+  Timer.setInterval(5 * 60 * 1000L, checkWiFi, "check_wifi");
+  Timer.setInterval(60 * 1000L, udpReport, "udp_report");
+}
+
+void beforeWiFi() {
+  Serial.println("beforeWiFi()");
   pinMode(led, OUTPUT);
-  setupServer();
-  setupMqtt();
+}
+void beforeServer() {
+  Serial.println("beforeServer()");
+  webServer.setup([](std::shared_ptr<AsyncWebServer> server) {
+    api.setup(server);
+    server->on("/help", handleHelp);
+  });
+}
+
+void setupLast() {
+  Serial.println("setupLast()");
   setupCommands();
-  setupTimers(false);
+  setupTimers();
   setupPump();
-  LOGN("[Setup] System Started at " + timeString());
-  String info = "[Setup] Version: ";
-  info += buildTime;
-  info += "-";
-  info += buildRev;
-#ifdef DEBUG
-  info += " (Debug)";
-#endif
-  LOGN(info);
-  LOGN("[Setup] Sketch: " + ESP.getSketchMD5());
-  LOGN("[Setup] Date: " + DateTime.toISOString());
-  LOGN("[Setup] WiFi IP: " + WiFi.localIP().toString());
-  LOGN("[Setup] WiFi Host: " + getHostName());
-  LOGF("[Setup] Booting using time: %ds\n", millis() / 1000);
-  LOGN("======@@@ Booting Finished @@@======");
-  Serial.println(ESP.getSketchMD5());
-  Serial.println(dateTimeString());
-  Serial.println(getHostName());
-  Serial.println(WiFi.macAddress());
-  Serial.println(WiFi.localIP().toString());
-  Serial.println("====== SETUP:FINISHED ======");
 }
 
-void loop(void) {
-  otaUpdate.loop();
-  UDPSerial.run();
-  pump.run();
-  Timer.run();
-  mqttLoop();
-#if defined(ESP8266)
-  MDNS.update();
-#endif
-}
+void loopFirst() {}
 
-void handleCommand(const CommandParam& param) {
-  auto processFunc = [param] {
-    yield();
-    LOGN("[CMD] handleCommand");
-    // LOGN(param.toString().c_str());
-    if (!CommandManager.handle(param)) {
-      LOGN("[CMD] Unknown command");
-    }
-  };
-  Timer.setTimeout(5, processFunc, "handleCommand");
-}
+void loopLast() { pump.run(); }

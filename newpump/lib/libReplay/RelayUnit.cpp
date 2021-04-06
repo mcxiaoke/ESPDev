@@ -55,7 +55,7 @@ void RelayUnit::begin(const RelayConfig& cfg) {
   // LOGN(pStatus->toString().c_str());
 }
 
-void RelayUnit::run() { timer.run(); }
+void RelayUnit::run() { rTimer.loop(); }
 
 bool RelayUnit::start() {
   if (isOn()) {
@@ -70,7 +70,7 @@ bool RelayUnit::start() {
   updateStatusOnStart(pStatus);
   digitalWrite(pConfig->pin, HIGH);
   auto stopFunc = std::bind(&RelayUnit::stop, this);
-  stopTimerId = timer.setTimeout(pConfig->duration, stopFunc, "stop");
+  stopTimerId = rTimer.setTimeout(pConfig->duration, stopFunc, "stop");
   if (callback) {
     callback(RelayEvent::Started, 0);
   }
@@ -101,34 +101,34 @@ void RelayUnit::check() {
 
 void RelayUnit::resetTimer() {
   // LOGN("RelayUnit::resetTimer");
-  timer.reset();
+  rTimer.reset();
   pStatus->reset();
   auto startFunc = std::bind(&RelayUnit::start, this);
-  runTimerId = timer.setInterval(pConfig->interval, startFunc, "start");
+  runTimerId = rTimer.setInterval(pConfig->interval, startFunc, "start");
   // timer default disabled
-  timer.disable(runTimerId);
+  rTimer.disable(runTimerId);
   auto checkFunc = std::bind(&RelayUnit::check, this);
   checkTimerId =
-      timer.setInterval(pConfig->duration / 2 + 2000, checkFunc, "check");
+      rTimer.setInterval(pConfig->duration / 2 + 2000, checkFunc, "check");
 }
 
 bool RelayUnit::isOn() const { return pinValue() == HIGH; }
 
-bool RelayUnit::isTimerEnabled() const { return timer.isEnabled(runTimerId); }
+bool RelayUnit::isTimerEnabled() const { return rTimer.isEnabled(runTimerId); }
 
 void RelayUnit::setTimerEnabled(bool enable) {
   LOGF("RelayUnit::setEnabled:%s\n", enable ? "true" : "false");
-  if (enable == timer.isEnabled(runTimerId)) {
+  if (enable == rTimer.isEnabled(runTimerId)) {
     return;
   }
   stop();
   if (enable) {
-    timer.enable(runTimerId);
+    rTimer.enable(runTimerId);
     if (callback) {
       callback(RelayEvent::Enabled, 0);
     }
   } else {
-    timer.disable(runTimerId);
+    rTimer.disable(runTimerId);
     if (callback) {
       callback(RelayEvent::Disabled, 0);
     }
@@ -178,4 +178,4 @@ std::shared_ptr<RelayConfig> RelayUnit::getConfig() const { return pConfig; }
 
 std::shared_ptr<RelayStatus> RelayUnit::getStatus() const { return pStatus; }
 
-TimerTask* RelayUnit::getRunTask() const { return timer.getTask(runTimerId); }
+TimerTask* RelayUnit::getRunTask() const { return rTimer.getTask(runTimerId); }
