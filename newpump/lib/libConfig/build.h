@@ -3,9 +3,6 @@
 
 #include "private.h"
 
-#define STR1(x) #x
-#define STR(x) STR1(x)
-
 //#define USING_BLYNK
 //#define USING_DISPLAY
 

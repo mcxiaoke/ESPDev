@@ -20,7 +20,7 @@ void AFileServerClass::setup(std::shared_ptr<AsyncWebServer> server) {
   server->on("/logs", [](AsyncWebServerRequest* request) {
     // request->send(FileFS, "/serial.log", "text/plain");
     AsyncWebServerResponse* response =
-        request->beginResponse(FileFS, "/serial.log", "text/plain");
+        request->beginResponse(FileFS, "/serial.log", MIME_TEXT_PLAIN);
     response->addHeader("Cache-Control", "no-cache");
     request->send(response);
   });

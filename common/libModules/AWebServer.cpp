@@ -9,7 +9,11 @@ void AWebServer::setup(AWebServerFunc func) { func(server); }
 
 bool AWebServer::begin() {
   server->on("/", [](AsyncWebServerRequest* request) {
-    request->send(200, MIME_TEXT_PLAIN, compat::getHostName());
+    if (FileFS.exists("/index.html")) {
+      request->send(FileFS, "/index.html");
+    } else {
+      request->send(200, MIME_TEXT_PLAIN, compat::getHostName());
+    }
   });
   server->on("/reboot", [](AsyncWebServerRequest* request) {
     request->send(200, MIME_TEXT_PLAIN, "OK");

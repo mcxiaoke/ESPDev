@@ -234,12 +234,7 @@ void RestApi::jsonStatus(const JsonVariant& doc) {
   doc["chip_id"] = ESP.getChipId();
 #endif
   doc["sketch"] = ESP.getSketchMD5().substring(0, 8);
-#ifdef APP_BUILD
-  doc["version"] = APP_BUILD;
-#endif
-#ifdef APP_REVISION
-  doc["revision"] = APP_REVISION;
-#endif
+  doc["version"] = __TIMESTAMP__;
 #ifdef DEBUG
   doc["debug"] = 1;
 #else
