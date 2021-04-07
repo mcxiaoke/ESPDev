@@ -1,6 +1,7 @@
 #ifndef ESP_FILE_SERIAL_HEADER
 #define ESP_FILE_SERIAL_HEADER
 
+#include <DevDebug.h>
 #include <compat.h>
 
 #include "SerialUtils.h"
@@ -36,7 +37,7 @@ class AFileLogger : public Stream {
   const char* path = FILE_SERIAL_NAME;
   File fp;
 
-  File ensureFile();
+  void fpCheck();
 };
 
 #endif

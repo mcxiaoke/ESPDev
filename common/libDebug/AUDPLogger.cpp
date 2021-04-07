@@ -24,8 +24,9 @@ void AUDPLogger::end() {
 
 void AUDPLogger::setup() {
   if (compat::isWiFiConnected()) {
-    uint8_t ret = udp.begin(UDP_SERIAL_PORT);
-    conneted = (ret == 1);
+    // uint8_t ret = udp.begin(UDP_SERIAL_PORT);
+    // conneted = (ret == 1);
+    conneted = true;
   } else {
     conneted = false;
   }

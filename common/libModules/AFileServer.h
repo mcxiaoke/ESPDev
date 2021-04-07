@@ -14,6 +14,7 @@ constexpr const char MIME_TEXT_HTML[] PROGMEM = "text/html";
 
 class AFileServerClass {
  public:
+  void setup(std::shared_ptr<AsyncWebServer> server);
   bool handle(AsyncWebServerRequest* request);
   bool begin() { return true; };
   void loop(){};

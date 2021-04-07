@@ -1,15 +1,14 @@
 #include "AFileLogger.h"
 
-File AFileLogger::ensureFile() {
+void AFileLogger::fpCheck() {
   if (!this->fp.isFile()) {
-    Serial.println("=== Reopen file ===");
+    DLOG();
     this->fp = FileFS.open(this->path, "a");
   }
-  return this->fp;
 }
 
 void AFileLogger::setup() {
-  ensureFile();
+  fpCheck();
   this->fp.print("\n");
   this->fp.flush();
 }
@@ -19,8 +18,8 @@ void AFileLogger::end() {
   if (now - _lastCloseMs > 10 * 1000L) {
     _lastCloseMs = now;
     if (this->fp) {
+      DLOG();
       this->fp.close();
-      Serial.println("=== Close file === " + this->fp);
     }
   } else {
     this->fp.flush();
@@ -43,13 +42,13 @@ size_t AFileLogger::print(const char* s) { return this->print(String(s)); }
 size_t AFileLogger::println(const char* s) { return this->println(String(s)); }
 
 size_t AFileLogger::print(const String& s) {
-  this->ensureFile();
+  this->fpCheck();
   size_t n = this->fp.print(buildMessage(s));
   this->end();
   return n;
 }
 size_t AFileLogger::println(const String& s) {
-  this->ensureFile();
+  this->fpCheck();
   size_t n = this->fp.println(buildMessage(s));
   this->end();
   return n;

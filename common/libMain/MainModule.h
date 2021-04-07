@@ -12,20 +12,17 @@
 #include <tools.h>
 
 extern AWebServer webServer;
-extern MQTTManager mqtt;
+extern MQTTManager mqttClient;
 
 extern void beforeWiFi();
 extern void beforeServer();
 extern void setupLast();
 extern void loopFirst();
 extern void loopLast();
-
-void _setupWiFi();
-
-bool _setupDate();
+extern void onWiFiReady();
+extern void onWiFiLost();
 
 void setup();
-
 void loop();
 
 #endif /* __MCX_LIBMAIN_MAINMODULE_HEADER__ */

@@ -54,7 +54,7 @@ class MQTTManager : AModuleInterface {
   WiFiClient _client;
   PubSubClient* _mqtt;
   CMD_HANDLER_FUNC _handler;
-  void handleStateChange(int state);
+  void checkStateChange();
   void handleMessage(const char* topic, const uint8_t* payload,
                      const unsigned int length);
   boolean sendMessage(const char* topic, const char* payload,

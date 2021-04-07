@@ -1,24 +1,39 @@
 #include <Arduino.h>
 #include <MainModule.h>
 
-unsigned long lastMs;
+// ==============================
+// main.app must include <MainModule.h>
+// main.cpp should impl this function
+// in setup() before wifi connected
+// extern void beforeWiFi();
+// in setup() before web server begin
+// extern void beforeServer();
+// in setup() before setup() end
+// extern void setupLast();
+// in loop() head
+// extern void loopFirst();
+// in loop() last
+// extern void loopLast();
+// on wifi ready (connected/reconnected)
+// extern void onWiFiReady();
+// on wifi lost
+// extern void onWiFiLost();
+// ==============================
 
-void beforeWiFi() { Serial.println("beforeWiFi()"); }
+void beforeWiFi() { DLOG(); }
 void beforeServer() {
-  Serial.println("beforeServer()");
+  DLOG();
   auto server = webServer.getServer();
-  server.on("/hello", [](AsyncWebServerRequest* request) {
+  server->on("/hello", [](AsyncWebServerRequest* request) {
     request->send(200, "text/plain", "Hello, World!");
   });
 }
 
-void setupLast() { Serial.println("setupLast()"); }
+void setupLast() { DLOG(); }
 
-void loopFirst() {
-  if (millis() - lastMs > 15 * 1000L) {
-    lastMs = millis();
-    Serial.println("loopFirst()");
-  }
-}
+void loopFirst() {}
 
 void loopLast() {}
+
+void onWiFiReady() { DLOG(); }
+void onWiFiLost() { DLOG(); }

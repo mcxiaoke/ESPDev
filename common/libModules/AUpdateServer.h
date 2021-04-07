@@ -11,27 +11,29 @@
 #include <WiFiUdp.h>
 #include <compat.h>
 
+#include <memory>
+
 class AUpdateServerClass : AModuleInterface {
  public:
   AUpdateServerClass(bool serial_debug = false,
                      const String& username = emptyString,
                      const String& password = emptyString);
 
-  void setup(AsyncWebServer* server) {
+  void setup(std::shared_ptr<AsyncWebServer> server) {
     setup(server, emptyString, emptyString);
   }
 
-  void setup(AsyncWebServer* server, const String& path) {
+  void setup(std::shared_ptr<AsyncWebServer> server, const String& path) {
     setup(server, path, emptyString, emptyString);
   }
 
-  void setup(AsyncWebServer* server, const String& username,
+  void setup(std::shared_ptr<AsyncWebServer> server, const String& username,
              const String& password) {
     setup(server, "/update", username, password);
   }
 
-  void setup(AsyncWebServer* server, const String& path, const String& username,
-             const String& password);
+  void setup(std::shared_ptr<AsyncWebServer> server, const String& path,
+             const String& username, const String& password);
 
   void updateCredentials(const String& username, const String& password) {
     _username = username;
@@ -47,7 +49,7 @@ class AUpdateServerClass : AModuleInterface {
 
  private:
   bool _shouldRestart;
-  AsyncWebServer* _server;
+  std::shared_ptr<AsyncWebServer> _server;
   String _username;
   String _password;
   String _path;

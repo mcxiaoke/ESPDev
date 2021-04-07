@@ -21,24 +21,30 @@ bool AWiFiManagerClass::begin() {
   compat::setHostname(compat::getHostName().c_str());
   configEventHandler();
   WiFi.begin(ssid, password);
-  LOGF("[WiFi] Connecting to WiFi:%s (%s)\n", ssid, password);
+  LOGF("[WiFi] Connecting to %s (%s)\n", ssid, password);
   auto startMs = millis();
   // default timeout 60 seconds
   while (!WiFi.isConnected() && (millis() - startMs) < timeoutMs) {
     delay(500);
     if (millis() / 1000 % 5 == 0) {
-      LOGF("[WiFi] WiFi Connecting... (%d)\n", WiFi.status());
+      LOGF("[WiFi] Connecting... (%ds)\n", millis() / 1000);
     }
   }
   if (!WiFi.isConnected()) {
-    LOGN(F("[WiFi] WiFi connect failed."));
+    LOGN(F("[WiFi] Connect failed."));
   } else {
-    LOGF("[WiFi] WiFi setup using %lus.\n", millis() / 1000);
+    LOGF("[WiFi] Setup using %lus.\n", millis() / 1000);
   }
   return WiFi.isConnected();
 }
 
-void AWiFiManagerClass::loop() {}
+void AWiFiManagerClass::loop() {
+  auto now = millis();
+  if (now - lastCheckMs > checkIntervalMs) {
+    lastCheckMs = now;
+    checkConnection();
+  }
+}
 
 void AWiFiManagerClass::onConnected() {
   LOGF("[WiFi] Connected, IP: %s\n", WiFi.localIP().toString());
@@ -73,6 +79,15 @@ void AWiFiManagerClass::configEventHandler() {
       [this](WiFiEvent_t event, WiFiEventInfo_t info) { onDisconnected(); },
       WiFiEvent_t::SYSTEM_EVENT_STA_DISCONNECTED);
 #endif
+}
+
+void AWiFiManagerClass::checkConnection() {
+  if (!WiFi.isConnected()) {
+    WiFi.reconnect();
+    LOGN(F("[WiFi] Reconnecting..."));
+  } else {
+    ULOGN("[WiFi] Network is OK!");
+  }
 }
 
 AWiFiManagerClass AWiFi;

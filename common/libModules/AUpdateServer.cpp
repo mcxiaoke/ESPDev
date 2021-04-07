@@ -39,8 +39,9 @@ AUpdateServerClass::AUpdateServerClass(bool serial_debug,
       _password(password),
       _authenticated(false) {}
 
-void AUpdateServerClass::setup(AsyncWebServer* server, const String& path,
-                               const String& username, const String& password) {
+void AUpdateServerClass::setup(std::shared_ptr<AsyncWebServer> server,
+                               const String& path, const String& username,
+                               const String& password) {
   _server = server;
   _path = path;
   _username = username;

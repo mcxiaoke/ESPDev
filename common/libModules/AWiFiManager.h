@@ -9,6 +9,8 @@
 #ifndef __MCX_LIBWIFI_AWIFIMANAGER_HEADER__
 #define __MCX_LIBWIFI_AWIFIMANAGER_HEADER__
 
+#define DEFAULT_WIFI_CHECK_INTERVAL 3 * 60 * 1000L
+
 #include <AModule.h>
 #include <Arduino.h>
 #include <compat.h>
@@ -22,8 +24,7 @@
 #define LOG_TAG "[WiFi]"
 #define WIFI_CONNECT_TIMEOUT_MS 60 * 1000L
 
-// typedef std::function<void(void)> WiFiEventFunc;
-typedef void (*VoidEventFunc)(void);
+typedef std::function<void(void)> VoidEventFunc;
 
 class AWiFiManagerClass : AModuleInterface {
  private:
@@ -32,9 +33,11 @@ class AWiFiManagerClass : AModuleInterface {
   bool autoReconnect;
   const char* ssid;
   const char* password;
+  unsigned long lastCheckMs;
 
  protected:
   unsigned long timeoutMs = WIFI_CONNECT_TIMEOUT_MS;
+  unsigned long checkIntervalMs = DEFAULT_WIFI_CHECK_INTERVAL;
   VoidEventFunc readyCallback;
   VoidEventFunc lostCallback;
 #if defined(ESP8266)
@@ -45,6 +48,7 @@ class AWiFiManagerClass : AModuleInterface {
   void onConnected();
   void onDisconnected();
   void configEventHandler();
+  void checkConnection();
 
  public:
   AWiFiManagerClass(WiFiMode_t _mode = WIFI_STA);

@@ -1,6 +1,7 @@
 #ifndef __MCX_LIBSERIAL_ADEBUG_HEADER__
 #define __MCX_LIBSERIAL_ADEBUG_HEADER__
 
+#include <DevDebug.h>
 #include <ALogger.h>
 
 #include <ext/format.hpp>

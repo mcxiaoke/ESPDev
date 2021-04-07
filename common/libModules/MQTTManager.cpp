@@ -174,17 +174,14 @@ void MQTTManager::connect() {
       initSubscribe();
       break;
     } else {
-      LOGF("[MQTT] Connect failed, rc=%d\n", _mqtt->state());
+      LOGF("[MQTT] Connect failed:%s\n", stateToString(_mqtt->state()));
     }
   }
-  _lastState = _mqtt->state();
+  checkStateChange();
 }
 
 void MQTTManager::check() {
   if (_silentMode) {
-    return;
-  }
-  if (!WiFi.isConnected()) {
     return;
   }
   if (!_mqtt->connected()) {
@@ -199,13 +196,13 @@ void MQTTManager::check() {
       sendOnline();
       initSubscribe();
     } else {
-      LOGF("[MQTT] Reconnect failed, rc=%d", _mqtt->state());
+      LOGF("[MQTT] Reconnect failed:%d\n", stateToString(_mqtt->state()));
     }
   } else {
     ULOGN("[MQTT] Connection is OK!");
     // mqttPing();
   }
-  _lastState = _mqtt->state();
+  checkStateChange();
 }
 
 void MQTTManager::setHandler(CMD_HANDLER_FUNC handler) { _handler = handler; }
@@ -229,16 +226,16 @@ bool MQTTManager::begin() {
 
 void MQTTManager::loop() {
   auto ms = millis();
-  if (ms - _lastLoopCallMs > 1000L) {
+  if (ms - _lastLoopCallMs > 500L) {
     _lastLoopCallMs = ms;
     _mqtt->loop();
-    if (_mqtt->state() != _lastState) {
-      _lastState = _mqtt->state();
-      handleStateChange(_lastState);
-    }
+    checkStateChange();
   }
 
-  if (ms - _lastCheckMs > (CUSTOM_MQTT_KEEPALIVE * 10 - 5) * 1000L) {
+  if (!WiFi.isConnected()) {
+    return;
+  }
+  if (ms - _lastCheckMs > (CUSTOM_MQTT_KEEPALIVE * 10) * 1000L) {
     _lastCheckMs = ms;
     check();
   }
@@ -246,8 +243,12 @@ void MQTTManager::loop() {
 
 void MQTTManager::mute(bool silent) { _silentMode = silent; }
 
-void MQTTManager::handleStateChange(int state) {
-  LOGF("[MQTT] State changed to %s\n", stateToString(state));
+void MQTTManager::checkStateChange() {
+  int newState = _mqtt->state();
+  if (newState != _lastState) {
+    _lastState = newState;
+    LOGF("[MQTT] State changed to %s\n", stateToString(newState));
+  }
 }
 
 void MQTTManager::handleMessage(const char* _topic, const uint8_t* _payload,
