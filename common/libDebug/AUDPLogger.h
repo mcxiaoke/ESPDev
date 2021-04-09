@@ -3,12 +3,20 @@
 
 #include <compat.h>
 
+#include <queue>
+
 #include "SerialUtils.h"
+
+struct StringMessage {
+  const String content;
+  const unsigned long createdAt;
+  bool fromQ;
+};
 
 class AUDPLogger : public Stream {
  public:
-  AUDPLogger(){};
-  ~AUDPLogger(){};
+  AUDPLogger();
+  ~AUDPLogger();
 
   void setup();
   void before();
@@ -30,8 +38,10 @@ class AUDPLogger : public Stream {
   void loop();
 
  protected:
+  std::queue<StringMessage> pms;
   WiFiUDP udp;
   bool conneted;
+  void processQueue();
   void handleCmd(const char* cmd);
 };
 

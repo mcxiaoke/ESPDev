@@ -13,6 +13,14 @@ void AFileLogger::setup() {
   this->fp.flush();
 }
 
+void AFileLogger::clear() {
+  this->fp.close();
+  String newPath = this->path;
+  newPath += ".old";
+  FileFS.rename(this->path, newPath);
+  fpCheck();
+}
+
 void AFileLogger::end() {
   auto now = millis();
   if (now - _lastCloseMs > 10 * 1000L) {

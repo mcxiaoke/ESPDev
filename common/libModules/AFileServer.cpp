@@ -17,16 +17,19 @@ static String getFilesHtml() {
 }
 
 void AFileServerClass::setup(std::shared_ptr<AsyncWebServer> server) {
+  ULOGN("[FileServer] Add request handler for /logs");
   server->on("/logs", [](AsyncWebServerRequest* request) {
-    // request->send(FileFS, "/serial.log", "text/plain");
-    AsyncWebServerResponse* response =
-        request->beginResponse(FileFS, "/serial.log", MIME_TEXT_PLAIN);
-    response->addHeader("Cache-Control", "no-cache");
-    request->send(response);
+    request->send(FileFS, "/serial.log", "text/plain");
+    // AsyncWebServerResponse* response =
+    //     request->beginResponse(FileFS, "/serial.log", MIME_TEXT_PLAIN);
+    // response->addHeader("Cache-Control", "no-cache");
+    // request->send(response);
   });
+  ULOGN("[FileServer] Add request handler for /files");
   server->on("/files", [](AsyncWebServerRequest* request) {
     request->send(200, MIME_TEXT_HTML, getFilesHtml());
   });
+  ULOGN("[FileServer] Add request handler for static files");
   server->onNotFound([this](AsyncWebServerRequest* request) {
     if (!AFileServer.handle(request)) {
       String data = F("ERROR: NOT FOUND\nURI: ");
@@ -37,9 +40,14 @@ void AFileServerClass::setup(std::shared_ptr<AsyncWebServer> server) {
   });
 }
 
+bool AFileServerClass::begin() {
+  ULOGN("[FileServer] Setup File Server");
+  return true;
+};
+
 bool AFileServerClass::handle(AsyncWebServerRequest* request) {
   String path = request->url();
-  // LOGN("[FileServer] Handling " + path);
+  ULOGN("[FileServer] Handling " + path);
   if (request->hasParam("delete")) {
     if (FileFS.exists(path)) {
       LOGF("[FileServer] Delete %s\n", path);
@@ -96,7 +104,7 @@ bool AFileServerClass::handle(AsyncWebServerRequest* request) {
   // path = prefix + ".min" + ext + ".gz";
   // if FileFS.exists
   if (FileFS.exists(path)) {
-    LOGF("[FileServer] Sending %s\n", path);
+    ULOGF("[FileServer] Sending %s\n", path);
 
     AsyncWebServerResponse* response =
         request->beginResponse(FileFS, path, contentType);

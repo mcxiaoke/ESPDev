@@ -1,5 +1,9 @@
 #include <MainModule.h>
 
+static const char* NTP_SERVERS[] = {"ntp.ntsc.ac.cn", "cn.ntp.org.cn",
+                                    "time.pool.aliyun.com", "time.apple.com",
+                                    "edu.ntp.org.cn"};
+
 static unsigned long runningMs;
 AWebServer webServer(80);
 MQTTManager mqttClient(MQTT_SERVER, MQTT_PORT, MQTT_USER, MQTT_PASS);
@@ -17,35 +21,22 @@ bool _setup_date() {
   if (!WiFi.isConnected()) {
     return false;
   }
-  LOGN("[Setup] setupDate using ntp server1");
+  runningMs = millis();
   DateTime.setTimeZone("CST-8");
-  DateTime.setServer("cn.ntp.org.cn");
-  DateTime.begin(5 * 1000L);
-
-  if (!DateTime.isTimeValid()) {
-    LOGN("[Setup] setupDate using ntp server2");
-    DateTime.setServer("time.pool.aliyun.com");
+  size_t count = sizeof(NTP_SERVERS) / sizeof(NTP_SERVERS[0]);
+  for (size_t i = 0; i < count; i++) {
+    auto ntpServer = NTP_SERVERS[i];
+    LOGF("[Date] NTP Sync with %s\n", ntpServer);
+    DateTime.setServer(ntpServer);
     DateTime.begin(5 * 1000L);
+    if (DateTime.isTimeValid()) {
+      break;
+    }
   }
   if (!DateTime.isTimeValid()) {
-    LOGN("[Setup] setupDate using ntp server3");
-    DateTime.setServer("ntp.ntsc.ac.cn");
-    DateTime.begin(5 * 1000L);
-  }
-  if (!DateTime.isTimeValid()) {
-    LOGN("[Setup] setupDate using ntp server4");
-    DateTime.setServer("time.apple.com");
-    DateTime.begin(5 * 1000L);
-  }
-  if (!DateTime.isTimeValid()) {
-    LOGN("[Setup] setupDate using ntp server5");
-    DateTime.setServer("edu.ntp.org.cn");
-    DateTime.begin(5 * 1000L);
-  }
-  if (!DateTime.isTimeValid()) {
-    LOGN(F("[Setup] Time sync failed, will reboot"));
+    LOGN(F("[Date] NTP Sync failed, will reboot"));
   } else {
-    LOGF("[Setup] Time sync using %lus.\n", (millis() - runningMs) / 1000);
+    LOGF("[Date] NTP Sync using time: %lums.\n", millis() - runningMs);
     runningMs = millis();
   }
   return DateTime.isTimeValid();
@@ -66,12 +57,17 @@ void _before_setup() {
 void _after_setup() {
   DLOG();
   runningMs = millis();
-  LOGF("[Setup] Build At %s\n", __TIMESTAMP__);
+  LOGF("[Setup] Build: %s\n", __TIMESTAMP__);
   LOGF("[Setup] Host: %s (%s)\n", compat::getHostName(),
        WiFi.localIP().toString());
   LOGN("[Setup] Sketch: " + ESP.getSketchMD5());
   LOGN("[Setup] Date: " + DateTime.toISOString());
   LOGF("[Setup] Booting using time: %ds\n", runningMs / 1000);
+#if defined(DEBUG) || defined(DDEBUG_ESP_PORT)
+  LOGN("[Setup] Debug Mode");
+#else
+  LOGN("[Setup] Release Mode");
+#endif
   LOGN("======@@@ Booting Finished @@@======");
   Serial.println("=== SETUP:END ===");
 }

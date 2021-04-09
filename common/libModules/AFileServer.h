@@ -16,7 +16,8 @@ class AFileServerClass {
  public:
   void setup(std::shared_ptr<AsyncWebServer> server);
   bool handle(AsyncWebServerRequest* request);
-  bool begin() { return true; };
+  bool begin();
+  ;
   void loop(){};
   const char* getModuleName() { return "FileServer"; }
 };

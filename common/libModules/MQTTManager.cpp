@@ -162,7 +162,7 @@ void MQTTManager::connect() {
   // Loop until we're reconnected
   int maxRetries = 3;
   while (WiFi.isConnected() && !_mqtt->connected() && maxRetries-- > 0) {
-    LOGF("[MQTT] Connecting to mqtt://%s\n", _server);
+    LOGN("[MQTT] Connecting.....");
     // Attempt to connect
     // offline will message retain
     if (_mqtt->connect(getClientId().c_str(), getUser().c_str(),
@@ -175,6 +175,7 @@ void MQTTManager::connect() {
       break;
     } else {
       LOGF("[MQTT] Connect failed:%s\n", stateToString(_mqtt->state()));
+      delay(1000);
     }
   }
   checkStateChange();
@@ -210,6 +211,7 @@ void MQTTManager::setHandler(CMD_HANDLER_FUNC handler) { _handler = handler; }
 bool MQTTManager::begin() {
   _lastCheckMs = millis();
   if (!_silentMode) {
+    ULOGN("[MQTT] Connecting to server");
     connect();
   } else {
     LOGN(F("[MQTT] Silent Mode, don't connect"));

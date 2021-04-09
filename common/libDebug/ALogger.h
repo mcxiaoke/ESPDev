@@ -31,6 +31,7 @@ class ALoggerClass {
   void loop();
   void setFlags(uint8_t _flag);
   void flush();
+  void clear() { file.clear(); }
   size_t log(const char* s);
   size_t logn(const char* s);
   size_t log(const String& s);

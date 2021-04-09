@@ -5,6 +5,9 @@
 
 static char incomingPacket[UDP_BUFFER_SIZE + 1];
 
+AUDPLogger::AUDPLogger(){};
+AUDPLogger::~AUDPLogger(){};
+
 void AUDPLogger::before() {
   if (!conneted) {
     return;
@@ -30,6 +33,7 @@ void AUDPLogger::setup() {
   } else {
     conneted = false;
   }
+  processQueue();
 }
 
 int AUDPLogger::available() { return true; }
@@ -45,16 +49,15 @@ size_t AUDPLogger::print(long c) { return 0; }
 size_t AUDPLogger::print(unsigned long c) { return 0; }
 
 size_t AUDPLogger::print(const char* msg) {
-  if (!WiFi.isConnected()) {
-    return 0;
-  }
-  if (!conneted) {
-    return 0;
-  }
   if (!msg) {
     return 0;
   }
   if (strlen(msg) < 3) {
+    return 0;
+  }
+  if (!WiFi.isConnected() || !conneted) {
+    StringMessage newMsg{msg, millis(), true};
+    pms.push(newMsg);
     return 0;
   }
   this->before();
@@ -62,30 +65,13 @@ size_t AUDPLogger::print(const char* msg) {
   this->end();
   return nw;
 }
-size_t AUDPLogger::println(const char* s) {
-  if (!WiFi.isConnected()) {
-    return 0;
-  }
-  if (!conneted) {
-    return 0;
-  }
-  if (!s) {
-    return 0;
-  }
-  if (strlen(s) < 3) {
-    return 0;
-  }
-  this->before();
-  size_t nw = udp.println(s);
-  this->end();
-  return nw;
-}
+size_t AUDPLogger::println(const char* msg) { return this->print(msg); }
 
 size_t AUDPLogger::print(const String& s) { return this->print(s.c_str()); }
 size_t AUDPLogger::println(const String& s) { return this->println(s.c_str()); }
 
 void AUDPLogger::loop() {
-  if (!conneted) {
+  if (!WiFi.isConnected()) {
     return;
   }
   // int size = udp.parsePacket();
@@ -106,6 +92,20 @@ void AUDPLogger::loop() {
   //   memset(incomingPacket, 0, UDP_BUFFER_SIZE + 1);
   // }
 }
+
+void AUDPLogger::processQueue() {
+  // send pending messages before wifi ready
+  if (!WiFi.isConnected()) {
+    return;
+  }
+  while (!pms.empty()) {
+    auto msg = this->pms.front();
+    this->println(msg.content + " [" + msg.createdAt + "]");
+    pms.pop();
+    delay(200);
+  }
+}
+
 void AUDPLogger::handleCmd(const char* cmd) {
   if (cmd[0] != '/') {
     return;

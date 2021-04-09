@@ -22,6 +22,7 @@ class AFileLogger : public Stream {
   int peek() override;
   int read() override;
   void flush() override;
+  void clear();
   size_t write(uint8_t c) override;
   size_t print(char c);
   size_t print(int c);
