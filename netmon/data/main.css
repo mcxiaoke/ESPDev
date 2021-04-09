@@ -29,8 +29,12 @@
 }
 
 button {
-  margin-left: 5px;
-  margin-right: 5px;
+  padding: 0.5em;
+  min-width: 8em;
+}
+
+li {
+  margin: 0.5em;
 }
 
 td {
