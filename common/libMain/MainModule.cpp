@@ -50,8 +50,19 @@ void _before_setup() {
   DLOG();
   Serial.println("=== SETUP:BEGIN ===");
   checkFileSystem();
+  SafeMode.setup();
   ALogger.init();
   LOGN("======@@@ Booting Begin @@@======");
+}
+
+void _setup_modules() {
+  auto e = SafeMode.isEnabled();
+  ALogger.setSafeMode(e);
+  AWiFi.setSafeMode(e);
+  AUpdateServer.setSafeMode(e);
+  AFileServer.setSafeMode(e);
+  webServer.setSafeMode(e);
+  mqttClient.setSafeMode(e);
 }
 
 void _after_setup() {
@@ -68,13 +79,19 @@ void _after_setup() {
 #else
   LOGN("[Setup] Release Mode");
 #endif
+  if (SafeMode.isEnabled()) {
+    LOGN("****** Boot on Safe Mode. ******");
+  }
   LOGN("======@@@ Booting Finished @@@======");
   Serial.println("=== SETUP:END ===");
 }
 
 void setup() {
   _before_setup();
-  beforeWiFi();
+  _setup_modules();
+  if (!SafeMode.isEnabled()) {
+    beforeWiFi();
+  }
   bool ret = _setup_wifi();
   if (!ret) {
     LOGN("[ERROR] WiFi Connect failed, will reboot.");
@@ -88,19 +105,26 @@ void setup() {
     compat::restart();
     return;
   }
-  beforeServer();
+  if (!SafeMode.isEnabled()) {
+    beforeServer();
+  }
+  // ensure OTA is OK.
   webServer.begin();
-  mqttClient.begin();
-  setupLast();
+  if (!SafeMode.isEnabled()) {
+    mqttClient.begin();
+    setupLast();
+  }
   _after_setup();
 }
 
 void loop() {
-  loopFirst();
-  AWiFi.loop();
   webServer.loop();
-  Timer.loop();
-  ALogger.loop();
-  mqttClient.loop();
-  loopLast();
+  if (!SafeMode.isEnabled()) {
+    loopFirst();
+    AWiFi.loop();
+    Timer.loop();
+    ALogger.loop();
+    mqttClient.loop();
+    loopLast();
+  }
 }

@@ -3,11 +3,13 @@
 
 #include <ADebug.h>
 #include <AFileUtils.h>
+#include <AModule.h>
 #include <ATimer.h>
 #include <AWebServer.h>
 #include <AWiFiManager.h>
 #include <Arduino.h>
 #include <MQTTManager.h>
+#include <SafeMode.h>
 #include <private.h>
 #include <tools.h>
 

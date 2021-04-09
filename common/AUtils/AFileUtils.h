@@ -1,7 +1,6 @@
 #ifndef ESP_DEV_UTILS_H
 #define ESP_DEV_UTILS_H
 
-#include <ADebug.h>
 #include <DateTime.h>
 #include <MD5Builder.h>
 #include <compat.h>

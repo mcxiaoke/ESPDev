@@ -5,6 +5,7 @@
 #include <AModule.h>
 #include <AUpdateServer.h>
 #include <ESPAsyncWebServer.h>
+#include <SafeMode.h>
 #include <compat.h>
 
 #include <memory>
@@ -12,9 +13,10 @@
 class AWebServer;
 
 // typedef void (*AWebServerFunc)(AsyncWebServer* server);
-typedef std::function<void(std::shared_ptr<AsyncWebServer> server)> AWebServerFunc;
+typedef std::function<void(std::shared_ptr<AsyncWebServer> server)>
+    AWebServerFunc;
 
-class AWebServer : AModuleInterface {
+class AWebServer : public AModuleInterface {
  private:
   uint16_t port;
   std::shared_ptr<AsyncWebServer> server;

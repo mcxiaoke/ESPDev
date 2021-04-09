@@ -14,7 +14,7 @@ using std::string;
 
 using MQTT_CALLBACK_FUNC = std::function<void(char*, uint8_t*, unsigned int)>;
 
-class MQTTManager : AModuleInterface {
+class MQTTManager : public AModuleInterface {
  public:
   // https://stackoverflow.com/questions/11522399
   constexpr static unsigned int COMMAND_MAX_LENGTH = 128;

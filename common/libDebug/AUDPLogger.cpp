@@ -63,6 +63,7 @@ size_t AUDPLogger::print(const char* msg) {
   this->before();
   size_t nw = udp.print(msg);
   this->end();
+  delay(5);
   return nw;
 }
 size_t AUDPLogger::println(const char* msg) { return this->print(msg); }

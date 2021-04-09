@@ -209,6 +209,10 @@ void MQTTManager::check() {
 void MQTTManager::setHandler(CMD_HANDLER_FUNC handler) { _handler = handler; }
 
 bool MQTTManager::begin() {
+  if (this->isSafeMode()) {
+    Serial.println("MQTTManager Safe Mode");
+    return true;
+  }
   _lastCheckMs = millis();
   if (!_silentMode) {
     ULOGN("[MQTT] Connecting to server");
@@ -227,6 +231,9 @@ bool MQTTManager::begin() {
 }
 
 void MQTTManager::loop() {
+  if (this->isSafeMode()) {
+    return;
+  }
   auto ms = millis();
   if (ms - _lastLoopCallMs > 500L) {
     _lastLoopCallMs = ms;

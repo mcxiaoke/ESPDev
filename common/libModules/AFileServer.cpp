@@ -17,6 +17,10 @@ static String getFilesHtml() {
 }
 
 void AFileServerClass::setup(std::shared_ptr<AsyncWebServer> server) {
+  // if (this->isSafeMode()) {
+  //   Serial.println("FileServer Safe Mode");
+  //   return;
+  // }
   ULOGN("[FileServer] Add request handler for /logs");
   server->on("/logs", [](AsyncWebServerRequest* request) {
     request->send(FileFS, "/serial.log", "text/plain");
@@ -41,11 +45,19 @@ void AFileServerClass::setup(std::shared_ptr<AsyncWebServer> server) {
 }
 
 bool AFileServerClass::begin() {
+  // if (this->isSafeMode()) {
+  //   Serial.println("FileServer Safe Mode");
+  //   return true;
+  // }
   ULOGN("[FileServer] Setup File Server");
   return true;
 };
 
 bool AFileServerClass::handle(AsyncWebServerRequest* request) {
+  // if (this->isSafeMode()) {
+  //   Serial.println("FileServer Safe Mode");
+  //   return false;
+  // }
   String path = request->url();
   ULOGN("[FileServer] Handling " + path);
   if (request->hasParam("delete")) {

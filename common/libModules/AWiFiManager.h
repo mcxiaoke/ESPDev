@@ -26,7 +26,7 @@
 
 typedef std::function<void(void)> VoidEventFunc;
 
-class AWiFiManagerClass : AModuleInterface {
+class AWiFiManagerClass : public AModuleInterface {
  private:
   WiFiMode_t mode;
   bool autoConnect;

@@ -13,7 +13,7 @@
 
 #include <memory>
 
-class AUpdateServerClass : AModuleInterface {
+class AUpdateServerClass : public AModuleInterface {
  public:
   AUpdateServerClass(bool serial_debug = false,
                      const String& username = emptyString,
@@ -48,7 +48,6 @@ class AUpdateServerClass : AModuleInterface {
   void _setUpdaterError();
 
  private:
-  bool _shouldRestart;
   std::shared_ptr<AsyncWebServer> _server;
   String _username;
   String _password;

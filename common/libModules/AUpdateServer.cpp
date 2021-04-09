@@ -86,14 +86,14 @@ void AUpdateServerClass::handleUploadEnd(AsyncWebServerRequest* request) {
     request->client()->close();
     LOGN("[OTA] Update process done");
     delay(1000);
-    _shouldRestart = true;
+    setShouldRestart(true);
   } else {
     request->send(200, "text/html",
                   String(F("Update error: ")) + _updaterError + "\n");
     delay(1000);
     LOGN("[OTA] Update process abort");
     delay(1000);
-    _shouldRestart = false;
+    setShouldRestart(false);
   }
 }
 
@@ -183,9 +183,9 @@ bool AUpdateServerClass::begin() {
 }
 
 void AUpdateServerClass::loop() {
-  if (_shouldRestart) {
+  if (shouldRestart()) {
     LOGN("[OTA] Update Finished, Reboot.");
-    _shouldRestart = false;
+    setShouldRestart(false);
     delay(1000);
     compat::restart();
   }

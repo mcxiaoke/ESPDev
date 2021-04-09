@@ -2,6 +2,7 @@
 #define ARDUINO_A_LOGGER_H
 
 #include <AFileLogger.h>
+#include <AModule.h>
 #include <AUDPLogger.h>
 
 #define LOGGER_FLAG_DISABLE (1 << 0)
@@ -10,7 +11,7 @@
 #define LOGGER_FLAG_UDP (1 << 3)
 #define LOGGER_FLAG_MQTT (1 << 4)
 
-class ALoggerClass {
+class ALoggerClass : public AModuleInterface {
  private:
 #ifdef DEBUG
   uint8_t flags = LOGGER_FLAG_SERIAL | LOGGER_FLAG_FILE | LOGGER_FLAG_UDP;
