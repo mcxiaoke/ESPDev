@@ -25,13 +25,15 @@ bool AWiFiManagerClass::begin() {
   auto startMs = millis();
   // default timeout 60 seconds
   while (!WiFi.isConnected() && (millis() - startMs) < timeoutMs) {
-    delay(600);
-    if (millis() / 1000 % 3 == 0) {
+    delay(500);
+    if (millis() - lastConnectMs > 3000L) {
+      lastConnectMs = millis();
       if (!WiFi.isConnected()) {
         LOGF("[WiFi] Connecting... (%ds)\n", millis() / 1000);
       }
     }
   }
+  lastConnectMs = 0;
   if (!WiFi.isConnected()) {
     LOGN(F("[WiFi] Connect failed."));
   } else {

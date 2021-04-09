@@ -34,6 +34,7 @@ class AWiFiManagerClass : AModuleInterface {
   const char* ssid;
   const char* password;
   unsigned long lastCheckMs;
+  unsigned long lastConnectMs;
 
  protected:
   unsigned long timeoutMs = WIFI_CONNECT_TIMEOUT_MS;

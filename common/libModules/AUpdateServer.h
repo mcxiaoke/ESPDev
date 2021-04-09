@@ -53,7 +53,6 @@ class AUpdateServerClass : AModuleInterface {
   String _username;
   String _password;
   String _path;
-  bool _authenticated;
   String _updaterError;
   unsigned long progressMs;
   void handleUpdatePage(AsyncWebServerRequest* request);

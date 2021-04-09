@@ -34,10 +34,7 @@ static const char jsonResponse[] PROGMEM = "{\"code\":0,\"msg\":\"ok\"}";
 AUpdateServerClass::AUpdateServerClass(bool serial_debug,
                                        const String& username,
                                        const String& password)
-    : _server(nullptr),
-      _username(username),
-      _password(password),
-      _authenticated(false) {}
+    : _server(nullptr), _username(username), _password(password) {}
 
 void AUpdateServerClass::setup(std::shared_ptr<AsyncWebServer> server,
                                const String& path, const String& username,
@@ -68,32 +65,34 @@ void AUpdateServerClass::handleUpdatePage(AsyncWebServerRequest* request) {
 }
 
 void AUpdateServerClass::handleUploadEnd(AsyncWebServerRequest* request) {
-  if (!_authenticated) return request->requestAuthentication();
   ULOGN("[OTA] Update End!");
-  delay(500);
+  // delay(500);
   if (!Update.hasError()) {
+    auto userAgent = request->getHeader("User-Agent");
+    bool fromCurl =
+        userAgent != nullptr && userAgent->value().indexOf("curl") != -1;
     AsyncWebServerResponse* response;
-    if (request->hasHeader("X-Source")) {
-      response = request->beginResponse(200, "application/json", jsonResponse);
+    if (fromCurl || request->hasHeader("X-Source")) {
+      response =
+          request->beginResponse_P(200, "application/json", jsonResponse);
     } else {
-      response = request->beginResponse(200, "text/html", successResponse);
+      response = request->beginResponse_P(200, "text/html", successResponse);
       response->addHeader("Refresh", "15");
       response->addHeader("Location", "/");
     }
-    response->addHeader("Connection", "close");
     request->send(response);
-    delay(500);
+    delay(1000);
     request->client()->stop();
     request->client()->close();
     LOGN("[OTA] Update process done");
-    delay(500);
+    delay(1000);
     _shouldRestart = true;
   } else {
     request->send(200, "text/html",
                   String(F("Update error: ")) + _updaterError + "\n");
-    delay(500);
+    delay(1000);
     LOGN("[OTA] Update process abort");
-    delay(500);
+    delay(1000);
     _shouldRestart = false;
   }
 }
@@ -111,13 +110,6 @@ void AUpdateServerClass::handleUploadProgress(size_t progress, size_t total) {
 void AUpdateServerClass::handleUpload(AsyncWebServerRequest* request,
                                       const String& filename, size_t index,
                                       uint8_t* data, size_t len, bool final) {
-  _authenticated =
-      (_username == emptyString || _password == emptyString ||
-       request->authenticate(_username.c_str(), _password.c_str()));
-  if (!_authenticated) {
-    LOGF("[OTA] Unauthenticated Update\n");
-    return;
-  }
   if (!index) {
     ULOGN("[OTA] Update process INIT STAGE");
     LOGN("[OTA] Update Old: " + ESP.getSketchMD5());
