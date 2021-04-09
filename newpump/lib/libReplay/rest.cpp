@@ -80,7 +80,7 @@ static bool shouldSkipCmd(const char* cmd) {
 RestApi::RestApi(const RelayUnit& p) : pump(p) {}
 
 void RestApi::setup(std::shared_ptr<AsyncWebServer> server) {
-  ULOGN("[RestApi] setup()");
+  ULOGN("[RestApi] Setup API server");
   auto names = CommandManager.getCommandNames();
   for (auto name : names) {
     if (!shouldSkipCmd(name.c_str())) {
@@ -147,7 +147,7 @@ void RestApi::handleControl(AsyncWebServerRequest* r) {
   } else {
     cmd = pa->value();
   }
-  LOGF("[RestApi] handleControl: url=[%s]\n", r->url());
+  ULOGF("[RestApi] handleControl: url=[%s]\n", getCompleteUrl(r));
   if (cmd == emptyString) {
     auto res = errorResponse(
         -4, "Missing Parameter: [cmd] or Header: [Command]", getCompleteUrl(r));
@@ -184,6 +184,7 @@ void RestApi::jsonControl(const JsonVariant& doc, const String& arguments) {
   // format: url?args=cmd,arg1,arg2,arg3
   std::string args(arguments.c_str());
   if (ext::string::trim(args).empty()) {
+    doc["on"] = pump.isOn();
     doc["code"] = -2;
     doc["msg"] = "invalid command";
   } else {
@@ -192,6 +193,7 @@ void RestApi::jsonControl(const JsonVariant& doc, const String& arguments) {
     auto ret = CommandManager.handle(cmd);
     int code = ret ? 0 : -1;  // means not found
     String msg = ret ? "ok" : "unknown command";
+    doc["on"] = pump.isOn();
     doc["code"] = code;
     doc["msg"] = msg;
     // String.c_str() may not valid const char* str
@@ -233,8 +235,8 @@ void RestApi::jsonStatus(const JsonVariant& doc) {
 #ifdef ESP8266
   doc["chip_id"] = ESP.getChipId();
 #endif
-  doc["sketch"] = ESP.getSketchMD5().substring(0, 8);
-  doc["version"] = __TIMESTAMP__;
+  doc["sketch"] = ESP.getSketchMD5();
+  doc["version"] = String(__TIMESTAMP__);
 #ifdef DEBUG
   doc["debug"] = 1;
 #else

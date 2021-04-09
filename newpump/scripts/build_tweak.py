@@ -75,13 +75,25 @@ def process_build():
 
 
 def print_envs():
-    build_flags = env.ParseFlags(env['BUILD_FLAGS'])
-    print(build_flags.get("CPPDEFINES"))
-    print(build_flags.get("CXXFLAGS"))
+    # build_flags = env.ParseFlags(env['BUILD_FLAGS'])
+    # print(build_flags.get("CPPDEFINES"))
+    # print(build_flags.get("CXXFLAGS"))
+    print("========== PRE ENV ==========")
+    from pprint import pprint
+    # print(env.Dump())
+    # print(projenv.Dump())
+    print('========== BUILD_FLAGS ==========')
+    print(env['BUILD_FLAGS'])
+    print('========== CXXFLAGS ==========')
+    print(env['CXXFLAGS'])
+    print('========== CPPDEFINES ==========')
+    print(env['CPPDEFINES'])
 
 
 if is_build_env:
+    print("========== PRE ENV ==========")
     # process_os_envs()
     process_version()
     process_build()
     print_envs()
+    # print(env.Dump())

@@ -10,7 +10,7 @@ in_ci_build = False
 print("------ Code Check Script ------")
 
 try:
-    Import("env")
+    Import("env", "projenv")
     in_pio_build = True
     print("Pio build")
 except:
@@ -59,6 +59,24 @@ if not (in_pio_build or in_ci_build):
 # see http://docs.platformio.org/en/latest/projectconf/advanced_scripting.html#before-pre-and-after-post-actions
 # env.Replace(PROGNAME="firmware_%s" % defines.get("VERSION"))
 # env.Replace(PROGNAME="firmware_%s" % env['BOARD'])
+
+if in_pio_build:
+    print("========== POST ENV ==========")
+    from pprint import pprint
+    # print(env.Dump())
+    # print(projenv.Dump())
+    print('========== BUILD_FLAGS ==========')
+    print(projenv['BUILD_FLAGS'])
+    print('========== CCFLAGS ==========')
+    print(projenv['CCFLAGS'])
+    print('========== CFLAGS ==========')
+    print(projenv['CFLAGS'])
+    print('========== CXXFLAGS ==========')
+    print(projenv['CXXFLAGS'])
+    print('========== LINKFLAGS ==========')
+    print(projenv['LINKFLAGS'])
+    print('========== CPPDEFINES ==========')
+    print(projenv['CPPDEFINES'])
 
 if __name__ == "__main__":
     code_check(None, None, None)

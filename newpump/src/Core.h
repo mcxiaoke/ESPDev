@@ -29,14 +29,8 @@ extern RelayUnit pump;
 extern RestApi api;
 extern MQTTManager mqttClient;
 extern AWebServer webServer;
-
-void setupServer();
-String getStatus();
-void statusReport();
-void udpReport();
-void handleCommand(const CommandParam& param);
-void setupCommands();
-void setupTimers();
-void setupPump();
+extern bool _should_reboot_hello;
+void setupApp();
+void setupApi();
 
 #endif /* __MCX_SRC_CORE_HEADER__ */

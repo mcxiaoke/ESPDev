@@ -12,16 +12,19 @@ void beforeWiFi() {
 }
 void beforeServer() {
   DLOG();
-  setupServer();
+  setupApi();
 }
 
 void setupLast() {
   DLOG();
-  setupCommands();
-  setupTimers();
-  setupPump();
+  setupApp();
 }
 
-void loopFirst() {}
+void loopFirst() {
+  if (_should_reboot_hello) {
+    compat::restart();
+    delay(2000);
+  }
+}
 
 void loopLast() { pump.run(); }

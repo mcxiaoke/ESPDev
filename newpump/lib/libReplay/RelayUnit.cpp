@@ -13,9 +13,8 @@ static void updateStatusOnSop(const std::shared_ptr<RelayStatus>& st) {
 }
 
 std::string RelayConfig::toString() const {
-  return ext::format::strFormat2(
-      "RelayConfig(name=%s,pin=%d,interval=%lu,duration=%lu)", name, pin,
-      interval, duration);
+  return ext::format::strFormat2("Config(name=%s[%d],(%lus/%lus))", name, pin,
+                                 interval / 1000, duration / 1000);
 }
 
 void RelayStatus::reset() {
@@ -29,24 +28,21 @@ void RelayStatus::reset() {
 
 std::string RelayStatus::toString() const {
   return ext::format::strFormat2(
-      "RelayStatus(setup=%lu,reset=%lu,start=%lu,stop=%lu,"
+      "Status(setup=%lu,reset=%lu,start=%lu,stop=%lu,"
       "elapsed=%lu/%lu)",
       setupAt, timerResetAt, lastStart, lastStop, lastElapsed, totalElapsed);
 }
 
 RelayUnit::RelayUnit()
-    : pConfig(nullptr), pStatus(std::make_shared<RelayStatus>()) {
-  LOGN("RelayUnit::RelayUnit()");
-}
+    : pConfig(nullptr), pStatus(std::make_shared<RelayStatus>()) {}
 
 RelayUnit::RelayUnit(const RelayConfig& cfg)
     : pConfig(std::make_shared<RelayConfig>(cfg)),
-      pStatus(std::make_shared<RelayStatus>()) {
-  LOGN("RelayUnit::RelayUnit(cfg)");
-}
+      pStatus(std::make_shared<RelayStatus>()) {}
 
 void RelayUnit::begin(const RelayConfig& cfg) {
-  // LOGN("RelayUnit::begin");
+  LOGF("[Relay] With %s\n", cfg.toString());
+  DLOG();
   pinMode(cfg.pin, OUTPUT);
   pConfig = std::make_shared<RelayConfig>(cfg);
   pStatus->setupAt = millis();
@@ -58,6 +54,7 @@ void RelayUnit::begin(const RelayConfig& cfg) {
 void RelayUnit::run() { rTimer.loop(); }
 
 bool RelayUnit::start() {
+  DLOG();
   if (isOn()) {
     return false;
   }
@@ -78,6 +75,7 @@ bool RelayUnit::start() {
 }
 
 bool RelayUnit::stop() {
+  DLOG();
   if (!isOn()) {
     return false;
   }
@@ -91,15 +89,17 @@ bool RelayUnit::stop() {
 }
 
 void RelayUnit::check() {
-  //   LOGN("RelayUnit::check");
+  DLOG();
+  // LOGN("RelayUnit::check");
   if (isOn() && pStatus->lastStart > 0 &&
       (millis() - pStatus->lastStart) / 1000 >= pConfig->duration) {
-    LOGN(F("Stopped by watchdog"));
+    LOGN("Stopped by watchdog");
     stop();
   }
 }
 
 void RelayUnit::resetTimer() {
+  DLOG();
   // LOGN("RelayUnit::resetTimer");
   rTimer.reset();
   pStatus->reset();
@@ -117,6 +117,7 @@ bool RelayUnit::isOn() const { return pinValue() == HIGH; }
 bool RelayUnit::isTimerEnabled() const { return rTimer.isEnabled(runTimerId); }
 
 void RelayUnit::setTimerEnabled(bool enable) {
+  DLOG();
   LOGF("RelayUnit::setEnabled:%s\n", enable ? "true" : "false");
   if (enable == rTimer.isEnabled(runTimerId)) {
     return;
@@ -142,6 +143,7 @@ uint8_t RelayUnit::pin() const { return pConfig->pin; }
 uint8_t RelayUnit::pinValue() const { return digitalRead(pConfig->pin); }
 
 int RelayUnit::updateConfig(const RelayConfig& config) {
+  DLOG();
   LOGF("RelayUnit::updateConfig, old:%s\n", pConfig->toString().c_str());
   int changed = 0;
   if (config.pin > 0 && pConfig->pin != config.pin) {

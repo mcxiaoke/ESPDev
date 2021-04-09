@@ -1,5 +1,7 @@
 var serverVersion = "";
 const TIME_OUT_MS = 5000;
+var checkId = -1;
+var checkStart = 0;
 
 function newLine() {
   return document.createElement("p");
@@ -43,10 +45,10 @@ function buildOutputDiv(d) {
         $("<td>").text(moment.unix(d["boot_time"]).format("YYYY-MM-DD HH:mm:ss"))),
     $("<tr>")
       .attr("class", "p-head")
-      .append($("<td>").text("系统版本: "), $("<td>").text(d["revision"])),
-    $("<tr>")
-      .attr("class", "p-sketch")
-      .append($("<td>").text("固件指纹: "), $("<td>").text(d["sketch"])),
+      .append($("<td>").text("系统版本: "), $("<td>").text(d["version"])),
+    // $("<tr>")
+    //   .attr("class", "p-sketch")
+    //   .append($("<td>").text("固件指纹: "), $("<td>").text(d["sketch"])),
 
     $("<tr>")
       .attr("class", "p-head")
@@ -69,21 +71,28 @@ function buildOutputDiv(d) {
 }
 
 function buildFormDiv(d) {
+  let nowOn = d["on"];
   let btnPump = document.createElement("button");
-  btnPump.textContent = d["on"] ? "停止浇水" : "开始浇水";
+  btnPump.textContent = nowOn ? "停止浇水" : "开始浇水";
   btnPump.setAttribute("id", "btn-pump");
   btnPump.setAttribute("class", "important button-large");
   btnPump.onclick = function (e) {
-    let checkStart = new Date().getTime();
-    let checkId = setInterval(function () {
+    clearInterval(checkId);
+    checkStart = new Date().getTime();
+    checkId = setInterval(function () {
       loadData(false);
-      if (new Date().getTime() - checkStart > 15000) {
-        clearInterval(checkId);
-      }
     }, 1000);
     xhr = new XMLHttpRequest();
     xhr.onload = function () {
-      console.log("pump button.");
+      let d = JSON.parse(xhr.responseText);
+      console.log(" Action Data:", d);
+      if (new Date().getTime() - checkStart > 15000 || !d["on"]) {
+        console.log("Clear fetch api data timer.");
+        clearInterval(checkId);
+        checkStart = 0;
+        checkId = -1;
+        onReady();
+      }
       loadData(false);
     };
     xhr.open(
@@ -196,7 +205,7 @@ function buildButtonDiv() {
   btnRaw.setAttribute("class", "button-large");
   btnRaw.onclick = (e) => {
     window.open(
-      serverUrl + "/serial",
+      serverUrl + "/logs",
       "_blank"
     );
   };
@@ -276,7 +285,8 @@ function handleError(firstTime) {
 
 function loadData(firstTime) {
   serverUrl = serverUrl || window.localStorage["server-url"] || "";
-  console.log("loadData from ", serverUrl);
+  let apiUrl = serverUrl + "/api/status";
+  console.log("loadData from ", apiUrl);
   let xhr = new XMLHttpRequest();
   xhr.timeout = TIME_OUT_MS;
   xhr.ontimeout = function (e) {
@@ -315,7 +325,7 @@ function loadData(firstTime) {
     }
   };
   xhr.timeout = TIME_OUT_MS;
-  xhr.open("GET", serverUrl + "/api/status");
+  xhr.open("GET", apiUrl);
   xhr.setRequestHeader("Accept", "application/json");
   xhr.send();
   return false;
@@ -324,7 +334,7 @@ function loadData(firstTime) {
 function onReady(e) {
   $("#content").append(buildTitleDiv(false), buildButtonDiv());
   loadData(true);
-  setInterval(function () {
+  checkId = setInterval(function () {
     loadData(false);
   }, TIME_OUT_MS);
 }

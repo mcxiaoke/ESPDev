@@ -3,6 +3,10 @@
 RelayUnit pump;
 RestApi api(pump);
 
+bool _should_reboot_hello;
+void statusReport();
+void handleCommand(const CommandParam& param);
+
 String getFilesText() {
   auto items = listFiles();
   String text = "";
@@ -32,7 +36,8 @@ void sendMqttLog(const String& msg) {
 void cmdReboot(const CommandParam& param = CommandParam::INVALID) {
   LOGN(F("[Core] Reboot now"));
   sendMqttLog("System will reboot now");
-  compat::restart();
+  _should_reboot_hello = true;
+  // compat::restart();
 }
 
 void cmdReset(const CommandParam& param = CommandParam::INVALID) {
@@ -359,7 +364,7 @@ void handleControl(AsyncWebServerRequest* request) {
 
 void setupPump() {
   DLOG();
-  Serial.println("setupPump at PIN 13");
+  ULOGN("[App] setupPump at PIN 13");
   // default pin nodemcu D5, nodemcu-32s 13
   pump.begin({"pump", 13, RUN_INTERVAL_DEFAULT, RUN_DURATION_DEFAULT});
   pump.setCallback([](const RelayEvent evt, int reason) {
@@ -367,13 +372,13 @@ void setupPump() {
       case RelayEvent::Started: {
         digitalWrite(led, HIGH);
         String msg = F("[Core] Pump Started");
-        LOGN(msg);
+        LOGN(F("[Core] Pump Started"));
         // sendMqttStatus(msg);
       } break;
       case RelayEvent::Stopped: {
         digitalWrite(led, LOW);
         String msg = F("[Core] Pump Stopped");
-        LOGN(msg);
+        LOGN(F("[Core] Pump Stopped"));
         // sendMqttStatus(msg);
       } break;
       case RelayEvent::Enabled: {
@@ -426,13 +431,6 @@ void setupCommands() {
   CommandManager.addCommand("help", "show help", cmdHelp);
 }
 
-void setupServer() {
-  webServer.setup([](std::shared_ptr<AsyncWebServer> server) {
-    api.setup(server);
-    server->on("/help", handleHelp);
-  });
-}
-
 void udpReport() {
   if (!WiFi.isConnected()) {
     return;
@@ -442,5 +440,18 @@ void udpReport() {
 
 void setupTimers() {
   DLOG();
-  Timer.setInterval(30 * 1000L, udpReport, "udp_report");
+  Timer.setInterval(120 * 1000L, udpReport, "udp_report");
+}
+
+void setupApi() {
+  webServer.setup([](std::shared_ptr<AsyncWebServer> server) {
+    api.setup(server);
+    server->on("/help", handleHelp);
+  });
+}
+
+void setupApp() {
+  setupCommands();
+  setupTimers();
+  setupPump();
 }
