@@ -42,6 +42,34 @@ bool _setup_date() {
   return DateTime.isTimeValid();
 }
 
+void sendOnline() {
+  if (!WiFi.isConnected()) {
+    return;
+  }
+  ULOGF("%s Online (%s) (%s)", compat::getHostName(),
+        SafeMode.isEnabled() ? "Safe Mode" : "Normal Mode",
+        humanTimeMs(millis()));
+}
+
+void setupSafeMode() {
+  if (SafeMode.getLastSketchMD5() != ESP.getSketchMD5()) {
+    // firmware changed, clear safe mode
+    // Serial.println("[Core] Sketch changed, disable Safe Mode");
+    SafeMode.setEnable(false);
+  }
+  SafeMode.setup();
+  String reason = ESP.getResetReason();
+  String info = ESP.getResetInfo();
+  if ((reason && reason.indexOf("Exception") != -1) ||
+      (info && info.indexOf("Exception") != -1)) {
+    SafeMode.setEnable(true);
+  }
+  // Serial.println("[Core] Reset Reason: " + reason);
+  // Serial.println("[Core] Reset Info: " + info);
+  // Serial.printf("[Core] Safe Mode: %s\n",
+  //               SafeMode.isEnabled() ? "true" : "false");
+}
+
 void _before_setup() {
   Serial.begin(115200);
   Serial.println();
@@ -50,12 +78,15 @@ void _before_setup() {
   DLOG();
   Serial.println("=== SETUP:BEGIN ===");
   checkFileSystem();
-  SafeMode.setup();
   ALogger.init();
+  setupSafeMode();
   LOGN("======@@@ Booting Begin @@@======");
+  if (SafeMode.isEnabled()) {
+    LOGN("***** Boot on Safe Mode. *****");
+  }
 }
 
-void _setup_modules() {
+void setupModules() {
   auto e = SafeMode.isEnabled();
   ALogger.setSafeMode(e);
   AWiFi.setSafeMode(e);
@@ -74,24 +105,25 @@ void _after_setup() {
   LOGN("[Setup] Sketch: " + ESP.getSketchMD5());
   LOGN("[Setup] Date: " + DateTime.toISOString());
   LOGF("[Setup] Booting using time: %ds\n", runningMs / 1000);
-#if defined(DEBUG) || defined(DDEBUG_ESP_PORT)
+#if defined(DEBUG) || defined(DEBUG_ESP_PORT)
   LOGN("[Setup] Debug Mode");
 #else
   LOGN("[Setup] Release Mode");
 #endif
   if (SafeMode.isEnabled()) {
-    LOGN("****** Boot on Safe Mode. ******");
+    LOGN("***** Boot on Safe Mode. *****");
   }
   LOGN("======@@@ Booting Finished @@@======");
   Serial.println("=== SETUP:END ===");
+  SafeMode.saveLastSketchMD5();
 }
 
 void setup() {
   _before_setup();
-  _setup_modules();
-  if (!SafeMode.isEnabled()) {
-    beforeWiFi();
-  }
+  setupModules();
+  // if (!SafeMode.isEnabled()) {
+  //   beforeWiFi();
+  // }
   bool ret = _setup_wifi();
   if (!ret) {
     LOGN("[ERROR] WiFi Connect failed, will reboot.");
@@ -108,23 +140,26 @@ void setup() {
   if (!SafeMode.isEnabled()) {
     beforeServer();
   }
-  // ensure OTA is OK.
   webServer.begin();
   if (!SafeMode.isEnabled()) {
     mqttClient.begin();
+    Timer.setInterval(60 * 1000L, sendOnline, "udp_online");
     setupLast();
   }
   _after_setup();
+  // wrong use delay may cause crash
+  // https://github.com/khoih-prog/Blynk_WM/issues/24
 }
 
 void loop() {
   webServer.loop();
+  AWiFi.loop();
+  ALogger.loop();
   if (!SafeMode.isEnabled()) {
-    loopFirst();
-    AWiFi.loop();
+    // only on normal mode
+    // loopFirst();
     Timer.loop();
-    ALogger.loop();
     mqttClient.loop();
-    loopLast();
+    // loopLast();
   }
 }

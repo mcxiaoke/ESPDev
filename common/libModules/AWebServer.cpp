@@ -9,6 +9,10 @@ void AWebServer::setup(AWebServerFunc func) { func(server); }
 
 bool AWebServer::begin() {
   ULOGN(F("[WebServer] Setup Web Sever"));
+  AUpdateServer.setup(server);
+  AUpdateServer.begin();
+  AFileServer.setup(server);
+  AFileServer.begin();
   if (!this->isSafeMode()) {
     ULOGN(F("[WebServer] Add request handler for /"));
     server->on("/", [](AsyncWebServerRequest* request) {
@@ -33,10 +37,6 @@ bool AWebServer::begin() {
                  setShouldRestart(true);
                });
   }
-  AUpdateServer.setup(server);
-  AUpdateServer.begin();
-  AFileServer.setup(server);
-  AFileServer.begin();
   DefaultHeaders::Instance().addHeader(F("Access-Control-Allow-Origin"), "*");
   DefaultHeaders::Instance().addHeader(F("Access-Control-Allow-Headers"), "*");
   DefaultHeaders::Instance().addHeader(F("Cache-Control"), F("no-cache"));

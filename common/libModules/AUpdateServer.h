@@ -7,6 +7,7 @@
 #include <AModule.h>
 #include <Arduino.h>
 #include <ESPAsyncWebServer.h>
+#include <SafeMode.h>
 #include <WiFiClient.h>
 #include <WiFiUdp.h>
 #include <compat.h>

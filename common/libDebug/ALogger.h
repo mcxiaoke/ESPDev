@@ -4,6 +4,7 @@
 #include <AFileLogger.h>
 #include <AModule.h>
 #include <AUDPLogger.h>
+#include <SafeMode.h>
 
 #define LOGGER_FLAG_DISABLE (1 << 0)
 #define LOGGER_FLAG_SERIAL (1 << 1)

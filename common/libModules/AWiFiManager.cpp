@@ -26,7 +26,7 @@ bool AWiFiManagerClass::begin() {
   // default timeout 60 seconds
   while (!WiFi.isConnected() && (millis() - startMs) < timeoutMs) {
     delay(500);
-    if (millis() - lastConnectMs > 3000L) {
+    if (millis() - lastConnectMs > 5000L) {
       lastConnectMs = millis();
       if (!WiFi.isConnected()) {
         LOGF("[WiFi] Connecting... (%ds)\n", millis() / 1000);
@@ -88,9 +88,11 @@ void AWiFiManagerClass::configEventHandler() {
 void AWiFiManagerClass::checkConnection() {
   if (!WiFi.isConnected()) {
     WiFi.reconnect();
-    LOGN(F("[WiFi] Reconnecting..."));
+    LOGF("[WiFi] Reconnecting... %s",
+         SafeMode.isEnabled() ? "(Safe Mode)" : "");
   } else {
-    ULOGN("[WiFi] Network is OK!");
+    ULOGF("[WiFi] Network is OK! %s",
+          SafeMode.isEnabled() ? "(Safe Mode)" : "");
   }
 }
 

@@ -53,14 +53,26 @@ size_t ALoggerClass::logn(const char* s) {
 size_t ALoggerClass::log(const String& s) { return this->log(s.c_str()); }
 size_t ALoggerClass::logn(const String& s) { return this->logn(s.c_str()); }
 
-size_t ALoggerClass::ulog(const char* msg) {
-  Serial.println(msg);
-  return udp.print(msg);
+size_t ALoggerClass::ulog(const char* s) {
+  size_t n = 0;
+  if (flags & LOGGER_FLAG_SERIAL) {
+    n = Serial.println(s);
+  }
+  if (flags & LOGGER_FLAG_UDP) {
+    n = udp.print(s);
+  }
+  return n;
 }
 
 size_t ALoggerClass::ulog(const String& s) {
-  Serial.println(s);
-  return udp.print(s);
+  size_t n = 0;
+  if (flags & LOGGER_FLAG_SERIAL) {
+    n = Serial.println(s);
+  }
+  if (flags & LOGGER_FLAG_UDP) {
+    n = udp.print(s);
+  }
+  return n;
 }
 
 ALoggerClass ALogger;

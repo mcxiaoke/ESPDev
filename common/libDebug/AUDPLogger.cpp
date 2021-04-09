@@ -63,7 +63,7 @@ size_t AUDPLogger::print(const char* msg) {
   this->before();
   size_t nw = udp.print(msg);
   this->end();
-  delay(5);
+  // delay(5);
   return nw;
 }
 size_t AUDPLogger::println(const char* msg) { return this->print(msg); }
@@ -103,7 +103,7 @@ void AUDPLogger::processQueue() {
     auto msg = this->pms.front();
     this->println(msg.content + " [" + msg.createdAt + "]");
     pms.pop();
-    delay(200);
+    delay(100);
   }
 }
 
@@ -113,7 +113,7 @@ void AUDPLogger::handleCmd(const char* cmd) {
   }
   if (strcmp(cmd, "/reboot") == 0) {
     this->print("Now rebooting...");
-    delay(200);
+    delay(100);
     compat::restart();
   } else if (strcmp(cmd, "/ip") == 0) {
     this->print(WiFi.localIP().toString());

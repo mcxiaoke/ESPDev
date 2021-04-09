@@ -16,11 +16,11 @@
 extern AWebServer webServer;
 extern MQTTManager mqttClient;
 
-extern void beforeWiFi();
+// extern void beforeWiFi();
 extern void beforeServer();
 extern void setupLast();
-extern void loopFirst();
-extern void loopLast();
+// extern void loopFirst();
+// extern void loopLast();
 extern void onWiFiReady();
 extern void onWiFiLost();
 

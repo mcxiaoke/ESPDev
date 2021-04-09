@@ -84,6 +84,7 @@ void AUpdateServerClass::handleUploadEnd(AsyncWebServerRequest* request) {
     delay(1000);
     request->client()->stop();
     request->client()->close();
+    SafeMode.setEnable(false);
     LOGN("[OTA] Update process done");
     delay(1000);
     setShouldRestart(true);

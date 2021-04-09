@@ -244,7 +244,7 @@ void MQTTManager::loop() {
   if (!WiFi.isConnected()) {
     return;
   }
-  if (ms - _lastCheckMs > (CUSTOM_MQTT_KEEPALIVE * 10) * 1000L) {
+  if (ms - _lastCheckMs > (CUSTOM_MQTT_KEEPALIVE * 10 + 5) * 1000L) {
     _lastCheckMs = ms;
     check();
   }
