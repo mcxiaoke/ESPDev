@@ -20,6 +20,8 @@
 // extern void onWiFiLost();
 // ==============================
 
+void beforeWiFi() {}
+
 void beforeServer() {
   DLOG();
   auto server = webServer.getServer();
@@ -29,6 +31,10 @@ void beforeServer() {
 }
 
 void setupLast() { DLOG(); }
+
+void loopFirst() {}
+
+void loopLast() {}
 
 void onWiFiReady() { DLOG(); }
 void onWiFiLost() { DLOG(); }

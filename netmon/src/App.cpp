@@ -16,7 +16,7 @@ void sendMessage(String title, String content = "") {
   wifiHttpGet(wxUrl, client);
 }
 
-void sendOnline() {
+void sendDeviceOnline() {
   sendMessage(
       "LAN Monitor " + compat::getHostName() + " Online",
       "IP: " + WiFi.localIP().toString() + F(" (Lan Device Online Monitor)"));
@@ -59,7 +59,8 @@ void setupApp() {
   Timer.setInterval(
       2 * 60 * 1000L, []() { checkPorts(false); }, "checkPorts");
   // send online message every 12 hours
-  Timer.setInterval(12 * 60 * 60 * 1000L, sendOnline, "sendOnline");
+  Timer.setInterval(12 * 60 * 60 * 1000L, sendDeviceOnline,
+                    "send_device_online");
   checkPorts(true);
-  sendOnline();
+  sendDeviceOnline();
 }

@@ -3,7 +3,6 @@
 RelayUnit pump;
 RestApi api(pump);
 
-bool _should_reboot_hello;
 void statusReport();
 void handleCommand(const CommandParam& param);
 
@@ -36,8 +35,7 @@ void sendMqttLog(const String& msg) {
 void cmdReboot(const CommandParam& param = CommandParam::INVALID) {
   LOGN(F("[Core] Reboot now"));
   sendMqttLog("System will reboot now");
-  _should_reboot_hello = true;
-  // compat::restart();
+  compat::restart();
 }
 
 void cmdReset(const CommandParam& param = CommandParam::INVALID) {
@@ -431,18 +429,6 @@ void setupCommands() {
   CommandManager.addCommand("help", "show help", cmdHelp);
 }
 
-void udpReport() {
-  if (!WiFi.isConnected()) {
-    return;
-  }
-  ULOGF("%s Online (%s)", compat::getHostName(), humanTimeMs(millis()));
-}
-
-void setupTimers() {
-  DLOG();
-  Timer.setInterval(120 * 1000L, udpReport, "udp_report");
-}
-
 void setupApi() {
   webServer.setup([](std::shared_ptr<AsyncWebServer> server) {
     api.setup(server);
@@ -452,6 +438,5 @@ void setupApi() {
 
 void setupApp() {
   setupCommands();
-  setupTimers();
   setupPump();
 }

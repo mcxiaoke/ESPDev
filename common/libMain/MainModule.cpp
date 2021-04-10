@@ -8,7 +8,9 @@ static unsigned long runningMs;
 AWebServer webServer(80);
 MQTTManager mqttClient(MQTT_SERVER, MQTT_PORT, MQTT_USER, MQTT_PASS);
 
-bool _setup_wifi() {
+String _main_get_app_name() { return compat::getHostName(); }
+
+bool _main_setup_wifi() {
   DLOG();
   AWiFi.onWiFiReady(onWiFiReady);
   AWiFi.onWiFiLost(onWiFiLost);
@@ -16,7 +18,7 @@ bool _setup_wifi() {
   return AWiFi.begin();
 }
 
-bool _setup_date() {
+bool _main_setup_date() {
   DLOG();
   if (!WiFi.isConnected()) {
     return false;
@@ -42,16 +44,15 @@ bool _setup_date() {
   return DateTime.isTimeValid();
 }
 
-void sendOnline() {
+void _main_send_online() {
   if (!WiFi.isConnected()) {
     return;
   }
-  ULOGF("%s Online (%s) (%s)", compat::getHostName(),
-        SafeMode.isEnabled() ? "Safe Mode" : "Normal Mode",
-        humanTimeMs(millis()));
+  ULOGF("%s Online <%s> (%s)", _main_get_app_name(),
+        SafeMode.isEnabled() ? "S" : "N", humanTimeMs(millis()));
 }
 
-void setupSafeMode() {
+void _main_setup_safe_mode() {
   if (SafeMode.getLastSketchMD5() != ESP.getSketchMD5()) {
     // firmware changed, clear safe mode
     // Serial.println("[Core] Sketch changed, disable Safe Mode");
@@ -70,7 +71,7 @@ void setupSafeMode() {
   //               SafeMode.isEnabled() ? "true" : "false");
 }
 
-void _before_setup() {
+void _main_before_setup() {
   Serial.begin(115200);
   Serial.println();
   Serial.println();
@@ -79,14 +80,14 @@ void _before_setup() {
   Serial.println("=== SETUP:BEGIN ===");
   checkFileSystem();
   ALogger.init();
-  setupSafeMode();
+  _main_setup_safe_mode();
   LOGN("======@@@ Booting Begin @@@======");
   if (SafeMode.isEnabled()) {
     LOGN("***** Boot on Safe Mode. *****");
   }
 }
 
-void setupModules() {
+void _main_setup_modules() {
   auto e = SafeMode.isEnabled();
   ALogger.setSafeMode(e);
   AWiFi.setSafeMode(e);
@@ -96,7 +97,7 @@ void setupModules() {
   mqttClient.setSafeMode(e);
 }
 
-void _after_setup() {
+void _main_after_setup() {
   DLOG();
   runningMs = millis();
   LOGF("[Setup] Build: %s\n", __TIMESTAMP__);
@@ -119,19 +120,19 @@ void _after_setup() {
 }
 
 void setup() {
-  _before_setup();
-  setupModules();
-  // if (!SafeMode.isEnabled()) {
-  //   beforeWiFi();
-  // }
-  bool ret = _setup_wifi();
+  _main_before_setup();
+  _main_setup_modules();
+  if (!SafeMode.isEnabled()) {
+    beforeWiFi();
+  }
+  bool ret = _main_setup_wifi();
   if (!ret) {
     LOGN("[ERROR] WiFi Connect failed, will reboot.");
     compat::restart();
     return;
   }
   ALogger.begin();
-  ret = _setup_date();
+  ret = _main_setup_date();
   if (!ret) {
     LOGN("[ERROR] Date Sync failed, will reboot.");
     compat::restart();
@@ -143,10 +144,10 @@ void setup() {
   webServer.begin();
   if (!SafeMode.isEnabled()) {
     mqttClient.begin();
-    Timer.setInterval(60 * 1000L, sendOnline, "udp_online");
+    Timer.setInterval(60 * 1000L, _main_send_online, "_main_send_online");
     setupLast();
   }
-  _after_setup();
+  _main_after_setup();
   // wrong use delay may cause crash
   // https://github.com/khoih-prog/Blynk_WM/issues/24
 }
@@ -157,9 +158,9 @@ void loop() {
   ALogger.loop();
   if (!SafeMode.isEnabled()) {
     // only on normal mode
-    // loopFirst();
+    loopFirst();
     Timer.loop();
     mqttClient.loop();
-    // loopLast();
+    loopLast();
   }
 }

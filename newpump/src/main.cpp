@@ -6,10 +6,7 @@ void onWiFiReady() {}
 
 void onWiFiLost() {}
 
-void beforeWiFi() {
-  DLOG();
-  pinMode(led, OUTPUT);
-}
+void beforeWiFi() { DLOG(); }
 void beforeServer() {
   DLOG();
   setupApi();
@@ -20,11 +17,6 @@ void setupLast() {
   setupApp();
 }
 
-void loopFirst() {
-  if (_should_reboot_hello) {
-    compat::restart();
-    delay(2000);
-  }
-}
+void loopFirst() {}
 
 void loopLast() { pump.run(); }
