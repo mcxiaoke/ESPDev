@@ -1,5 +1,27 @@
 #include <AWiFiManager.h>
 
+static String stateToString(int state) {
+  switch (state) {
+    case WL_IDLE_STATUS:
+      return "WL_IDLE_STATUS";
+    case WL_NO_SSID_AVAIL:
+      return "WL_NO_SSID_AVAIL";
+    case WL_SCAN_COMPLETED:
+      return "WL_SCAN_COMPLETED";
+    case WL_CONNECTED:
+      return "WL_CONNECTED";
+    case WL_CONNECT_FAILED:
+      return "WL_CONNECT_FAILED";
+    case WL_CONNECTION_LOST:
+      return "WL_CONNECTION_LOST";
+    case WL_DISCONNECTED:
+      return "WL_DISCONNECTED";
+    default:
+      return "WL_UNKNOWN";
+      break;
+  }
+}
+
 AWiFiManagerClass::AWiFiManagerClass(WiFiMode_t _mode) : mode(_mode) {}
 
 AWiFiManagerClass::~AWiFiManagerClass() {}
@@ -15,6 +37,7 @@ void AWiFiManagerClass::setCredentials(const char* _ssid,
 }
 
 bool AWiFiManagerClass::begin() {
+  _lastState = WL_IDLE_STATUS;
   WiFi.mode(mode);
   WiFi.setAutoConnect(true);
   WiFi.setAutoReconnect(true);
@@ -33,6 +56,7 @@ bool AWiFiManagerClass::begin() {
       }
     }
   }
+  checkStatus();
   lastConnectMs = 0;
   if (!WiFi.isConnected()) {
     LOGN(F("[WiFi] Connect failed."));
@@ -47,17 +71,20 @@ void AWiFiManagerClass::loop() {
   if (now - lastCheckMs > checkIntervalMs) {
     lastCheckMs = now;
     checkConnection();
+    checkStatus();
   }
 }
 
 void AWiFiManagerClass::onConnected() {
   LOGF("[WiFi] Connected, IP: %s\n", WiFi.localIP().toString());
+  checkStatus();
   if (readyCallback) {
     readyCallback();
   }
 }
 
 void AWiFiManagerClass::onDisconnected() {
+  checkStatus();
   if (lostCallback) {
     lostCallback();
   }
@@ -66,8 +93,9 @@ void AWiFiManagerClass::onDisconnected() {
 void AWiFiManagerClass::configEventHandler() {
 #if defined(ESP8266)
   h0 = WiFi.onStationModeConnected(
-      [](const WiFiEventStationModeConnected& event) {
+      [this](const WiFiEventStationModeConnected& event) {
         // LOGN("[WiFi] Connected");
+        checkStatus();
       });
   h1 = WiFi.onStationModeGotIP(
       [this](const WiFiEventStationModeGotIP& event) { onConnected(); });
@@ -93,6 +121,14 @@ void AWiFiManagerClass::checkConnection() {
   } else {
     ULOGF("[WiFi] Network is OK! %s",
           SafeMode.isEnabled() ? "(Safe Mode)" : "");
+  }
+}
+
+void AWiFiManagerClass::checkStatus() {
+  int newState = WiFi.status();
+  if (_lastState != newState) {
+    _lastState = newState;
+    LOGF("[WiFi] State changed to %s\n", stateToString(newState));
   }
 }
 

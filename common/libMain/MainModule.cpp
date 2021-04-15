@@ -44,6 +44,11 @@ bool _main_setup_date() {
   return DateTime.isTimeValid();
 }
 
+void _main_live_check() {
+  LOGF("[Core] Everything is OK! <%s> (%s)", SafeMode.isEnabled() ? "S" : "N",
+       humanTimeMs(millis()));
+}
+
 void _main_send_online() {
   if (!WiFi.isConnected()) {
     return;
@@ -59,12 +64,14 @@ void _main_setup_safe_mode() {
     SafeMode.setEnable(false);
   }
   SafeMode.setup();
+#ifdef ESP8266
   String reason = ESP.getResetReason();
   String info = ESP.getResetInfo();
   if ((reason && reason.indexOf("Exception") != -1) ||
       (info && info.indexOf("Exception") != -1)) {
     SafeMode.setEnable(true);
   }
+#endif
   // Serial.println("[Core] Reset Reason: " + reason);
   // Serial.println("[Core] Reset Info: " + info);
   // Serial.printf("[Core] Safe Mode: %s\n",
@@ -144,6 +151,8 @@ void setup() {
   webServer.begin();
   if (!SafeMode.isEnabled()) {
     mqttClient.begin();
+    Timer.setInterval(4 * 60 * 60 * 1000L, _main_live_check,
+                      "_main_live_check");
     Timer.setInterval(60 * 1000L, _main_send_online, "_main_send_online");
     setupLast();
   }

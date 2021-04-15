@@ -3,6 +3,10 @@
 
 #include <Arduino.h>
 #include <FS.h>
+#ifdef ESP32
+#include <SPIFFS.h>
+#endif
+
 // disable non-core modules
 static const char* SAFE_MODE_FILE = "/boot_safe_mode";
 // sketch md5 compare and check
@@ -14,7 +18,7 @@ class SafeModeClass {
   void _updateSafeMode() {
     if (_safeMode) {
       File f = SPIFFS.open(SAFE_MODE_FILE, "w");
-      f.write("S");
+      f.print('S');
       f.close();
     } else {
       SPIFFS.remove(SAFE_MODE_FILE);

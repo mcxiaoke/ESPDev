@@ -197,7 +197,7 @@ void MQTTManager::check() {
       sendOnline();
       initSubscribe();
     } else {
-      LOGF("[MQTT] Reconnect failed:%d\n", stateToString(_mqtt->state()));
+      LOGF("[MQTT] Reconnect failed:%s\n", stateToString(_mqtt->state()));
     }
   } else {
     ULOGN("[MQTT] Connection is OK!");

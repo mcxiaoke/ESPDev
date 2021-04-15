@@ -35,6 +35,7 @@ class AWiFiManagerClass : public AModuleInterface {
   const char* password;
   unsigned long lastCheckMs;
   unsigned long lastConnectMs;
+  int _lastState = 0;
 
  protected:
   unsigned long timeoutMs = WIFI_CONNECT_TIMEOUT_MS;
@@ -50,6 +51,7 @@ class AWiFiManagerClass : public AModuleInterface {
   void onDisconnected();
   void configEventHandler();
   void checkConnection();
+  void checkStatus();
 
  public:
   AWiFiManagerClass(WiFiMode_t _mode = WIFI_STA);
