@@ -46,7 +46,7 @@ class MQTTManager : public AModuleInterface {
   const char* _username;
   const char* _password;
   bool _silentMode;
-  int _lastState;
+  int _lastState = MQTT_DISCONNECTED;
   unsigned long _lastOnlineMs;
   unsigned long _lastOfflineMs;
   unsigned long _lastCheckMs;

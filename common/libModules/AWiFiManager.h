@@ -35,7 +35,7 @@ class AWiFiManagerClass : public AModuleInterface {
   const char* password;
   unsigned long lastCheckMs;
   unsigned long lastConnectMs;
-  int _lastState = 0;
+  int _lastState = WL_IDLE_STATUS;
 
  protected:
   unsigned long timeoutMs = WIFI_CONNECT_TIMEOUT_MS;

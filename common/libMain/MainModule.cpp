@@ -45,7 +45,7 @@ bool _main_setup_date() {
 }
 
 void _main_live_check() {
-  LOGF("[Core] Everything is OK! <%s> (%s)", SafeMode.isEnabled() ? "S" : "N",
+  LOGF("[Core] Everything is OK! <%s> (%s)\n", SafeMode.isEnabled() ? "S" : "N",
        humanTimeMs(millis()));
 }
 

@@ -62,9 +62,9 @@ bool AFileServerClass::handle(AsyncWebServerRequest* request) {
   ULOGN("[FileServer] Handling " + path);
   if (request->hasParam("delete")) {
     if (FileFS.exists(path)) {
-      LOGF("[FileServer] Delete %s\n", path);
       FileFS.remove(path);
       request->redirect("/");
+      LOGF("[FileServer] File '%s' Deleted\n", path);
       return true;
     }
     return false;

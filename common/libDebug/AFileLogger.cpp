@@ -1,7 +1,7 @@
 #include "AFileLogger.h"
 
 void AFileLogger::fpCheck() {
-  if (!this->fp) {
+  if (!this->fp || !FileFS.exists(this->path)) {
     DLOG();
     this->fp = FileFS.open(this->path, "a");
   }
