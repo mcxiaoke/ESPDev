@@ -7,7 +7,6 @@
 #include <WiFiUdp.h>
 #if defined(ESP8266)
 #include <ESP8266HTTPClient.h>
-// #include <ESP8266WebServer.h>
 #include <ESP8266WiFi.h>
 #include <ESP8266httpUpdate.h>
 #include <ESP8266mDNS.h>
@@ -18,10 +17,8 @@
 #include <HTTPClient.h>
 #include <SPIFFS.h>
 #include <Update.h>
-// #include <WebServer.h>
 #include <WiFi.h>
 #include <WiFiClientSecure.h>
-// #include <analogWrite.h>
 #endif
 
 #if USE_LITTLEFS

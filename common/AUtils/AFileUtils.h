@@ -5,8 +5,8 @@
 #include <MD5Builder.h>
 #include <compat.h>
 
-#include <ext/format.hpp>
 #include <ext/string.hpp>
+#include <ext/utils.hpp>
 
 // #include <umm_malloc/umm_malloc.h>
 

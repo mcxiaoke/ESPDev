@@ -13,8 +13,8 @@ static void updateStatusOnSop(const std::shared_ptr<RelayStatus>& st) {
 }
 
 std::string RelayConfig::toString() const {
-  return ext::format::strFormat2("Config(name=%s[%d],(%lus/%lus))", name, pin,
-                                 interval / 1000, duration / 1000);
+  return ext::strFormat2("Config(%s[%d],%lus/%lus)", name, pin, interval / 1000,
+                         duration / 1000);
 }
 
 void RelayStatus::reset() {
@@ -27,7 +27,7 @@ void RelayStatus::reset() {
 }
 
 std::string RelayStatus::toString() const {
-  return ext::format::strFormat2(
+  return ext::strFormat2(
       "Status(setup=%lu,reset=%lu,start=%lu,stop=%lu,"
       "elapsed=%lu/%lu)",
       setupAt, timerResetAt, lastStart, lastStop, lastElapsed, totalElapsed);

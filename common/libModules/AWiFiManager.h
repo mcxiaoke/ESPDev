@@ -9,8 +9,6 @@
 #ifndef __MCX_LIBWIFI_AWIFIMANAGER_HEADER__
 #define __MCX_LIBWIFI_AWIFIMANAGER_HEADER__
 
-#define DEFAULT_WIFI_CHECK_INTERVAL 5 * 60 * 1000L
-
 #include <AModule.h>
 #include <Arduino.h>
 #include <compat.h>
@@ -23,6 +21,7 @@
 
 #define LOG_TAG "[WiFi]"
 #define WIFI_CONNECT_TIMEOUT_MS 60 * 1000L
+#define DEFAULT_WIFI_CHECK_INTERVAL 5 * 60 * 1000L
 
 typedef std::function<void(void)> VoidEventFunc;
 

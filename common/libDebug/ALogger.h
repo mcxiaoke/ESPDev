@@ -25,8 +25,6 @@ class ALoggerClass : public AModuleInterface {
   AUDPLogger udp;
 
  public:
-  ALoggerClass(){};
-  ~ALoggerClass(){};
   const char* getModuleName() { return "ALogger"; }
   void init();
   bool begin();

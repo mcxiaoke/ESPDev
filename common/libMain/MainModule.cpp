@@ -1,8 +1,8 @@
 #include <MainModule.h>
 
-static const char* NTP_SERVERS[] = {"ntp.ntsc.ac.cn", "cn.ntp.org.cn",
-                                    "time.pool.aliyun.com", "time.apple.com",
-                                    "edu.ntp.org.cn"};
+static constexpr const char* NTP_SERVERS[] = {
+    "ntp.ntsc.ac.cn", "cn.ntp.org.cn", "time.pool.aliyun.com", "time.apple.com",
+    "edu.ntp.org.cn"};
 
 static unsigned long runningMs;
 AWebServer webServer(80);
@@ -25,16 +25,9 @@ bool _main_setup_date() {
   }
   runningMs = millis();
   DateTime.setTimeZone("CST-8");
-  size_t count = sizeof(NTP_SERVERS) / sizeof(NTP_SERVERS[0]);
-  for (size_t i = 0; i < count; i++) {
-    auto ntpServer = NTP_SERVERS[i];
-    LOGF("[Date] NTP Sync with %s\n", ntpServer);
-    DateTime.setServer(ntpServer);
-    DateTime.begin(5 * 1000L);
-    if (DateTime.isTimeValid()) {
-      break;
-    }
-  }
+  DateTime.setServer(NTP_SERVERS[0], NTP_SERVERS[1], NTP_SERVERS[2]);
+  LOGN("[Date] NTP Sync, Connect server...");
+  DateTime.begin();
   if (!DateTime.isTimeValid()) {
     LOGN(F("[Date] NTP Sync failed, will reboot"));
   } else {
@@ -44,9 +37,15 @@ bool _main_setup_date() {
   return DateTime.isTimeValid();
 }
 
+void _main_update_date() {
+  auto now = DateTime.ntpTime(2 * 1000L);
+  LOGF("[Date] Updated, Now:%s", formatDateTime(now));
+}
+
 void _main_live_check() {
-  LOGF("[Core] Everything is OK! <%s> (%s)\n", SafeMode.isEnabled() ? "S" : "N",
-       humanTimeMs(millis()));
+  time_t upSeconds = DateTime.getTime() - DateTime.getBootTime();
+  LOGF("[Core] Everything is OK! %s (%s)\n", SafeMode.isEnabled() ? "S" : "N",
+       humanTime(upSeconds));
 }
 
 void _main_send_online() {
@@ -71,11 +70,11 @@ void _main_setup_safe_mode() {
       (info && info.indexOf("Exception") != -1)) {
     SafeMode.setEnable(true);
   }
-#endif
   // Serial.println("[Core] Reset Reason: " + reason);
   // Serial.println("[Core] Reset Info: " + info);
   // Serial.printf("[Core] Safe Mode: %s\n",
   //               SafeMode.isEnabled() ? "true" : "false");
+#endif
 }
 
 void _main_before_setup() {
@@ -149,11 +148,18 @@ void setup() {
     beforeServer();
   }
   webServer.begin();
+  // millis() will overflow/reset after 50 days
   if (!SafeMode.isEnabled()) {
     mqttClient.begin();
-    Timer.setInterval(4 * 60 * 60 * 1000L, _main_live_check,
-                      "_main_live_check");
-    Timer.setInterval(60 * 1000L, _main_send_online, "_main_send_online");
+    // reboot every month
+    Timer.setInterval(ONE_MONTH_MS, compat::restart, "_restart_one_month");
+    // ntp sync every day
+    Timer.setInterval(ONE_DAY_MS, _main_update_date, "_main_update_date");
+    // live log every 4 hours
+    Timer.setInterval(4 * ONE_HOUR_MS, _main_live_check, "_main_live_check");
+    // send online every 5 minute
+    Timer.setInterval(5 * ONE_MINUTE_MS, _main_send_online,
+                      "_main_send_online");
     setupLast();
   }
   _main_after_setup();

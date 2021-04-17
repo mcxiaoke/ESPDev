@@ -6,6 +6,7 @@
 #include <compat.h>
 
 #include <ext/string.hpp>
+#include <ext/utils.hpp>
 #include <memory>
 #include <string>
 

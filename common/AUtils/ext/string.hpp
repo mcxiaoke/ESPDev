@@ -1,5 +1,5 @@
-#ifndef __EXT_STRINGS_HPP__
-#define __EXT_STRINGS_HPP__
+#ifndef __MCX_EXT_STRING_HEADER__
+#define __MCX_EXT_STRING_HEADER__
 
 // https://github.com/q191201771/libchef/blob/master/include/chef_base/chef_strings_op.hpp
 
@@ -416,4 +416,4 @@ inline string url_decode(const string& s) {
 }  // namespace string
 }  // namespace ext
 
-#endif
+#endif /* __MCX_EXT_STRING_HEADER__ */

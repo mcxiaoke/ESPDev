@@ -1,10 +1,10 @@
 #ifndef __MCX_LIBSERIAL_ADEBUG_HEADER__
 #define __MCX_LIBSERIAL_ADEBUG_HEADER__
 
-#include <DevDebug.h>
 #include <ALogger.h>
+#include <DevDebug.h>
 
-#include <ext/format.hpp>
+#include <ext/utils.hpp>
 
 // print logs only on debug mode
 // #if defined(DEBUG) || defined(EANBLE_LOGGING)
@@ -30,13 +30,13 @@
 
 template <typename Arg>
 void _log(Arg const& arg) {
-  auto s = ext::format::ArgConvert(arg);
+  auto s = ext::ArgConvert(arg);
   ALogger.log(s);
 }
 
 template <typename Arg>
 void _logn(Arg const& arg) {
-  auto s = ext::format::ArgConvert(arg);
+  auto s = ext::ArgConvert(arg);
   ALogger.logn(s);
 }
 
@@ -68,7 +68,7 @@ void _logn() {
 
 template <typename... Args>
 void _logf(char const* const format, Args const&... args) {
-  _log(ext::format::strFormat(format, args...));
+  _log(ext::strFormat(format, args...));
 }
 
 /**
@@ -103,13 +103,13 @@ void _ulog() {}
 
 template <typename Arg>
 void _ulog(Arg const& arg) {
-  auto s = ext::format::ArgConvert(arg);
+  auto s = ext::ArgConvert(arg);
   ALogger.ulog(s);
 }
 
 template <typename... Args>
 void _ulogf(char const* const format, Args const&... args) {
-  _ulog(ext::format::strFormat(format, args...));
+  _ulog(ext::strFormat(format, args...));
 }
 
 #endif /* __MCX_LIBSERIAL_ADEBUG_HEADER__ */

@@ -215,7 +215,7 @@ bool MQTTManager::begin() {
   }
   _lastCheckMs = millis();
   if (!_silentMode) {
-    ULOGN("[MQTT] Connecting to server");
+    LOGN("[MQTT] Connecting to server");
     connect();
   } else {
     LOGN(F("[MQTT] Silent Mode, don't connect"));

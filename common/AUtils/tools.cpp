@@ -17,25 +17,36 @@ String humanTime(unsigned long sec) {
   // 410/60 = 6m
   // 410%60 = 50
   // 50s
+  unsigned long d = sec / (24 * 3600);
+  if (d > 0) {
+    sec = sec % (24 * 3600);
+  }
   unsigned long h = sec / 3600;
+  if (h > 0) {
+    sec = sec % 3600;
+  }
   unsigned long m = (sec % 3600) / 60;
   unsigned long c = sec % 60;
   String s = "";
+  if (d > 0) {
+    s += d;
+    s += "d";
+  }
   if (h > 0) {
     s += h;
     s += "h";
   }
   if (m > 0) {
-    if (s.length() > 1) {
-      s += " ";
-    }
+    // if (s.length() > 1) {
+    //   s += " ";
+    // }
     s += m;
     s += "m";
   }
   if (c > 0) {
-    if (s.length() > 1) {
-      s += " ";
-    }
+    // if (s.length() > 1) {
+    //   s += " ";
+    // }
     s += c;
     s += "s";
   }

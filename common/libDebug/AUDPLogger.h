@@ -15,9 +15,6 @@ struct StringMessage {
 
 class AUDPLogger : public Stream {
  public:
-  AUDPLogger();
-  ~AUDPLogger();
-
   void setup();
   void before();
   void end();

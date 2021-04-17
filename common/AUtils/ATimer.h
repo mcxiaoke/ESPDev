@@ -27,6 +27,13 @@
 #ifndef _ARDUINO_TIMER_H_
 #define _ARDUINO_TIMER_H_
 
+#define ONE_MINUTE_MS 60 * 1000UL
+#define ONE_HOUR_MS 60 * ONE_MINUTE_MS
+#define ONE_DAY_MS 24 * ONE_HOUR_MS
+#define ONE_WEEK_MS 7 * ONE_DAY_MS
+#define ONE_MONTH_MS 30 * ONE_DAY_MS
+#define ONE_YEAR_MS 365 * ONE_DAY_MS
+
 #include <algorithm>
 #include <memory>
 #include <string>

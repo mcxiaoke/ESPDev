@@ -1,12 +1,9 @@
 #include "AUDPLogger.h"
 
 #define UDP_SERIAL_PORT 10000
-#define UDP_BUFFER_SIZE 256
+#define UDP_BUFFER_SIZE 512
 
 static char incomingPacket[UDP_BUFFER_SIZE + 1];
-
-AUDPLogger::AUDPLogger(){};
-AUDPLogger::~AUDPLogger(){};
 
 void AUDPLogger::before() {
   if (!conneted) {

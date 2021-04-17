@@ -8,7 +8,7 @@
 #include <PubSubClient.h>
 #include <compat.h>
 
-#define CUSTOM_MQTT_KEEPALIVE 30
+#define CUSTOM_MQTT_KEEPALIVE 30  // in seconds
 
 using std::string;
 
