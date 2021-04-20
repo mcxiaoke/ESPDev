@@ -39,7 +39,7 @@ bool _main_setup_date() {
 
 void _main_update_date() {
   auto now = DateTime.ntpTime(2 * 1000L);
-  LOGF("[Date] Updated, Now:%s", formatDateTime(now));
+  LOGF("[Date] Updated, Now:%s\n", formatDateTime(now));
 }
 
 void _main_live_check() {

@@ -25,7 +25,7 @@ String humanTime(unsigned long sec) {
   if (h > 0) {
     sec = sec % 3600;
   }
-  unsigned long m = (sec % 3600) / 60;
+  unsigned long m = sec / 60;
   unsigned long c = sec % 60;
   String s = "";
   if (d > 0) {
