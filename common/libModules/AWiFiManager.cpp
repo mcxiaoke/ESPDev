@@ -67,6 +67,9 @@ bool AWiFiManagerClass::begin() {
 }
 
 void AWiFiManagerClass::loop() {
+  if (SafeMode.isEnabled()) {
+    return;
+  }
   auto now = millis();
   if (now - lastCheckMs > checkIntervalMs) {
     lastCheckMs = now;
@@ -125,6 +128,9 @@ void AWiFiManagerClass::checkConnection() {
 }
 
 void AWiFiManagerClass::checkStatus() {
+  if (SafeMode.isEnabled()) {
+    return;
+  }
   int newState = WiFi.status();
   if (_lastState != newState) {
     _lastState = newState;

@@ -17,6 +17,9 @@ void AFileLogger::clear() {
   this->fp.close();
   String newPath = this->path;
   newPath += ".old";
+  if (FileFS.exists(newPath)) {
+    FileFS.remove(newPath);
+  }
   FileFS.rename(this->path, newPath);
   fpCheck();
 }

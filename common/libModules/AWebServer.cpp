@@ -13,36 +13,8 @@ bool AWebServer::begin() {
   AUpdateServer.begin();
   AFileServer.setup(server);
   AFileServer.begin();
-  if (!this->isSafeMode()) {
-    ULOGN(F("[WebServer] Add request handler for /"));
-    server->on("/", [](AsyncWebServerRequest* request) {
-      if (FileFS.exists("/index.html")) {
-        request->send(FileFS, "/index.html");
-      } else {
-        request->send(200, MIME_TEXT_PLAIN, compat::getHostName());
-      }
-    });
-    ULOGN(F("[WebServer] Add request handler for /clear"));
-    server->on("/clear", HTTP_POST | HTTP_GET,
-               [](AsyncWebServerRequest* request) {
-                 request->redirect("/");
-                 LOGN(F("[WebServer] Handing Clear Logs."));
-                 ALogger.clear();
-               });
-    ULOGN(F("[WebServer] Add request handler for /reboot"));
-    server->on("/reboot", HTTP_POST | HTTP_GET,
-               [this](AsyncWebServerRequest* request) {
-                 request->redirect("/");
-                 LOGN(F("[WebServer] Handling Reboot."));
-                 setShouldRestart(true);
-               });
-  }
-  DefaultHeaders::Instance().addHeader(F("Access-Control-Allow-Origin"), "*");
-  DefaultHeaders::Instance().addHeader(F("Access-Control-Allow-Headers"), "*");
-  DefaultHeaders::Instance().addHeader(F("Cache-Control"), F("no-cache"));
-  // DefaultHeaders::Instance().addHeader("Connection", "close");
-  ULOGN(F("[WebServer] Add request handler for /safe_mode_1"));
-  server->on("/safe_mode_1", HTTP_POST | HTTP_GET,
+  ULOGN(F("[WebServer] Add handler for /safe_mode/1"));
+  server->on("/safe_mode/1", HTTP_POST | HTTP_GET,
              [this](AsyncWebServerRequest* request) {
                request->redirect("/");
                if (SafeMode.setEnable(true)) {
@@ -50,8 +22,9 @@ bool AWebServer::begin() {
                  setShouldRestart(true);
                }
              });
-  ULOGN(F("[WebServer] Add request handler for /safe_mode_0"));
-  server->on("/safe_mode_0", HTTP_POST | HTTP_GET,
+  delay(5);
+  ULOGN(F("[WebServer] Add handler for /safe_mode/0"));
+  server->on("/safe_mode/0", HTTP_POST | HTTP_GET,
              [this](AsyncWebServerRequest* request) {
                request->redirect("/");
                if (SafeMode.setEnable(false)) {
@@ -59,10 +32,44 @@ bool AWebServer::begin() {
                  setShouldRestart(true);
                }
              });
+  ULOGN(F("[WebServer] Add handler for /logs"));
+  server->on("/logs", [](AsyncWebServerRequest* request) {
+    request->send(FileFS, "/serial.log", "text/plain");
+  });
+  delay(5);
+  ULOGN(F("[WebServer] Add handler for /clear"));
+  server->on("/clear", HTTP_POST | HTTP_GET,
+             [](AsyncWebServerRequest* request) {
+               request->redirect("/");
+               LOGN(F("[WebServer] Handing Clear Logs."));
+               ALogger.clear();
+             });
+  delay(5);
+  ULOGN(F("[WebServer] Add handler for /reboot"));
+  server->on("/reboot", HTTP_POST | HTTP_GET,
+             [this](AsyncWebServerRequest* request) {
+               request->redirect("/");
+               ULOGN(F("[WebServer] Handling Reboot."));
+               setShouldRestart(true);
+             });
+  delay(5);
+  ULOGN(F("[WebServer] Add handler for /"));
+  server->on("/", [](AsyncWebServerRequest* request) {
+    if (FileFS.exists("/index.html")) {
+      request->send(FileFS, "/index.html");
+    } else {
+      request->send(200, MIME_TEXT_PLAIN, compat::getHostName());
+    }
+  });
+  delay(5);
+  DefaultHeaders::Instance().addHeader(F("Access-Control-Allow-Origin"), "*");
+  DefaultHeaders::Instance().addHeader(F("Access-Control-Allow-Headers"), "*");
+  DefaultHeaders::Instance().addHeader(F("Cache-Control"), F("no-cache"));
+  // DefaultHeaders::Instance().addHeader("Connection", "close");
   server->begin();
-  ULOGN(F("[WebServer] Web Sever started"));
+  LOGN(F("[WebServer] Web Sever started"));
   MDNS.addService("http", "tcp", port);
-  ULOGN(F("[WebServer] MDNS Service started"));
+  LOGN(F("[WebServer] MDNS Service started"));
   return true;
 }
 

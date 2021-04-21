@@ -160,7 +160,7 @@ void AUpdateServerClass::handleUpload(AsyncWebServerRequest* request,
 }
 
 bool AUpdateServerClass::begin() {
-  ULOGN("[OTA] Setup OTA Update Server");
+  LOGN("[OTA] Setup Update Server");
   _server->rewrite("/u", "/update");
   _server->on(_path.c_str(), HTTP_GET, [&](AsyncWebServerRequest* request) {
     handleUpdatePage(request);

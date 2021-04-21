@@ -83,13 +83,13 @@ void _main_before_setup() {
   Serial.println();
   delay(1000);
   DLOG();
-  Serial.println("=== SETUP:BEGIN ===");
+  Serial.println(F("=== SETUP:BEGIN ==="));
   checkFileSystem();
   ALogger.init();
   _main_setup_safe_mode();
-  LOGN("======@@@ Booting Begin @@@======");
+  LOGN(F("======@@@ Booting Begin @@@======"));
   if (SafeMode.isEnabled()) {
-    LOGN("***** Boot on Safe Mode. *****");
+    LOGN(F("***** Boot on Safe Mode. *****"));
   }
 }
 
@@ -106,22 +106,17 @@ void _main_setup_modules() {
 void _main_after_setup() {
   DLOG();
   runningMs = millis();
-  LOGF("[Setup] Build: %s\n", __TIMESTAMP__);
+  LOGF("[Setup] Build: %s %s\n", __TIME__, __DATE__);
   LOGF("[Setup] Host: %s (%s)\n", compat::getHostName(),
        WiFi.localIP().toString());
   LOGN("[Setup] Sketch: " + ESP.getSketchMD5());
   LOGN("[Setup] Date: " + DateTime.toISOString());
   LOGF("[Setup] Booting using time: %ds\n", runningMs / 1000);
 #if defined(DEBUG) || defined(DEBUG_ESP_PORT)
-  LOGN("[Setup] Debug Mode");
+  LOGN(F("[Setup] Debug Mode"));
 #else
-  LOGN("[Setup] Release Mode");
+  LOGN(F("[Setup] Release Mode"));
 #endif
-  if (SafeMode.isEnabled()) {
-    LOGN("***** Boot on Safe Mode. *****");
-  }
-  LOGN("======@@@ Booting Finished @@@======");
-  Serial.println("=== SETUP:END ===");
   SafeMode.saveLastSketchMD5();
 }
 
@@ -133,16 +128,18 @@ void setup() {
   }
   bool ret = _main_setup_wifi();
   if (!ret) {
-    LOGN("[ERROR] WiFi Connect failed, will reboot.");
+    LOGN(F("[ERROR] WiFi Connect failed, will reboot."));
     compat::restart();
     return;
   }
   ALogger.begin();
-  ret = _main_setup_date();
-  if (!ret) {
-    LOGN("[ERROR] Date Sync failed, will reboot.");
-    compat::restart();
-    return;
+  if (!SafeMode.isEnabled()) {
+    ret = _main_setup_date();
+    if (!ret) {
+      LOGN(F("[ERROR] Date Sync failed, will reboot."));
+      compat::restart();
+      return;
+    }
   }
   if (!SafeMode.isEnabled()) {
     beforeServer();
@@ -161,8 +158,13 @@ void setup() {
     Timer.setInterval(5 * ONE_MINUTE_MS, _main_send_online,
                       "_main_send_online");
     setupLast();
+    _main_after_setup();
   }
-  _main_after_setup();
+  if (SafeMode.isEnabled()) {
+    LOGN(F("***** Boot on Safe Mode. *****"));
+  }
+  LOGN(F("======@@@ Booting Finished @@@======"));
+  Serial.println(F("=== SETUP:END ==="));
   // wrong use delay may cause crash
   // https://github.com/khoih-prog/Blynk_WM/issues/24
 }

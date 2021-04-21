@@ -1,5 +1,8 @@
 #include "AFileServer.h"
 
+// static constexpr const char* SAFE_MODE_IGNORE PROGMEM =
+// "[FileServer] Safe Mode, ignore.";
+
 static String getFilesHtml() {
   auto items = listFiles();
   String html = "<ul>";
@@ -17,23 +20,11 @@ static String getFilesHtml() {
 }
 
 void AFileServerClass::setup(std::shared_ptr<AsyncWebServer> server) {
-  // if (this->isSafeMode()) {
-  //   Serial.println("FileServer Safe Mode");
-  //   return;
-  // }
-  ULOGN("[FileServer] Add request handler for /logs");
-  server->on("/logs", [](AsyncWebServerRequest* request) {
-    request->send(FileFS, "/serial.log", "text/plain");
-    // AsyncWebServerResponse* response =
-    //     request->beginResponse(FileFS, "/serial.log", MIME_TEXT_PLAIN);
-    // response->addHeader("Cache-Control", "no-cache");
-    // request->send(response);
-  });
-  ULOGN("[FileServer] Add request handler for /files");
+  ULOGN("[FileServer] Add handler for /files");
   server->on("/files", [](AsyncWebServerRequest* request) {
     request->send(200, MIME_TEXT_HTML, getFilesHtml());
   });
-  ULOGN("[FileServer] Add request handler for static files");
+  ULOGN("[FileServer] Add handler for static files");
   server->onNotFound([this](AsyncWebServerRequest* request) {
     if (!AFileServer.handle(request)) {
       String data = F("ERROR: NOT FOUND\nURI: ");
@@ -45,19 +36,11 @@ void AFileServerClass::setup(std::shared_ptr<AsyncWebServer> server) {
 }
 
 bool AFileServerClass::begin() {
-  // if (this->isSafeMode()) {
-  //   Serial.println("FileServer Safe Mode");
-  //   return true;
-  // }
-  ULOGN("[FileServer] Setup File Server");
+  LOGN(F("[FileServer] Setup File Server"));
   return true;
 };
 
 bool AFileServerClass::handle(AsyncWebServerRequest* request) {
-  // if (this->isSafeMode()) {
-  //   Serial.println("FileServer Safe Mode");
-  //   return false;
-  // }
   String path = request->url();
   ULOGN("[FileServer] Handling " + path);
   if (request->hasParam("delete")) {
