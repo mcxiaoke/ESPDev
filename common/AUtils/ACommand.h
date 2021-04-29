@@ -2,11 +2,13 @@
 #define __CHIP_COMMANDS_H__
 
 #include <Arduino.h>
+
 #include <algorithm>
+#include <ext/string.hpp>
 #include <functional>
 #include <map>
+#include <memory>
 #include <vector>
-#include <ext/string.hpp>
 
 using std::string;
 using std::vector;
@@ -30,8 +32,7 @@ struct CommandParam {
   const CommandSource source;
   CMD_CALLBACK_FUNC callback;
 
-  CommandParam(const string& name = "",
-               const vector<string> args = {},
+  CommandParam(const string& name = "", const vector<string> args = {},
                const unsigned int id = ++_id,
                const CommandSource source = ::NONE,
                const CMD_CALLBACK_FUNC callback = nullptr);
@@ -57,21 +58,20 @@ struct Command {
 class CommandManagerClass {
  public:
   bool handle(const CommandParam& param);
-  void addCommand(Command* cmd);
-  void addCommand(const string& name,
-                  const string& desc,
+  void addCommand(Command& cmd);
+  void addCommand(const string& name, const string& desc,
                   CMD_HANDLER_FUNC handler);
-  void removeCommand(Command* cmd);
+  void removeCommand(Command& cmd);
   void removeCommand(const string& name);
-  vector<Command*> getCommands();
+  vector<std::shared_ptr<Command>> getCommands();
   vector<string> getCommandNames();
   String getHelpDoc();
   void setDefaultHandler(CMD_HANDLER_FUNC handler);
 
  private:
   CMD_HANDLER_FUNC _defaultHandler = nullptr;
-  std::map<const std::string, Command> _handlers;
-  void _addHandler(Command* cmd);
+  std::map<const std::string, std::shared_ptr<Command>> _handlers;
+  void _addHandler(std::shared_ptr<Command> cmd);
   CMD_HANDLER_FUNC _getHandler(const string& name);
 };
 

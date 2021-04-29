@@ -126,7 +126,7 @@ int ASimpleTimer::setTimer(unsigned long interval, timer_callback_func action,
   if (action == nullptr) {
     return -1;
   }
-  std::unique_ptr<TimerTask> task(
+  std::shared_ptr<TimerTask> task(
       new TimerTask(interval, action, numRuns, _name));
   int id = task->id;
   task->offset = elapsed();
@@ -149,10 +149,10 @@ int ASimpleTimer::setTimeout(unsigned long interval, timer_callback_func action,
   return setTimer(interval, action, RUN_ONCE, name, debug);
 }
 
-TimerTask* ASimpleTimer::getTask(int taskId) const {
+std::shared_ptr<TimerTask> ASimpleTimer::getTask(int taskId) const {
   for (auto& task : tasks) {
     if (task->id == taskId) {
-      return task.get();
+      return task;
     }
   }
   return nullptr;
@@ -163,7 +163,7 @@ void ASimpleTimer::deleteTimer(int taskId) {
     return;
   }
   tasks.erase(std::remove_if(tasks.begin(), tasks.end(),
-                             [taskId](const std::unique_ptr<TimerTask>& t) {
+                             [taskId](const std::shared_ptr<TimerTask> t) {
                                return t->id == taskId;
                              }),
               tasks.end());

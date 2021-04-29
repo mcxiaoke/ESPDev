@@ -107,7 +107,7 @@ class ASimpleTimer {
                const String name = "task", bool debug = false);
 
   // return timer task struct
-  TimerTask* getTask(int taskId) const;
+  std::shared_ptr<TimerTask> getTask(int taskId) const;
 
   // destroy the specified timer
   void deleteTimer(int taskId);
@@ -149,7 +149,7 @@ class ASimpleTimer {
   // debug mode flag
   bool debugMode;
   // task array
-  std::vector<std::unique_ptr<TimerTask> > tasks;
+  std::vector<std::shared_ptr<TimerTask> > tasks;
 };
 
 extern ASimpleTimer Timer;  // define in cpp

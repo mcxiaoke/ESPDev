@@ -54,7 +54,7 @@ class RelayUnit {
   int updateConfig(const RelayConfig& config);
   std::shared_ptr<RelayConfig> getConfig() const;
   std::shared_ptr<RelayStatus> getStatus() const;
-  TimerTask* getRunTask() const;
+  std::shared_ptr<TimerTask> getRunTask() const;
 
  private:
   std::shared_ptr<RelayConfig> pConfig;

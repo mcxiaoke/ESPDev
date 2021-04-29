@@ -2,10 +2,8 @@
 
 unsigned long CommandParam::_id = 0;
 
-CommandParam::CommandParam(const string& name,
-                           const vector<string> args,
-                           const unsigned int id,
-                           const CommandSource source,
+CommandParam::CommandParam(const string& name, const vector<string> args,
+                           const unsigned int id, const CommandSource source,
                            const CMD_CALLBACK_FUNC callback)
     : name(name), args(args), id(id), source(source), callback(callback) {}
 
@@ -64,30 +62,29 @@ bool CommandManagerClass::handle(const CommandParam& param) {
   return false;
 }
 
-void CommandManagerClass::addCommand(Command* cmd) {
-  _addHandler(cmd);
+void CommandManagerClass::addCommand(Command& cmd) {
+  _addHandler(std::make_shared<Command>(cmd));
 }
 
-void CommandManagerClass::addCommand(const string& name,
-                                     const string& desc,
+void CommandManagerClass::addCommand(const string& name, const string& desc,
                                      CMD_HANDLER_FUNC handler) {
   Command cmd{name, desc, handler};
-  _addHandler(&cmd);
+  _addHandler(std::make_shared<Command>(cmd));
 }
 
-void CommandManagerClass::removeCommand(Command* cmd) {
-  _handlers.erase(cmd->name);
+void CommandManagerClass::removeCommand(Command& cmd) {
+  _handlers.erase(cmd.name);
 }
 
 void CommandManagerClass::removeCommand(const string& name) {
   _handlers.erase(name);
 }
 
-vector<Command*> CommandManagerClass::getCommands() {
-  vector<Command*> vs;
+vector<std::shared_ptr<Command>> CommandManagerClass::getCommands() {
+  vector<std::shared_ptr<Command>> vs;
   vs.reserve(_handlers.size());
   for (auto& kvp : _handlers) {
-    vs.push_back(&(kvp.second));
+    vs.push_back(kvp.second);
   }
   //   std::transform(_handlers.begin(), _handlers.end(), vs.begin(),
   //                  [](std::pair<const std::string, Command>& p) {
@@ -101,7 +98,7 @@ vector<string> CommandManagerClass::getCommandNames() {
   vector<string> vs;
   vs.reserve(_handlers.size());
   for (auto& kvp : _handlers) {
-    vs.push_back(kvp.second.name);
+    vs.push_back(kvp.second->name);
   }
   return vs;
 }
@@ -110,7 +107,7 @@ String CommandManagerClass::getHelpDoc() {
   String s("Commands: \n");
   for (auto const& kvp : _handlers) {
     auto const cmd = kvp.second;
-    s += cmd.toString().c_str();
+    s += cmd->toString().c_str();
     s += "\n";
   }
   return s;
@@ -120,13 +117,13 @@ void CommandManagerClass::setDefaultHandler(CMD_HANDLER_FUNC handler) {
   _defaultHandler = handler;
 }
 
-void CommandManagerClass::_addHandler(Command* cmd) {
-  _handlers.insert({cmd->name, *cmd});
+void CommandManagerClass::_addHandler(std::shared_ptr<Command> cmd) {
+  _handlers.insert({cmd->name, cmd});
 }
 
 CMD_HANDLER_FUNC CommandManagerClass::_getHandler(const string& name) {
   auto it = _handlers.find(name);
-  return it != _handlers.end() ? it->second.handler : nullptr;
+  return it != _handlers.end() ? it->second->handler : nullptr;
 }
 
 CommandManagerClass CommandManager;
