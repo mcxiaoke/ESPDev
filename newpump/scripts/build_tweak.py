@@ -68,10 +68,11 @@ def process_version():
 def process_build():
     # -std=c++14 is called -std=c++1y in old gcc versions (at least 4.9 and older)
     # xtensa-esp32-elf-g++ (crosstool-NG crosstool-ng-1.22.0-80-g6c4433a) 5.2.0
-    env.Replace(CXXFLAGS=[
-        "-fno-rtti",
-        "-std=c++1y"
-    ])
+    # env.Replace(CXXFLAGS=[
+    #     "-fno-rtti",
+    #     "-std=c++1y"
+    # ])
+    pass
 
 
 def print_envs():
