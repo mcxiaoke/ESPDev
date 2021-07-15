@@ -5,7 +5,9 @@ AWebServer::AWebServer(uint16_t _port)
 
 AWebServer::~AWebServer() {}
 
-void AWebServer::setup(AWebServerFunc func) { func(server); }
+void AWebServer::setup(AWebServerFunc func) {
+  func(server);
+}
 
 bool AWebServer::begin() {
   ULOGN(F("[WebServer] Setup Web Sever"));
@@ -68,12 +70,20 @@ bool AWebServer::begin() {
   // DefaultHeaders::Instance().addHeader("Connection", "close");
   server->begin();
   LOGN(F("[WebServer] Web Sever started"));
-  MDNS.addService("http", "tcp", port);
-  LOGN(F("[WebServer] MDNS Service started"));
+  if (!MDNS.begin(compat::getHostName())) {
+    LOGN("[WebServer] Cannot start mDNS responder");
+  } else {
+    MDNS.addService("http", "tcp", port);
+    LOGN("[WebServer] mDNS responder started");
+  }
+
   return true;
 }
 
 void AWebServer::loop() {
+#if defined(ESP8266)
+  MDNS.update();
+#endif
   if (shouldRestart()) {
     LOGN("[WebServer] Safe Mode changed, Reboot.");
     setShouldRestart(false);
@@ -81,7 +91,4 @@ void AWebServer::loop() {
     compat::restart();
   }
   AUpdateServer.loop();
-#if defined(ESP8266)
-  MDNS.update();
-#endif
 }
