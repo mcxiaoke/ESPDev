@@ -3,6 +3,7 @@
 #include <Arduino.h>
 
 #include <vector>
+#include <string>
 
 namespace ext {
 
@@ -22,10 +23,10 @@ const char* ArgConvert(std::vector<T> const& vec) noexcept {
   size_t size = vec.size();
   for (; i < size - 1; i++) {
     value += ArgConvert(vec[i]);
-    value += ",";
+    value.append(",");
   }
-  value += vec[i];
-  value += "]";
+  value.append(vec[i]);
+  value.append("]");
   return value.c_str();
 }
 

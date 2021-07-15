@@ -1,6 +1,8 @@
 #ifndef ESP_DEV_COMPAT_H
 #define ESP_DEV_COMPAT_H
 
+#define ARDUINOJSON_USE_LONG_LONG 1
+
 #include <Arduino.h>
 #include <FS.h>
 #include <WiFiClient.h>
