@@ -1,9 +1,8 @@
 // const serverUrl = "http://192.168.1.140";
 
 var serverUrl = "";
-if (location.href.indexOf("mcxiaoke.com") != -1) {
-  // serverUrl = location.protocol + "//pump.frps.mcxiaoke.com";
-  serverUrl = location.origin.replace("n1", "pump");
+if (location.href.indexOf("frps.mcxiaoke.com") !== -1) {
+  serverUrl = location.protocol + "//pump.frps.mcxiaoke.com";
 } else {
   serverUrl = "http://192.168.1.116";
 }
