@@ -232,7 +232,9 @@ String getStatus() {
   return data;
 }
 
-void statusReport() { sendMqttStatus(getStatus()); }
+void statusReport() {
+  sendMqttStatus(getStatus());
+}
 
 void handleStart(AsyncWebServerRequest* request) {
   DLOG();
@@ -398,10 +400,9 @@ void handleCommand(const CommandParam& param) {
   DLOG();
   auto processFunc = [param] {
     yield();
-    LOGN("[CMD] handleCommand");
-    // LOGN(param.toString().c_str());
+    LOGF("[CMD] handleCommand handle:%s\n", param.toString());
     if (!CommandManager.handle(param)) {
-      LOGN("[CMD] Unknown command");
+      LOGN("[CMD] handleCommand result:unknown");
     }
   };
   Timer.setTimeout(5, processFunc, "handleCommand");
@@ -427,6 +428,8 @@ void setupCommands() {
   CommandManager.addCommand("ioset", "gpio set [pin] [value]", cmdIOSet);
   CommandManager.addCommand("list", "show commands", cmdHelp);
   CommandManager.addCommand("help", "show help", cmdHelp);
+
+  mqttClient.setHandler(handleCommand);
 }
 
 void setupApi() {

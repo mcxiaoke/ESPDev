@@ -33,17 +33,37 @@ void AUDPLogger::setup() {
   processQueue();
 }
 
-int AUDPLogger::available() { return true; }
+int AUDPLogger::available() {
+  return true;
+}
 
-int AUDPLogger::peek() { return 1; }
-int AUDPLogger::read() { return 1; }
-void AUDPLogger::flush() { udp.flush(); }
-size_t AUDPLogger::write(uint8_t c) { return 0; }
-size_t AUDPLogger::print(char c) { return 0; }
-size_t AUDPLogger::print(int c) { return 0; }
-size_t AUDPLogger::print(unsigned int c) { return 0; }
-size_t AUDPLogger::print(long c) { return 0; }
-size_t AUDPLogger::print(unsigned long c) { return 0; }
+int AUDPLogger::peek() {
+  return 1;
+}
+int AUDPLogger::read() {
+  return 1;
+}
+void AUDPLogger::flush() {
+  udp.flush();
+}
+size_t AUDPLogger::write(uint8_t c) {
+  return 0;
+}
+size_t AUDPLogger::print(char c) {
+  return 0;
+}
+size_t AUDPLogger::print(int c) {
+  return 0;
+}
+size_t AUDPLogger::print(unsigned int c) {
+  return 0;
+}
+size_t AUDPLogger::print(long c) {
+  return 0;
+}
+size_t AUDPLogger::print(unsigned long c) {
+  return 0;
+}
 
 size_t AUDPLogger::print(const char* msg) {
   if (!msg) {
@@ -63,10 +83,20 @@ size_t AUDPLogger::print(const char* msg) {
   // delay(5);
   return nw;
 }
-size_t AUDPLogger::println(const char* msg) { return this->print(msg); }
+size_t AUDPLogger::println(const char* msg) {
+  auto n = this->print(msg);
+  this->print('\n');
+  return n;
+}
 
-size_t AUDPLogger::print(const String& s) { return this->print(s.c_str()); }
-size_t AUDPLogger::println(const String& s) { return this->println(s.c_str()); }
+size_t AUDPLogger::print(const String& s) {
+  return this->print(s.c_str());
+}
+size_t AUDPLogger::println(const String& s) {
+  auto n = this->print(s.c_str());
+  this->print('\n');
+  return n;
+}
 
 void AUDPLogger::loop() {
   if (!WiFi.isConnected()) {

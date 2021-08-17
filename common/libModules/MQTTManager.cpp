@@ -262,13 +262,11 @@ void MQTTManager::checkStateChange() {
 
 void MQTTManager::handleMessage(const char* _topic, const uint8_t* _payload,
                                 const unsigned int _length) {
-  Serial.println(_topic);
-  Serial.println((char*)_payload);
+  // Serial.println(_topic);
+  // Serial.println((char*)_payload);
   Serial.flush();
-  string topic("hello");
-  string message("world");
-  // string topic(_topic);
-  // string message(_payload, _payload + _length);
+  string topic(_topic);
+  string message(_payload, _payload + _length);
   if (strcmp("test", _topic) == 0) {
     LOGF("[MQTT] Test message: %s\n", message.c_str());
     sendMessage("test/resp", message.c_str());
@@ -284,7 +282,7 @@ void MQTTManager::handleMessage(const char* _topic, const uint8_t* _payload,
     // message = "/online";
   }
 
-  LOGF("[MQTT][%s] %s (%u)", topic.c_str(), message, _length);
+  LOGF("[MQTT][%s] %s (%u)\n", topic.c_str(), message, _length);
 
   // replace newline for log print
   message = ext::string::replace_all(message, "\n", " ");
